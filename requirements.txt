@@ -1,0 +1,9 @@
+plotly
+pandas
+streamlit
+folium
+fastapi
+uvicorn
+python-multipart
+jinja2
+aiofiles

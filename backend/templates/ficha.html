@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% set active_page = "ficha" %}
+{% block title %}Ficha T&eacute;cnica{% endblock %}
+
+{% block extra_head %}
+<style>
+    .ficha-doc {
+        max-width: 750px;
+        margin: 0 auto;
+        background: #fff;
+        border: 2px solid #333;
+        padding: 2.5rem 3rem;
+        font-family: 'Georgia', 'Times New Roman', serif;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #222;
+    }
+    .ficha-doc .titulo-estudio {
+        text-align: center;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.3rem;
+    }
+    .ficha-doc .titulo-ficha {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 1.8rem;
+    }
+    .ficha-doc .campo {
+        margin-bottom: 1rem;
+    }
+    .ficha-doc .campo .etiqueta {
+        font-weight: 700;
+        font-style: italic;
+    }
+    .ficha-doc .campo .valor {
+        font-weight: 400;
+    }
+    .ficha-doc .campo-bloque {
+        margin-bottom: 1rem;
+    }
+    .ficha-doc .campo-bloque .etiqueta {
+        font-weight: 700;
+        font-style: italic;
+        display: block;
+        margin-bottom: 0.2rem;
+    }
+    .ficha-doc .sub-linea {
+        padding-left: 1.5rem;
+    }
+    @media print {
+        .no-print { display: none !important; }
+        .ficha-doc { border: 1px solid #000; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <h2><i class="bi bi-file-earmark-bar-graph me-2"></i>Ficha T&#233;cnica</h2>
+    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-printer me-1"></i>Imprimir
+    </button>
+</div>
+
+{% if not eleccion %}
+<div class="alert alert-warning no-print">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    No hay elecci&#243;n activa. <a href="/elecciones" class="alert-link">Active una elecci&#243;n</a> primero.
+</div>
+{% elif re.centros_activos == 0 %}
+<div class="alert alert-warning no-print">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    No hay centros cargados. <a href="/tm" class="alert-link">Cargue una Tabla de Mesa</a> primero.
+</div>
+{% else %}
+
+<div class="ficha-doc">
+    <div class="titulo-estudio">
+        {{ eleccion["nombre"] }}
+    </div>
+    <div class="titulo-ficha">
+        Ficha T&#233;cnica
+    </div>
+
+    <!-- Ambito -->
+    <div class="campo">
+        <span class="etiqueta">&#193;mbito:</span>
+        <span class="valor">
+            {% if eleccion["tipo"] == "nacional" %}
+                Nacional. Rep&#250;blica Bolivariana de Venezuela.
+            {% elif eleccion["tipo"] == "regional" %}
+                Regional. Rep&#250;blica Bolivariana de Venezuela.
+            {% elif eleccion["tipo"] == "municipal" %}
+                Municipal. Rep&#250;blica Bolivariana de Venezuela.
+            {% elif eleccion["tipo"] == "asamblea" %}
+                Nacional. Asamblea Nacional. Rep&#250;blica Bolivariana de Venezuela.
+            {% endif %}
+        </span>
+    </div>
+
+    <!-- Universo -->
+    <div class="campo">
+        <span class="etiqueta">Universo:</span>
+        <span class="valor">
+            Poblaci&#243;n venezolana inscrita en el Registro Electoral del CNE, mayor de 18 a&#241;os.
+            N = {{ "{:,}".format(re.electores) }} electores en {{ "{:,}".format(re.centros_activos) }} centros de votaci&#243;n.
+        </span>
+    </div>
+
+    <!-- Tamano de la muestra -->
+    <div class="campo-bloque">
+        <span class="etiqueta">Tama&#241;o de la muestra:</span>
+        {% if muestra.get("total_centros", 0) > 0 %}
+        <div class="sub-linea">
+            {{ muestra.total_centros }} centros de votaci&#243;n / {{ "{:,}".format(muestra.electores) }} electores.
+        </div>
+        <div class="sub-linea">
+            Cobertura: {{ muestra.cobertura_pct }}% del Registro Electoral.
+        </div>
+        {% else %}
+        <div class="sub-linea"><em>Muestra a&#250;n no seleccionada.</em></div>
+        {% endif %}
+    </div>
+
+    <!-- Afijacion -->
+    <div class="campo">
+        <span class="etiqueta">Afijaci&#243;n:</span>
+        <span class="valor">Proporcional.</span>
+    </div>
+
+    <!-- Puntos de muestreo -->
+    <div class="campo">
+        <span class="etiqueta">Puntos de muestreo:</span>
+        <span class="valor">
+            {% if muestra.get("total_centros", 0) > 0 %}
+                {{ muestra.total_centros }} centros de votaci&#243;n en {{ muestra.estados_cubiertos }} estados.
+            {% else %}
+                <em>Pendiente de selecci&#243;n de muestra.</em>
+            {% endif %}
+        </span>
+    </div>
+
+    <!-- Procedimiento de muestreo -->
+    <div class="campo-bloque">
+        <span class="etiqueta">Procedimiento de muestreo:</span>
+        <div class="valor">
+            Poliet&#225;pico, estratificado por conglomerados, con selecci&#243;n de las unidades primarias
+            de muestreo (centros de votaci&#243;n) por criterio de volumen electoral y representatividad
+            hist&#243;rica. Los centros seleccionados son aquellos cuyo resultado en la elecci&#243;n
+            anterior se encuentra dentro de un margen de &#177;10 puntos porcentuales respecto al
+            resultado nacional. Se seleccionan los centros de mayor volumen de electores por cada
+            unidad geogr&#225;fica (estado), con excepciones para el Distrito Capital, La Guaira y
+            municipios de Caracas en el Estado Miranda, donde la selecci&#243;n se realiza por parroquia.
+            Los datos se recolectan mediante encuesta personal en los centros de votaci&#243;n.
+        </div>
+    </div>
+
+    <!-- Error muestral -->
+    <div class="campo-bloque">
+        <span class="etiqueta">Error muestral:</span>
+        <div class="valor">
+            {% if muestra.get("total_centros", 0) > 0 and error_muestral %}
+            Para un nivel de confianza del 95,5% (dos sigmas), y P = Q, el error te&#243;rico es de
+            &#177;{{ "%.2f"|format(error_muestral) }}% para el conjunto de la muestra y en el supuesto
+            de muestreo aleatorio simple. El error real puede variar seg&#250;n la distribuci&#243;n
+            geogr&#225;fica y la participaci&#243;n efectiva.
+            {% else %}
+            <em>Se calcular&#225; una vez seleccionada la muestra.</em>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Fecha -->
+    <div class="campo">
+        <span class="etiqueta">Fecha de realizaci&#243;n:</span>
+        <span class="valor">{{ eleccion["fecha"] }}</span>
+    </div>
+
+    <!-- Horario -->
+    <div class="campo">
+        <span class="etiqueta">Horario de operaci&#243;n:</span>
+        <span class="valor">
+            De {{ eleccion["hora_apertura"] }} a {{ eleccion["hora_cierre"] }} horas.
+        </span>
+    </div>
+</div>
+
+{% if muestra.get("total_centros", 0) > 0 %}
+<!-- Desglose por estado (fuera del documento formal) -->
+<div class="mt-4 no-print" style="max-width: 750px; margin: 0 auto;">
+    <h5 class="mb-3"><i class="bi bi-bar-chart me-2"></i>Distribuci&#243;n de la muestra por estado</h5>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover bg-white shadow-sm rounded">
+            <thead class="table-light">
+                <tr>
+                    <th>Estado</th>
+                    <th class="text-end">Centros</th>
+                    <th class="text-end">Electores</th>
+                    <th class="text-end">Mesas</th>
+                    <th class="text-end">% muestra</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for e in muestra_estados %}
+                <tr>
+                    <td class="fw-semibold">{{ e["estado"] }}</td>
+                    <td class="text-end">{{ e["centros"] }}</td>
+                    <td class="text-end">{{ "{:,}".format(e["electores"] or 0) }}</td>
+                    <td class="text-end">{{ e["mesas"] or 0 }}</td>
+                    <td class="text-end">
+                        {% if muestra.electores %}
+                        {{ "%.1f"|format((e["electores"] or 0) / muestra.electores * 100) }}%
+                        {% else %}&mdash;{% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot class="table-light fw-bold">
+                <tr>
+                    <td>TOTAL</td>
+                    <td class="text-end">{{ muestra.total_centros }}</td>
+                    <td class="text-end">{{ "{:,}".format(muestra.electores) }}</td>
+                    <td class="text-end">{{ muestra.mesas }}</td>
+                    <td class="text-end">100%</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

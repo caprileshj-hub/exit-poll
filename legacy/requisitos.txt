@@ -1,0 +1,19 @@
+Requisitos de Aprendizaje y Análisis - Business Analyst (Exit Poll Venezuela)
+
+1. Calidad de Datos (Prioridad Crítica)
+   - Resolución de Inconsistencias Geográficas: Actualmente, el sistema asigna erróneamente municipios de múltiples estados (Zulia, Miranda, etc.) al estado "AMAZONAS".
+     * Acción: Auditar la lógica de extracción en `extraer_estados_municipios.py`. Verificar si la propiedad `shapeGroup` del GeoJSON está viciada o si se debe forzar el uso de `NAME_1`.
+   - Normalización de Nombres: Definir reglas para tildes y grafías (ej. "PÁEZ" vs "PAEZ") para asegurar el cruce (JOIN) entre el Excel de resultados y el mapa.
+
+2. Dominio del Negocio
+   - Ponderación (Pesos): Comprender cómo el `dashboard_pesos.py` impacta la proyección final. Un peso incorrecto en un municipio mal asignado (por el error de Amazonas) distorsionará los resultados estatales.
+   - Métricas Electorales: Entender la diferencia entre "Ventaja" (Diferencia porcentual) y valores absolutos para validar los mapas de calor.
+
+3. Requisitos Técnicos para el Equipo de Desarrollo
+   - GeoJSON: Solicitar que se verifique la metadata del archivo `geoBoundaries-VEN-ADM2`.
+   - Dashboard: Definir validaciones en Streamlit (ej. alertas si un municipio tiene peso 0 o nulo).
+   - Visualización: Especificar los rangos de colores para el mapa (Folium). ¿Qué tono de rojo representa una ventaja de 10% vs 50%?
+
+4. Entregables del BA
+   - Diccionario de Datos Maestro: Lista oficial de Estados y Municipios para validar `inconsistencias.txt`.
+   - Matriz de Pruebas: Casos de prueba para verificar que un cambio de peso en el dashboard se refleje correctamente en el mapa.

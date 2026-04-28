@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% set active_page = "index" %}
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-clipboard2-data me-2"></i>Panel de Configuración</h2>
+
+{% if eleccion %}
+<div class="alert alert-info">
+    <i class="bi bi-broadcast me-2"></i>
+    <strong>Elección activa:</strong> {{ eleccion["nombre"] }}
+    <span class="badge bg-primary ms-2">{{ eleccion["tipo"] }}</span>
+    <span class="text-muted ms-2">{{ eleccion["fecha"] }}</span>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card card-stat shadow-sm">
+            <div class="card-body">
+                <div class="number">{{ stats.candidatos }}</div>
+                <div class="text-muted">Candidatos registrados</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-stat shadow-sm">
+            <div class="card-body">
+                <div class="number">{{ stats.centros_muestra }}</div>
+                <div class="text-muted">Centros en muestra</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-stat shadow-sm">
+            <div class="card-body">
+                <div class="number">{{ stats.centros_con_peso }}</div>
+                <div class="text-muted">Centros con peso asignado</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-3">
+        <a href="/elecciones" class="btn btn-outline-primary w-100 py-3">
+            <i class="bi bi-calendar-event d-block fs-3 mb-1"></i>Elecciones
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="/candidatos" class="btn btn-outline-primary w-100 py-3">
+            <i class="bi bi-people d-block fs-3 mb-1"></i>Candidatos
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="/ficha" class="btn btn-outline-primary w-100 py-3">
+            <i class="bi bi-file-earmark-bar-graph d-block fs-3 mb-1"></i>Ficha Técnica
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="/pesos" class="btn btn-outline-primary w-100 py-3">
+            <i class="bi bi-sliders d-block fs-3 mb-1"></i>Pesos
+        </a>
+    </div>
+</div>
+
+{% else %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    No hay ninguna elección activa.
+    <a href="/elecciones/nueva" class="alert-link">Crear una elección</a> para comenzar.
+</div>
+{% endif %}
+{% endblock %}

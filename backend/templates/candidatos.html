@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% set active_page = "candidatos" %}
+{% block title %}Candidatos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-people me-2"></i>Candidatos</h2>
+    {% if eleccion %}
+    <a href="/candidatos/nuevo" class="btn btn-primary">
+        <i class="bi bi-person-plus me-1"></i>Nuevo Candidato
+    </a>
+    {% endif %}
+</div>
+
+{% if msg %}
+<div class="alert alert-{{ cat }} alert-dismissible fade show">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+{% if not eleccion %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    No hay elección activa. <a href="/elecciones" class="alert-link">Active una elección</a> primero.
+</div>
+{% elif candidatos %}
+<p class="text-muted mb-3">
+    Elección activa: <strong>{{ eleccion["nombre"] }}</strong>
+    <span class="badge bg-primary ms-1">{{ eleccion["tipo"] }}</span>
+</p>
+
+<div class="row g-3">
+    {% for c in candidatos %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body d-flex gap-3">
+                {% if c["foto_url"] %}
+                <img src="{{ c['foto_url'] }}" class="foto-candidato" alt="{{ c['nombre'] }}">
+                {% else %}
+                <div class="foto-candidato bg-light d-flex align-items-center justify-content-center text-muted">
+                    <i class="bi bi-person fs-4"></i>
+                </div>
+                {% endif %}
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">{{ c["nombre"] }}</h6>
+                    <small class="text-muted">{{ c["partido"] or "Sin partido" }}</small>
+                    <div class="mt-1">
+                        <span class="badge badge-{{ c['bando'] }}">{{ c["bando"] }}</span>
+                        <span class="badge bg-light text-dark">{{ c["tipo"] }}</span>
+                        <span class="badge bg-light text-dark">#{{ c["orden"] }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent text-end">
+                <a href="/candidatos/{{ c['id'] }}/editar" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil"></i> Editar
+                </a>
+                <form method="post" action="/candidatos/{{ c['id'] }}/eliminar" class="d-inline"
+                      onsubmit="return confirm('¿Eliminar este candidato?')">
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-muted mb-3">
+    Elección activa: <strong>{{ eleccion["nombre"] }}</strong>
+</p>
+<div class="text-center text-muted py-5">
+    <i class="bi bi-person-x fs-1 d-block mb-2"></i>
+    No hay candidatos registrados para esta elección.
+</div>
+{% endif %}
+{% endblock %}

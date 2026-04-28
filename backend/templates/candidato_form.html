@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% set active_page = "candidatos" %}
+{% block title %}{{ "Editar" if candidato else "Nuevo" }} Candidato{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/candidatos">Candidatos</a></li>
+        <li class="breadcrumb-item active">{{ "Editar" if candidato else "Nuevo" }}</li>
+    </ol>
+</nav>
+
+<div class="card shadow-sm" style="max-width: 700px;">
+    <div class="card-body">
+        <h4 class="card-title mb-4">
+            <i class="bi bi-person me-2"></i>
+            {{ "Editar Candidato" if candidato else "Nuevo Candidato" }}
+        </h4>
+        <p class="text-muted">
+            Elección: <strong>{{ eleccion["nombre"] }}</strong>
+        </p>
+
+        <form method="post" action="/candidatos/guardar" enctype="multipart/form-data">
+            {% if candidato %}
+            <input type="hidden" name="cid" value="{{ candidato['id'] }}">
+            {% endif %}
+            <input type="hidden" name="id_eleccion" value="{{ eleccion['id'] }}">
+
+            <!-- Foto preview -->
+            <div class="mb-3 text-center">
+                {% if candidato and candidato["foto_url"] %}
+                <img src="{{ candidato['foto_url'] }}" class="foto-preview mb-2" id="preview"
+                     alt="{{ candidato['nombre'] }}">
+                {% else %}
+                <div class="foto-preview bg-light d-inline-flex align-items-center justify-content-center text-muted mb-2"
+                     id="preview-placeholder">
+                    <i class="bi bi-camera fs-2"></i>
+                </div>
+                <img src="" class="foto-preview mb-2 d-none" id="preview" alt="Preview">
+                {% endif %}
+                <div>
+                    <label class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-upload me-1"></i>Subir foto
+                        <input type="file" name="foto" accept="image/*" class="d-none" id="inputFoto">
+                    </label>
+                    <small class="text-muted d-block mt-1">JPG, PNG o WebP</small>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Nombre del Candidato</label>
+                <input type="text" name="nombre" class="form-control"
+                       value="{{ candidato['nombre'] if candidato else '' }}"
+                       placeholder="Nombre completo" required>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Partido</label>
+                    <input type="text" name="partido" class="form-control"
+                           value="{{ candidato['partido'] if candidato else '' }}"
+                           placeholder="Ej: PSUV, PJ, AD...">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Bando</label>
+                    <select name="bando" class="form-select">
+                        {% for b in ['gobierno','oposicion','otro'] %}
+                        <option value="{{ b }}" {{ 'selected' if candidato and candidato['bando']==b }}>
+                            {{ b|capitalize }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Tipo</label>
+                    <select name="tipo" class="form-select">
+                        {% for t in ['unico','nominal','lista','indigena'] %}
+                        <option value="{{ t }}" {{ 'selected' if candidato and candidato['tipo']==t }}>
+                            {{ t|capitalize }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">
+                        Único=presidencial/gobernador, Nominal=AN circuito, Lista=AN estado
+                    </small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Orden en pantalla</label>
+                    <input type="number" name="orden" class="form-control" min="1"
+                           value="{{ candidato['orden'] if candidato else 1 }}">
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>Guardar
+                </button>
+                <a href="/candidatos" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('inputFoto').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const img = document.getElementById('preview');
+        img.src = ev.target.result;
+        img.classList.remove('d-none');
+        const ph = document.getElementById('preview-placeholder');
+        if (ph) ph.classList.add('d-none');
+    };
+    reader.readAsDataURL(file);
+});
+</script>
+{% endblock %}

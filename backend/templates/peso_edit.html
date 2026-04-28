@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% set active_page = "pesos" %}
+{% block title %}Editar Peso{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/pesos">Pesos</a></li>
+        <li class="breadcrumb-item active">Editar</li>
+    </ol>
+</nav>
+
+<div class="card shadow-sm" style="max-width: 600px;">
+    <div class="card-body">
+        <h4 class="card-title mb-4">
+            <i class="bi bi-sliders me-2"></i>Editar Pesos del Centro
+        </h4>
+
+        <div class="mb-4 p-3 bg-light rounded">
+            <div class="row">
+                <div class="col-md-6">
+                    <small class="text-muted">Centro</small>
+                    <div class="fw-semibold">{{ centro["centro_nombre"] }}</div>
+                    <code>{{ centro["codigo_centro"] }}</code>
+                </div>
+                <div class="col-md-6">
+                    <small class="text-muted">Ubicación</small>
+                    <div>{{ centro["estado"] }} / {{ centro["municipio"] or "—" }}</div>
+                    <small class="text-muted">Electores: {{ "{:,}".format(centro["num_electores"] or 0) }}</small>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" action="/pesos/{{ centro['id_muestra'] }}/guardar">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Peso Parroquia</label>
+                <input type="number" name="peso_parroquia" class="form-control"
+                       step="0.000001" min="0" max="1"
+                       value="{{ centro['peso_parroquia'] }}">
+                <small class="text-muted">Proporción del centro dentro de la parroquia</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Peso Municipio</label>
+                <input type="number" name="peso_municipio" class="form-control"
+                       step="0.000001" min="0" max="1"
+                       value="{{ centro['peso_municipio'] }}">
+                <small class="text-muted">Proporción del centro dentro del municipio</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Peso Estado</label>
+                <input type="number" name="peso_estado" class="form-control"
+                       step="0.000001" min="0" max="1"
+                       value="{{ centro['peso_estado'] }}">
+                <small class="text-muted">Proporción del centro dentro del estado</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Peso Nacional</label>
+                <input type="number" name="peso_nacion" class="form-control"
+                       step="0.000001" min="0" max="1"
+                       value="{{ centro['peso_nacion'] }}">
+                <small class="text-muted">Proporción del centro a nivel nacional</small>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>Guardar
+                </button>
+                <a href="/pesos" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

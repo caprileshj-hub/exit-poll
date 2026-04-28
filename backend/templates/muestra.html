@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% set active_page = "muestra" %}
+{% block title %}Muestra{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-bullseye me-2"></i>Muestra</h2>
+    {% if eleccion %}
+    <a href="/muestra/generar" class="btn btn-primary">
+        <i class="bi bi-magic me-1"></i>Generar muestra automática
+    </a>
+    {% endif %}
+</div>
+
+{% if msg %}
+<div class="alert alert-{{ cat }} alert-dismissible fade show">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+{% if not eleccion %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    No hay elección activa. <a href="/elecciones" class="alert-link">Active una elección</a> primero.
+</div>
+{% elif muestra|length == 0 %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>
+    La elección <strong>{{ eleccion["nombre"] }}</strong> no tiene muestra.
+    Use el botón <strong>"Generar muestra automática"</strong> para crear una propuesta basada en resultados históricos.
+</div>
+
+{% if pct_nac %}
+<div class="card shadow-sm mb-4" style="max-width: 500px;">
+    <div class="card-body">
+        <h6 class="text-muted mb-2">Resultado nacional de referencia (2024)</h6>
+        <div class="d-flex gap-4">
+            <div><span class="badge badge-oposicion fs-6">Oposición: {{ pct_nac.oposicion }}%</span></div>
+            <div><span class="badge badge-gobierno fs-6">Gobierno: {{ pct_nac.gobierno }}%</span></div>
+        </div>
+        <small class="text-muted mt-2 d-block">
+            Se seleccionarán centros cuyo resultado histórico sea similar al nacional
+        </small>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+
+{# Muestra actual #}
+<div class="alert alert-success mb-3">
+    <i class="bi bi-check-circle me-2"></i>
+    <strong>{{ eleccion["nombre"] }}</strong> — {{ muestra|length }} centros en la muestra
+</div>
+
+{% if pct_nac %}
+<p class="text-muted small mb-3">
+    Referencia nacional 2024: Oposición {{ pct_nac.oposicion }}% / Gobierno {{ pct_nac.gobierno }}%
+</p>
+{% endif %}
+
+<div class="table-responsive">
+    <table class="table table-sm table-hover bg-white shadow-sm rounded" id="tablaMuestra">
+        <thead class="table-light">
+            <tr>
+                <th>Código</th>
+                <th>Centro</th>
+                <th>Estado</th>
+                <th>Municipio</th>
+                <th>Parroquia</th>
+                <th class="text-end">Electores</th>
+                <th class="text-end">Mesas</th>
+                <th class="text-end">%Opo</th>
+                <th class="text-end">%Gob</th>
+                <th class="text-end">Diff</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for m in muestra %}
+            {% set diff = ((m["pct_oposicion"] or 0) - pct_nac.get("oposicion", 0))|abs %}
+            <tr>
+                <td><code>{{ m["codigo_centro"] }}</code></td>
+                <td class="small">{{ m["centro_nombre"][:35] }}</td>
+                <td class="small">{{ m["estado"] }}</td>
+                <td class="small">{{ m["municipio"] or "—" }}</td>
+                <td class="small">{{ m["parroquia"] or "—" }}</td>
+                <td class="text-end">{{ "{:,}".format(m["num_electores"] or 0) }}</td>
+                <td class="text-end">{{ m["num_mesas"] or 0 }}</td>
+                <td class="text-end">
+                    {% if m["pct_oposicion"] is not none %}
+                    {{ "%.1f"|format(m["pct_oposicion"]) }}%
+                    {% else %}—{% endif %}
+                </td>
+                <td class="text-end">
+                    {% if m["pct_gobierno"] is not none %}
+                    {{ "%.1f"|format(m["pct_gobierno"]) }}%
+                    {% else %}—{% endif %}
+                </td>
+                <td class="text-end">
+                    {% if m["pct_oposicion"] is not none %}
+                    <span class="badge {% if diff <= 5 %}bg-success{% elif diff <= 10 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                        {{ "%.1f"|format(diff) }}
+                    </span>
+                    {% else %}—{% endif %}
+                </td>
+                <td>
+                    <form method="post" action="/muestra/{{ m['id'] }}/quitar" class="d-inline"
+                          onsubmit="return confirm('¿Quitar este centro de la muestra?')">
+                        <button class="btn btn-sm btn-outline-danger" title="Quitar">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabla = document.getElementById('tablaMuestra');
+    if (!tabla) return;
+    const search = document.createElement('input');
+    search.type = 'text';
+    search.className = 'form-control mb-3';
+    search.placeholder = 'Buscar centro...';
+    search.style.maxWidth = '400px';
+    tabla.parentElement.insertBefore(search, tabla);
+    search.addEventListener('input', function() {
+        const val = this.value.toLowerCase();
+        tabla.querySelectorAll('tbody tr').forEach(function(row) {
+            row.style.display = row.textContent.toLowerCase().includes(val) ? '' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

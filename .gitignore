@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Archivos generados por el sistema (Output)
+graficos/
+graficos_test/
+*.html
+!backend/templates/*.html
+
+# BD y archivos generados
+backend/exitpoll.db
+backend/static/viz/
+backend/static/uploads/
+backend/_adm2_lookup.json
+
+# Sistema
+.DS_Store

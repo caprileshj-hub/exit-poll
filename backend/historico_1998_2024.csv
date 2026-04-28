@@ -1,0 +1,11 @@
+"Resultados de elecciones presidenciales en Venezuela, por mesa",,,
+,,,
+Año,Fuente,Archivo,Comentarios
+1998,"Esdata, scrape del CNE",https://github.com/ipince/vzlapi/blob/main/data/elecciones/presidenciales/resultados_elecc_1998.xls,
+2000,"Esdata, scrape del CNE",https://github.com/ipince/vzlapi/blob/main/data/elecciones/presidenciales/resultados_elecc_2000.xls,Esdata ya no existe; los links no funcionan. Su pagina en archive.org: https://web.archive.org/web/20190209132359/http://esdata.info/
+2006,"Esdata, scrape del CNE",https://github.com/ipince/vzlapi/blob/main/data/elecciones/presidenciales/resultados_elecc_2006.xls,Esdata ya no existe; los links no funcionan. Su pagina en archive.org: https://web.archive.org/web/20190209132359/http://esdata.info/
+2012,"Esdata, scrape del CNE",https://github.com/ipince/vzlapi/blob/main/data/elecciones/presidenciales/resultados_elecc_2012-10-07C.xls,Esdata ya no existe; los links no funcionan. Su pagina en archive.org: https://web.archive.org/web/20190209132359/http://esdata.info/
+2013,"Esdata, scrape del CNE",https://github.com/ipince/vzlapi/blob/main/data/elecciones/presidenciales/resultados_elecc_2013-04-14-v4.xlsx,Esdata ya no existe; los links no funcionan. Su pagina en archive.org: https://web.archive.org/web/20190209132359/http://esdata.info/
+2018,NO TENGO,,"Si alguien tiene esta data, por favor compartir con @reipinceVE para agregarla. Gracias"
+2024,ComandoConVzla,"original: https://static.resultadosconvzla.com/RESULTADOS_2024_CSV_V1.csv
+copia: https://github.com/ipince/vzlapi/blob/main/data/cvzla/RESULTADOS_2024_CSV_V1.csv",

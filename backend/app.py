@@ -1,0 +1,988 @@
+"""
+Dashboard de Configuración — Exit Poll Venezuela
+FastAPI + Jinja2 + Bootstrap 5
+Uso: uvicorn app:app --reload
+"""
+
+import os
+import sys
+import sqlite3
+import shutil
+import uuid
+import io
+import traceback
+from pathlib import Path
+
+from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "exitpoll.db"
+UPLOAD_DIR = BASE_DIR / "static" / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+app = FastAPI(title="Exit Poll — Configuración")
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+
+# ── helpers ──────────────────────────────────────────────────────
+def get_db() -> sqlite3.Connection:
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+
+def flash(request: Request, msg: str, cat: str = "success"):
+    """Almacena un flash message en query-string (stateless)."""
+    pass  # usaremos query params ?msg=...&cat=...
+
+
+# ── INDEX ────────────────────────────────────────────────────────
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    db = get_db()
+    eleccion = db.execute(
+        "SELECT * FROM elecciones WHERE activa = 1 LIMIT 1"
+    ).fetchone()
+    stats = {}
+    if eleccion:
+        eid = eleccion["id"]
+        stats["candidatos"] = db.execute(
+            "SELECT COUNT(*) c FROM candidatos WHERE id_eleccion=?", (eid,)
+        ).fetchone()["c"]
+        stats["centros_muestra"] = db.execute(
+            "SELECT COUNT(*) c FROM muestra WHERE id_eleccion=?", (eid,)
+        ).fetchone()["c"]
+        stats["centros_con_peso"] = db.execute(
+            """SELECT COUNT(*) c FROM pesos p
+               JOIN muestra m ON p.id_muestra=m.id
+               WHERE m.id_eleccion=?""", (eid,)
+        ).fetchone()["c"]
+    db.close()
+    return templates.TemplateResponse("index.html", {
+        "request": request, "eleccion": eleccion, "stats": stats
+    })
+
+
+# ══════════════════════════════════════════════════════════════════
+# ELECCIONES
+# ══════════════════════════════════════════════════════════════════
+
+@app.get("/elecciones", response_class=HTMLResponse)
+async def elecciones_list(request: Request, msg: str = "", cat: str = "success"):
+    db = get_db()
+    rows = db.execute("SELECT * FROM elecciones ORDER BY fecha DESC").fetchall()
+    db.close()
+    return templates.TemplateResponse("elecciones.html", {
+        "request": request, "elecciones": rows, "msg": msg, "cat": cat
+    })
+
+
+@app.get("/elecciones/nueva", response_class=HTMLResponse)
+async def eleccion_form(request: Request):
+    return templates.TemplateResponse("eleccion_form.html", {
+        "request": request, "eleccion": None
+    })
+
+
+@app.get("/elecciones/{eid}/editar", response_class=HTMLResponse)
+async def eleccion_edit(request: Request, eid: int):
+    db = get_db()
+    row = db.execute("SELECT * FROM elecciones WHERE id=?", (eid,)).fetchone()
+    db.close()
+    if not row:
+        raise HTTPException(404)
+    return templates.TemplateResponse("eleccion_form.html", {
+        "request": request, "eleccion": row
+    })
+
+
+@app.post("/elecciones/guardar")
+async def eleccion_save(
+    request: Request,
+    eid: int = Form(0),
+    nombre: str = Form(...),
+    tipo: str = Form(...),
+    fecha: str = Form(...),
+    hora_apertura: str = Form("07:00"),
+    hora_cierre: str = Form("18:00"),
+    activa: int = Form(0),
+):
+    db = get_db()
+    if activa:
+        db.execute("UPDATE elecciones SET activa=0")
+    if eid:
+        db.execute(
+            """UPDATE elecciones
+               SET nombre=?, tipo=?, fecha=?, hora_apertura=?, hora_cierre=?, activa=?
+               WHERE id=?""",
+            (nombre, tipo, fecha, hora_apertura, hora_cierre, activa, eid),
+        )
+    else:
+        db.execute(
+            """INSERT INTO elecciones (nombre, tipo, fecha, hora_apertura, hora_cierre, activa)
+               VALUES (?,?,?,?,?,?)""",
+            (nombre, tipo, fecha, hora_apertura, hora_cierre, activa),
+        )
+    db.commit()
+    db.close()
+    return RedirectResponse("/elecciones?msg=Elección+guardada", status_code=303)
+
+
+@app.post("/elecciones/{eid}/eliminar")
+async def eleccion_delete(eid: int):
+    db = get_db()
+    db.execute("DELETE FROM elecciones WHERE id=?", (eid,))
+    db.commit()
+    db.close()
+    return RedirectResponse("/elecciones?msg=Elección+eliminada&cat=warning", status_code=303)
+
+
+@app.post("/elecciones/{eid}/activar")
+async def eleccion_activar(eid: int):
+    db = get_db()
+    db.execute("UPDATE elecciones SET activa=0")
+    db.execute("UPDATE elecciones SET activa=1 WHERE id=?", (eid,))
+    db.commit()
+    db.close()
+    return RedirectResponse("/elecciones?msg=Elección+activada", status_code=303)
+
+
+# ══════════════════════════════════════════════════════════════════
+# CANDIDATOS
+# ══════════════════════════════════════════════════════════════════
+
+@app.get("/candidatos", response_class=HTMLResponse)
+async def candidatos_list(request: Request, msg: str = "", cat: str = "success"):
+    db = get_db()
+    eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+    rows = []
+    if eleccion:
+        rows = db.execute(
+            """SELECT c.*, e.nombre as eleccion_nombre
+               FROM candidatos c JOIN elecciones e ON c.id_eleccion=e.id
+               WHERE c.id_eleccion=? ORDER BY c.orden""",
+            (eleccion["id"],)
+        ).fetchall()
+    db.close()
+    return templates.TemplateResponse("candidatos.html", {
+        "request": request, "candidatos": rows, "eleccion": eleccion,
+        "msg": msg, "cat": cat
+    })
+
+
+@app.get("/candidatos/nuevo", response_class=HTMLResponse)
+async def candidato_form(request: Request):
+    db = get_db()
+    eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+    estados = db.execute("SELECT * FROM estados ORDER BY nombre").fetchall()
+    db.close()
+    if not eleccion:
+        return RedirectResponse("/elecciones?msg=Primero+active+una+elección&cat=warning", status_code=303)
+    return templates.TemplateResponse("candidato_form.html", {
+        "request": request, "candidato": None, "eleccion": eleccion,
+        "estados": estados
+    })
+
+
+@app.get("/candidatos/{cid}/editar", response_class=HTMLResponse)
+async def candidato_edit(request: Request, cid: int):
+    db = get_db()
+    row = db.execute("SELECT * FROM candidatos WHERE id=?", (cid,)).fetchone()
+    eleccion = db.execute("SELECT * FROM elecciones WHERE id=?", (row["id_eleccion"],)).fetchone()
+    estados = db.execute("SELECT * FROM estados ORDER BY nombre").fetchall()
+    db.close()
+    if not row:
+        raise HTTPException(404)
+    return templates.TemplateResponse("candidato_form.html", {
+        "request": request, "candidato": row, "eleccion": eleccion,
+        "estados": estados
+    })
+
+
+@app.post("/candidatos/guardar")
+async def candidato_save(
+    request: Request,
+    cid: int = Form(0),
+    id_eleccion: int = Form(...),
+    nombre: str = Form(...),
+    partido: str = Form(""),
+    bando: str = Form("otro"),
+    tipo: str = Form("unico"),
+    orden: int = Form(1),
+    foto: UploadFile = File(None),
+):
+    foto_url = None
+    if foto and foto.filename:
+        ext = Path(foto.filename).suffix.lower()
+        if ext not in (".jpg", ".jpeg", ".png", ".webp"):
+            return RedirectResponse(
+                "/candidatos?msg=Formato+de+imagen+no+válido&cat=danger", status_code=303
+            )
+        fname = f"{uuid.uuid4().hex}{ext}"
+        dest = UPLOAD_DIR / fname
+        with open(dest, "wb") as f:
+            shutil.copyfileobj(foto.file, f)
+        foto_url = f"/static/uploads/{fname}"
+
+    db = get_db()
+    if cid:
+        if foto_url:
+            db.execute(
+                """UPDATE candidatos
+                   SET nombre=?, partido=?, bando=?, tipo=?, orden=?, foto_url=?
+                   WHERE id=?""",
+                (nombre, partido, bando, tipo, orden, foto_url, cid),
+            )
+        else:
+            db.execute(
+                """UPDATE candidatos
+                   SET nombre=?, partido=?, bando=?, tipo=?, orden=?
+                   WHERE id=?""",
+                (nombre, partido, bando, tipo, orden, cid),
+            )
+    else:
+        db.execute(
+            """INSERT INTO candidatos (id_eleccion, nombre, partido, bando, tipo, orden, foto_url)
+               VALUES (?,?,?,?,?,?,?)""",
+            (id_eleccion, nombre, partido, bando, tipo, orden, foto_url),
+        )
+    db.commit()
+    db.close()
+    return RedirectResponse("/candidatos?msg=Candidato+guardado", status_code=303)
+
+
+@app.post("/candidatos/{cid}/eliminar")
+async def candidato_delete(cid: int):
+    db = get_db()
+    db.execute("DELETE FROM candidatos WHERE id=?", (cid,))
+    db.commit()
+    db.close()
+    return RedirectResponse("/candidatos?msg=Candidato+eliminado&cat=warning", status_code=303)
+
+
+# ══════════════════════════════════════════════════════════════════
+# FICHA TÉCNICA DE LA MUESTRA
+# ══════════════════════════════════════════════════════════════════
+
+@app.get("/ficha", response_class=HTMLResponse)
+async def ficha_tecnica(request: Request):
+    db = get_db()
+    eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+
+    # --- Registro Electoral (siempre, independiente de elección/muestra) ---
+    re = {}
+    re["centros_activos"] = db.execute(
+        "SELECT COUNT(*) c FROM centros WHERE activo=1"
+    ).fetchone()["c"]
+    re["centros_inactivos"] = db.execute(
+        "SELECT COUNT(*) c FROM centros WHERE activo=0"
+    ).fetchone()["c"]
+    re["electores"] = db.execute(
+        "SELECT COALESCE(SUM(num_electores),0) s FROM centros WHERE activo=1"
+    ).fetchone()["s"]
+    re["mesas"] = db.execute(
+        "SELECT COALESCE(SUM(num_mesas),0) s FROM centros WHERE activo=1"
+    ).fetchone()["s"]
+    re["con_gps"] = db.execute(
+        "SELECT COUNT(*) c FROM centros WHERE lat IS NOT NULL AND lon IS NOT NULL AND activo=1"
+    ).fetchone()["c"]
+    re["total_estados"] = db.execute("SELECT COUNT(*) c FROM estados").fetchone()["c"]
+    re["estados_activos"] = db.execute(
+        "SELECT COUNT(DISTINCT id_estado) c FROM centros WHERE activo=1"
+    ).fetchone()["c"]
+
+    # Desglose RE por estado (incluye estados con centros inactivos)
+    re_estados = db.execute(
+        """SELECT e.nombre as estado,
+                  SUM(CASE WHEN c.activo=1 THEN 1 ELSE 0 END) as centros_activos,
+                  SUM(CASE WHEN c.activo=0 THEN 1 ELSE 0 END) as centros_inactivos,
+                  SUM(CASE WHEN c.activo=1 THEN c.num_electores ELSE 0 END) as electores,
+                  SUM(CASE WHEN c.activo=1 THEN c.num_mesas ELSE 0 END) as mesas,
+                  SUM(CASE WHEN c.lat IS NOT NULL AND c.activo=1 THEN 1 ELSE 0 END) as con_gps
+           FROM estados e
+           LEFT JOIN centros c ON c.id_estado=e.id
+           GROUP BY e.id ORDER BY e.nombre"""
+    ).fetchall()
+
+    # --- Muestra (solo si hay elección activa con muestra) ---
+    muestra = {}
+    muestra_estados = []
+    if eleccion:
+        eid = eleccion["id"]
+        muestra["total_centros"] = db.execute(
+            "SELECT COUNT(*) c FROM muestra WHERE id_eleccion=? AND activo=1", (eid,)
+        ).fetchone()["c"]
+        if muestra["total_centros"] > 0:
+            muestra["electores"] = db.execute(
+                """SELECT COALESCE(SUM(ct.num_electores),0) s
+                   FROM muestra m JOIN centros ct ON m.codigo_centro=ct.codigo_cne
+                   WHERE m.id_eleccion=? AND m.activo=1""", (eid,)
+            ).fetchone()["s"]
+            muestra["mesas"] = db.execute(
+                """SELECT COALESCE(SUM(ct.num_mesas),0) s
+                   FROM muestra m JOIN centros ct ON m.codigo_centro=ct.codigo_cne
+                   WHERE m.id_eleccion=? AND m.activo=1""", (eid,)
+            ).fetchone()["s"]
+            if re["electores"]:
+                muestra["cobertura_pct"] = round(
+                    100 * muestra["electores"] / re["electores"], 2)
+            else:
+                muestra["cobertura_pct"] = 0
+            muestra["estados_cubiertos"] = db.execute(
+                """SELECT COUNT(DISTINCT ct.id_estado) c
+                   FROM muestra m JOIN centros ct ON m.codigo_centro=ct.codigo_cne
+                   WHERE m.id_eleccion=? AND m.activo=1""", (eid,)
+            ).fetchone()["c"]
+            muestra_estados = db.execute(
+                """SELECT e.nombre as estado, COUNT(m.id) as centros,
+                          SUM(ct.num_electores) as electores, SUM(ct.num_mesas) as mesas
+                   FROM muestra m
+                   JOIN centros ct ON m.codigo_centro=ct.codigo_cne
+                   JOIN estados e ON ct.id_estado=e.id
+                   WHERE m.id_eleccion=? AND m.activo=1
+                   GROUP BY e.id ORDER BY e.nombre""", (eid,)
+            ).fetchall()
+            muestra["tipos"] = db.execute(
+                """SELECT tipo_centro, COUNT(*) c
+                   FROM muestra WHERE id_eleccion=? AND activo=1 AND tipo_centro IS NOT NULL
+                   GROUP BY tipo_centro""", (eid,)
+            ).fetchall()
+
+    # --- Error muestral ---
+    # Formula: e = Z * sqrt(P*Q/n) * sqrt(1 - n/N)
+    # Z=1.96 (95%), P=Q=0.5
+    error_muestral = None
+    if muestra.get("total_centros", 0) > 0 and muestra.get("electores", 0) > 0 and re["electores"] > 0:
+        import math
+        n = muestra["electores"]
+        N = re["electores"]
+        error_muestral = 1.96 * math.sqrt(0.25 / n) * math.sqrt(1 - n / N) * 100
+
+    db.close()
+    return templates.TemplateResponse("ficha.html", {
+        "request": request, "eleccion": eleccion,
+        "re": re, "re_estados": re_estados,
+        "muestra": muestra, "muestra_estados": muestra_estados,
+        "error_muestral": error_muestral
+    })
+
+
+# ══════════════════════════════════════════════════════════════════
+# PESOS POR CENTRO
+# ══════════════════════════════════════════════════════════════════
+
+@app.get("/pesos", response_class=HTMLResponse)
+async def pesos_list(request: Request, estado: str = "", msg: str = "", cat: str = "success"):
+    db = get_db()
+    eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+    rows = []
+    estados = []
+    tiene_muestra = False
+
+    if eleccion:
+        eid = eleccion["id"]
+        tiene_muestra = db.execute(
+            "SELECT COUNT(*) c FROM muestra WHERE id_eleccion=?", (eid,)
+        ).fetchone()["c"] > 0
+
+    if eleccion and tiene_muestra:
+        # Estados con centros en la muestra
+        estados = db.execute(
+            """SELECT DISTINCT e.id, e.nombre FROM estados e
+               JOIN centros ct ON ct.id_estado=e.id
+               JOIN muestra m ON m.codigo_centro=ct.codigo_cne
+               WHERE m.id_eleccion=?
+               ORDER BY e.nombre""", (eid,)
+        ).fetchall()
+
+        # Centros de la muestra con sus pesos
+        query = """
+            SELECT m.id as id_muestra, m.codigo_centro, ct.nombre as centro_nombre,
+                   e.nombre as estado, mu.nombre as municipio, p2.nombre as parroquia,
+                   m.tipo_centro, m.activo,
+                   COALESCE(p.peso_parroquia,0) as peso_parroquia,
+                   COALESCE(p.peso_municipio,0) as peso_municipio,
+                   COALESCE(p.peso_estado,0) as peso_estado,
+                   COALESCE(p.peso_nacion,0) as peso_nacion,
+                   ct.num_electores, ct.num_mesas
+            FROM muestra m
+            JOIN centros ct ON m.codigo_centro=ct.codigo_cne
+            JOIN estados e ON ct.id_estado=e.id
+            LEFT JOIN municipios mu ON ct.id_municipio=mu.id
+            LEFT JOIN parroquias p2 ON ct.id_parroquia=p2.id
+            LEFT JOIN pesos p ON p.id_muestra=m.id
+            WHERE m.id_eleccion=? AND m.activo=1
+        """
+        params = [eid]
+        if estado:
+            query += " AND e.id=?"
+            params.append(int(estado))
+        query += " ORDER BY e.nombre, mu.nombre, ct.nombre"
+        rows = db.execute(query, params).fetchall()
+
+    db.close()
+    return templates.TemplateResponse("pesos.html", {
+        "request": request, "eleccion": eleccion, "pesos": rows,
+        "estados": estados, "estado_sel": estado, "msg": msg, "cat": cat,
+        "tiene_muestra": tiene_muestra
+    })
+
+
+@app.post("/pesos/{id_muestra}/guardar")
+async def peso_save(
+    id_muestra: int,
+    peso_parroquia: float = Form(0),
+    peso_municipio: float = Form(0),
+    peso_estado: float = Form(0),
+    peso_nacion: float = Form(0),
+):
+    db = get_db()
+    exists = db.execute("SELECT 1 FROM pesos WHERE id_muestra=?", (id_muestra,)).fetchone()
+    if exists:
+        db.execute(
+            """UPDATE pesos SET peso_parroquia=?, peso_municipio=?, peso_estado=?, peso_nacion=?
+               WHERE id_muestra=?""",
+            (peso_parroquia, peso_municipio, peso_estado, peso_nacion, id_muestra),
+        )
+    else:
+        db.execute(
+            """INSERT INTO pesos (id_muestra, peso_parroquia, peso_municipio, peso_estado, peso_nacion)
+               VALUES (?,?,?,?,?)""",
+            (id_muestra, peso_parroquia, peso_municipio, peso_estado, peso_nacion),
+        )
+    db.commit()
+    db.close()
+    return RedirectResponse("/pesos?msg=Peso+actualizado", status_code=303)
+
+
+@app.post("/pesos/guardar-todos")
+async def pesos_save_all(request: Request):
+    """Guarda todos los pesos editados desde la tabla inline."""
+    form = await request.form()
+    db = get_db()
+    count = 0
+    for key, val in form.items():
+        if key.startswith("pp_"):
+            mid = int(key[3:])
+            pp = float(val or 0)
+            pm = float(form.get(f"pm_{mid}", 0) or 0)
+            pe = float(form.get(f"pe_{mid}", 0) or 0)
+            pn = float(form.get(f"pn_{mid}", 0) or 0)
+            exists = db.execute("SELECT 1 FROM pesos WHERE id_muestra=?", (mid,)).fetchone()
+            if exists:
+                db.execute(
+                    """UPDATE pesos SET peso_parroquia=?, peso_municipio=?, peso_estado=?, peso_nacion=?
+                       WHERE id_muestra=?""",
+                    (pp, pm, pe, pn, mid),
+                )
+            else:
+                db.execute(
+                    """INSERT INTO pesos (id_muestra, peso_parroquia, peso_municipio, peso_estado, peso_nacion)
+                       VALUES (?,?,?,?,?)""",
+                    (mid, pp, pm, pe, pn),
+                )
+            count += 1
+    db.commit()
+    db.close()
+    return RedirectResponse(f"/pesos?msg=Pesos+actualizados+({count}+centros)&cat=success", status_code=303)
+
+
+@app.get("/pesos/{id_muestra}/editar", response_class=HTMLResponse)
+async def peso_edit_form(request: Request, id_muestra: int):
+    db = get_db()
+    row = db.execute(
+        """SELECT m.id as id_muestra, m.codigo_centro, ct.nombre as centro_nombre,
+                  e.nombre as estado, mu.nombre as municipio,
+                  COALESCE(p.peso_parroquia,0) as peso_parroquia,
+                  COALESCE(p.peso_municipio,0) as peso_municipio,
+                  COALESCE(p.peso_estado,0) as peso_estado,
+                  COALESCE(p.peso_nacion,0) as peso_nacion,
+                  ct.num_electores
+           FROM muestra m
+           JOIN centros ct ON m.codigo_centro=ct.codigo_cne
+           JOIN estados e ON ct.id_estado=e.id
+           LEFT JOIN municipios mu ON ct.id_municipio=mu.id
+           LEFT JOIN pesos p ON p.id_muestra=m.id
+           WHERE m.id=?""", (id_muestra,)
+    ).fetchone()
+    db.close()
+    if not row:
+        raise HTTPException(404)
+    return templates.TemplateResponse("peso_edit.html", {
+        "request": request, "centro": row
+    })
+
+
+# ══════════════════════════════════════════════════════════════════
+# TABLA DE MESA — Carga y gestión
+# ══════════════════════════════════════════════════════════════════
+
+@app.get("/tm", response_class=HTMLResponse)
+async def tm_index(request: Request, msg: str = "", cat: str = "success"):
+    db = get_db()
+    stats = {}
+    stats["centros_activos"] = db.execute(
+        "SELECT COUNT(*) c FROM centros WHERE activo=1"
+    ).fetchone()["c"]
+    stats["centros_inactivos"] = db.execute(
+        "SELECT COUNT(*) c FROM centros WHERE activo=0"
+    ).fetchone()["c"]
+    stats["con_gps"] = db.execute(
+        "SELECT COUNT(*) c FROM centros WHERE lat IS NOT NULL AND lon IS NOT NULL"
+    ).fetchone()["c"]
+    stats["electores"] = db.execute(
+        "SELECT COALESCE(SUM(num_electores),0) s FROM centros WHERE activo=1"
+    ).fetchone()["s"]
+    stats["estados"] = db.execute("SELECT COUNT(*) c FROM estados").fetchone()["c"]
+    stats["municipios"] = db.execute("SELECT COUNT(*) c FROM municipios").fetchone()["c"]
+    stats["parroquias"] = db.execute("SELECT COUNT(*) c FROM parroquias").fetchone()["c"]
+
+    # Resumen por estado
+    por_estado = db.execute(
+        """SELECT e.nombre, COUNT(c.codigo_cne) as centros,
+                  SUM(c.num_electores) as electores, SUM(c.num_mesas) as mesas,
+                  SUM(CASE WHEN c.lat IS NOT NULL THEN 1 ELSE 0 END) as con_gps
+           FROM centros c
+           JOIN estados e ON c.id_estado=e.id
+           WHERE c.activo=1
+           GROUP BY e.id ORDER BY e.nombre"""
+    ).fetchall()
+    db.close()
+    return templates.TemplateResponse("tm.html", {
+        "request": request, "stats": stats, "por_estado": por_estado,
+        "msg": msg, "cat": cat
+    })
+
+
+@app.post("/tm/cargar")
+async def tm_upload(
+    request: Request,
+    archivo: UploadFile = File(...),
+    formato: str = Form("auto"),
+    hoja: str = Form(""),
+    dry_run: int = Form(0),
+):
+    """Recibe un archivo TM (Excel o CSV), lo convierte y carga en la BD."""
+    # Guardar archivo temporal
+    ext = Path(archivo.filename).suffix.lower()
+    if ext not in (".xlsx", ".xls", ".xlsm", ".csv"):
+        return RedirectResponse(
+            "/tm?msg=Formato+no+soportado.+Use+Excel+o+CSV&cat=danger",
+            status_code=303,
+        )
+
+    tmp_path = UPLOAD_DIR / f"tm_upload_{uuid.uuid4().hex}{ext}"
+    with open(tmp_path, "wb") as f:
+        shutil.copyfileobj(archivo.file, f)
+
+    output_lines = []
+    try:
+        # Importar convertidor y cargador
+        sys.path.insert(0, str(BASE_DIR))
+        import convertidor_tm
+        import cargador_tm
+
+        # Paso 1: si es Excel, convertir a CSV estándar
+        if ext in (".xlsx", ".xls", ".xlsm"):
+            csv_path = tmp_path.with_suffix(".csv")
+            df_raw = convertidor_tm.cargar_archivo(str(tmp_path), hoja=hoja or None)
+            fmt = formato
+            if fmt == "auto":
+                fmt = convertidor_tm.detectar_formato(df_raw)
+            output_lines.append(f"Formato detectado: {fmt}")
+
+            df = convertidor_tm.CONVERTIDORES[fmt](df_raw)
+            df = convertidor_tm.limpiar(df)
+
+            centros = df["codigo_centro"].nunique()
+            electores = df["electores"].sum()
+            output_lines.append(f"Convertido: {len(df):,} mesas, {centros:,} centros, {electores:,} electores")
+
+            df.to_csv(str(csv_path), index=False, encoding="utf-8-sig")
+        else:
+            csv_path = tmp_path
+
+        # Paso 2: cargar en BD
+        # Capturar output del cargador
+        import io as _io
+        from contextlib import redirect_stdout
+        buf = _io.StringIO()
+        with redirect_stdout(buf):
+            cargador_tm.cargar_tm(str(csv_path), dry_run=bool(dry_run))
+        output_lines.append(buf.getvalue())
+
+        # Limpiar archivos temporales
+        tmp_path.unlink(missing_ok=True)
+        if csv_path != tmp_path:
+            csv_path.unlink(missing_ok=True)
+
+        result_msg = " | ".join(output_lines)
+        return RedirectResponse(
+            f"/tm?msg={result_msg[:500]}&cat=success",
+            status_code=303,
+        )
+
+    except Exception as e:
+        tmp_path.unlink(missing_ok=True)
+        error_msg = str(e)[:300]
+        return RedirectResponse(
+            f"/tm?msg=Error:+{error_msg}&cat=danger",
+            status_code=303,
+        )
+
+
+# ══════════════════════════════════════════════════════════════════
+# MUESTRA — Selección de centros para el exit poll
+# ══════════════════════════════════════════════════════════════════
+
+@app.get("/muestra", response_class=HTMLResponse)
+async def muestra_index(request: Request, msg: str = "", cat: str = "success"):
+    db = get_db()
+    eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+
+    muestra_actual = []
+    if eleccion:
+        muestra_actual = db.execute(
+            """SELECT m.id, m.codigo_centro, ct.nombre as centro_nombre,
+                      e.nombre as estado, mu.nombre as municipio, p.nombre as parroquia,
+                      m.tipo_centro, ct.num_electores, ct.num_mesas,
+                      rh.pct_oposicion, rh.pct_gobierno
+               FROM muestra m
+               JOIN centros ct ON m.codigo_centro=ct.codigo_cne
+               JOIN estados e ON ct.id_estado=e.id
+               LEFT JOIN municipios mu ON ct.id_municipio=mu.id
+               LEFT JOIN parroquias p ON ct.id_parroquia=p.id
+               LEFT JOIN resultados_historicos rh
+                   ON rh.codigo_centro=m.codigo_centro AND rh.eleccion_ref='2024-presidencial'
+               WHERE m.id_eleccion=? AND m.activo=1
+               ORDER BY e.nombre, mu.nombre, ct.num_electores DESC""",
+            (eleccion["id"],)
+        ).fetchall()
+
+    # Resultado nacional de referencia
+    nac = db.execute("""
+        SELECT SUM(votos_validos) v, SUM(votos_gobierno) g, SUM(votos_oposicion) o
+        FROM resultados_historicos WHERE eleccion_ref='2024-presidencial'
+    """).fetchone()
+    pct_nac = {}
+    if nac and nac["v"]:
+        pct_nac["gobierno"] = round(100 * nac["g"] / nac["v"], 1)
+        pct_nac["oposicion"] = round(100 * nac["o"] / nac["v"], 1)
+
+    # Refs historicas disponibles
+    refs = db.execute(
+        "SELECT DISTINCT eleccion_ref FROM resultados_historicos"
+    ).fetchall()
+
+    db.close()
+    return templates.TemplateResponse("muestra.html", {
+        "request": request, "eleccion": eleccion,
+        "muestra": muestra_actual, "pct_nac": pct_nac,
+        "refs": refs, "msg": msg, "cat": cat
+    })
+
+
+@app.get("/muestra/generar", response_class=HTMLResponse)
+async def muestra_generar(
+    request: Request,
+    centros_por_unidad: int = 2,
+    candidatos_por_unidad: int = 5,
+    umbral_pct: float = 10.0,
+    eleccion_ref: str = "2024-presidencial",
+):
+    db = get_db()
+    eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+    if not eleccion:
+        db.close()
+        return RedirectResponse("/muestra?msg=Active+una+elección+primero&cat=warning", status_code=303)
+
+    sys.path.insert(0, str(BASE_DIR))
+    import selector_muestra
+    # Reload in case module was cached
+    import importlib
+    importlib.reload(selector_muestra)
+
+    nac = selector_muestra.resultado_nacional(db, eleccion_ref)
+    candidatos = selector_muestra.generar_candidatos(
+        db, eleccion_ref=eleccion_ref,
+        candidatos_por_unidad=candidatos_por_unidad,
+        umbral_pct=umbral_pct,
+    )
+
+    db.close()
+    return templates.TemplateResponse("muestra_generar.html", {
+        "request": request, "eleccion": eleccion,
+        "candidatos": candidatos, "nac": nac,
+        "centros_por_unidad": centros_por_unidad,
+        "candidatos_por_unidad": candidatos_por_unidad,
+        "umbral_pct": umbral_pct,
+        "eleccion_ref": eleccion_ref,
+    })
+
+
+@app.post("/muestra/aplicar")
+async def muestra_aplicar(request: Request):
+    form = await request.form()
+    codigos = form.getlist("codigo_centro")
+    id_eleccion = int(form.get("id_eleccion", 0))
+
+    if not codigos or not id_eleccion:
+        return RedirectResponse("/muestra?msg=No+se+seleccionaron+centros&cat=warning", status_code=303)
+
+    db = get_db()
+    sys.path.insert(0, str(BASE_DIR))
+    import selector_muestra
+    import importlib
+    importlib.reload(selector_muestra)
+
+    n = selector_muestra.aplicar_muestra(db, id_eleccion, codigos)
+    db.close()
+    return RedirectResponse(f"/muestra?msg=Muestra+creada+con+{n}+centros&cat=success", status_code=303)
+
+
+@app.post("/muestra/{mid}/quitar")
+async def muestra_quitar(mid: int):
+    db = get_db()
+    db.execute("DELETE FROM pesos WHERE id_muestra=?", (mid,))
+    db.execute("DELETE FROM muestra WHERE id=?", (mid,))
+    db.commit()
+    db.close()
+    return RedirectResponse("/muestra?msg=Centro+removido+de+la+muestra&cat=warning", status_code=303)
+
+
+# ══════════════════════════════════════════════════════════════════
+# VISUALIZACIÓN — Heatmap y Dashboard interactivo
+# ══════════════════════════════════════════════════════════════════
+
+VIZ_DIR = BASE_DIR / "static" / "viz"
+VIZ_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _datos_ventaja_por_estado(db) -> dict:
+    """Extrae ventaja gobierno-oposición por estado desde resultados_historicos."""
+    rows = db.execute("""
+        SELECT e.nombre,
+               SUM(rh.votos_gobierno) as gob,
+               SUM(rh.votos_oposicion) as opo,
+               SUM(rh.votos_validos) as val
+        FROM resultados_historicos rh
+        JOIN centros c ON rh.codigo_centro = c.codigo_cne
+        JOIN estados e ON c.id_estado = e.id
+        WHERE c.activo = 1
+        GROUP BY e.id
+    """).fetchall()
+    datos = {}
+    for r in rows:
+        if r["val"] and r["val"] > 0:
+            pct_gob = 100 * r["gob"] / r["val"]
+            pct_opo = 100 * r["opo"] / r["val"]
+            ventaja = round(pct_gob - pct_opo, 1)
+            # Normalizar nombre: "EDO. ZULIA" → "Zulia", "DTTO. CAPITAL" → "Distrito Capital"
+            nombre = r["nombre"]
+            nombre = nombre.replace("EDO. ", "").replace("DTTO. ", "Distrito ")
+            nombre = nombre.replace("DELTA AMAC", "Delta Amacuro")
+            nombre = nombre.replace("LA GUAIRA", "La Guaira")
+            nombre = nombre.replace("NVA. ESPARTA", "Nueva Esparta")
+            if nombre not in ("Distrito Capital", "La Guaira", "Delta Amacuro", "Nueva Esparta"):
+                nombre = nombre.title()
+            datos[nombre] = ventaja
+    return datos
+
+
+def _datos_ventaja_muestra(db, id_eleccion: int) -> dict:
+    """Ventaja solo para centros en la muestra, por estado."""
+    rows = db.execute("""
+        SELECT e.nombre,
+               SUM(rh.votos_gobierno) as gob,
+               SUM(rh.votos_oposicion) as opo,
+               SUM(rh.votos_validos) as val
+        FROM muestra m
+        JOIN centros c ON m.codigo_centro = c.codigo_cne
+        JOIN estados e ON c.id_estado = e.id
+        LEFT JOIN resultados_historicos rh ON rh.codigo_centro = m.codigo_centro
+        WHERE m.id_eleccion = ? AND m.activo = 1
+        GROUP BY e.id
+    """, (id_eleccion,)).fetchall()
+    datos = {}
+    for r in rows:
+        if r["val"] and r["val"] > 0:
+            pct_gob = 100 * r["gob"] / r["val"]
+            pct_opo = 100 * r["opo"] / r["val"]
+            ventaja = round(pct_gob - pct_opo, 1)
+            nombre = r["nombre"]
+            nombre = nombre.replace("EDO. ", "").replace("DTTO. ", "Distrito ")
+            nombre = nombre.replace("DELTA AMAC", "Delta Amacuro")
+            nombre = nombre.replace("LA GUAIRA", "La Guaira")
+            nombre = nombre.replace("NVA. ESPARTA", "Nueva Esparta")
+            if nombre not in ("Distrito Capital", "La Guaira", "Delta Amacuro", "Nueva Esparta"):
+                nombre = nombre.title()
+            datos[nombre] = ventaja
+    return datos
+
+
+def _tendencia_simulada(datos_ventaja: dict, n_puntos: int = 15) -> dict:
+    """Genera tendencia simulada a partir de datos de ventaja históricos.
+    Simula la llegada progresiva de datos desde las 7AM con la tendencia
+    convergiendo al resultado final conocido."""
+    import datetime
+    import random
+    tendencias = {}
+    start = datetime.datetime(2025, 1, 1, 7, 0)
+
+    # Nacional: promedio ponderado
+    if datos_ventaja:
+        avg_ventaja = sum(datos_ventaja.values()) / len(datos_ventaja)
+        final_gob = 50 + avg_ventaja / 2
+        final_opo = 50 - avg_ventaja / 2
+    else:
+        final_gob, final_opo = 50, 50
+
+    for nombre in ["VENEZUELA"] + [n.upper() for n in datos_ventaja.keys()]:
+        if nombre == "VENEZUELA":
+            tgt_gob, tgt_opo = final_gob, final_opo
+        else:
+            orig = next((k for k in datos_ventaja if k.upper() == nombre), None)
+            v = datos_ventaja.get(orig, 0) if orig else 0
+            tgt_gob = 50 + v / 2
+            tgt_opo = 50 - v / 2
+
+        puntos = []
+        gob = 50 + random.uniform(-5, 5)  # Inicia cerca de 50/50
+        for i in range(n_puntos):
+            hora = (start + datetime.timedelta(minutes=40 * i)).strftime('%H:%M')
+            # Converge al resultado final con ruido decreciente
+            t = (i + 1) / n_puntos
+            noise = random.uniform(-3, 3) * (1 - t)
+            gob = tgt_gob * t + gob * (1 - t) + noise
+            gob = max(5, min(95, gob))
+            opo = 100 - gob
+            puntos.append({'hora': hora, 'gob': round(gob, 1), 'opo': round(opo, 1)})
+        tendencias[nombre] = puntos
+
+    return tendencias
+
+
+def _nombres_candidatos(db, id_eleccion: int = None) -> dict:
+    """Obtiene nombres de candidatos gobierno/oposición de la elección."""
+    cand = {'gobierno': 'Gobierno', 'oposicion': 'Oposici\u00f3n'}
+    if id_eleccion:
+        for bando in ('gobierno', 'oposicion'):
+            row = db.execute(
+                "SELECT nombre FROM candidatos WHERE id_eleccion=? AND bando=? ORDER BY orden LIMIT 1",
+                (id_eleccion, bando)
+            ).fetchone()
+            if row:
+                cand[bando] = row["nombre"]
+    return cand
+
+
+@app.get("/visualizacion", response_class=HTMLResponse)
+async def visualizacion_index(request: Request, msg: str = "", cat: str = "success"):
+    db = get_db()
+    eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+
+    tiene_resultados = db.execute(
+        "SELECT COUNT(*) c FROM resultados_historicos"
+    ).fetchone()["c"] > 0
+
+    tiene_muestra = False
+    if eleccion:
+        tiene_muestra = db.execute(
+            "SELECT COUNT(*) c FROM muestra WHERE id_eleccion=?", (eleccion["id"],)
+        ).fetchone()["c"] > 0
+
+    # Verificar si ya hay archivos generados
+    heatmap_existe = (VIZ_DIR / "heatmap.html").exists()
+    dashboard_existe = (VIZ_DIR / "dashboard.html").exists()
+
+    refs = db.execute(
+        "SELECT DISTINCT eleccion_ref FROM resultados_historicos"
+    ).fetchall()
+
+    db.close()
+    return templates.TemplateResponse("visualizacion.html", {
+        "request": request, "eleccion": eleccion,
+        "tiene_resultados": tiene_resultados,
+        "tiene_muestra": tiene_muestra,
+        "heatmap_existe": heatmap_existe,
+        "dashboard_existe": dashboard_existe,
+        "refs": refs,
+        "msg": msg, "cat": cat,
+    })
+
+
+@app.post("/visualizacion/generar")
+async def visualizacion_generar(
+    request: Request,
+    tipo: str = Form("heatmap"),
+    nivel: str = Form("estado"),
+    fuente: str = Form("todos"),
+):
+    db = get_db()
+    eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+    eid = eleccion["id"] if eleccion else None
+
+    candidatos_dict = _nombres_candidatos(db, eid)
+
+    # Obtener datos de ventaja
+    if fuente == "muestra" and eid:
+        datos_ventaja = _datos_ventaja_muestra(db, eid)
+    else:
+        datos_ventaja = _datos_ventaja_por_estado(db)
+
+    db.close()
+
+    if not datos_ventaja:
+        return RedirectResponse(
+            "/visualizacion?msg=No+hay+datos+de+resultados+hist%C3%B3ricos&cat=warning",
+            status_code=303
+        )
+
+    sys.path.insert(0, str(BASE_DIR))
+
+    titulo = eleccion["nombre"] if eleccion else "Exit Poll Venezuela"
+
+    try:
+        if tipo == "dashboard":
+            import generador_dashboard
+            import importlib
+            importlib.reload(generador_dashboard)
+
+            tendencias = _tendencia_simulada(datos_ventaja)
+            ruta = str(VIZ_DIR / "dashboard.html")
+            generador_dashboard.generar_dashboard(
+                datos_ventaja, tendencias,
+                nivel=nivel, ruta_salida=ruta,
+                titulo=titulo, candidatos=candidatos_dict
+            )
+            return RedirectResponse(
+                "/visualizacion?msg=Dashboard+generado+exitosamente&cat=success",
+                status_code=303
+            )
+        else:
+            import generador_heatmap
+            import importlib
+            importlib.reload(generador_heatmap)
+
+            ruta = str(VIZ_DIR / "heatmap.html")
+            generador_heatmap.generar_heatmap(
+                datos_ventaja, nivel=nivel, ruta_salida=ruta,
+                titulo=titulo, candidatos=candidatos_dict
+            )
+            return RedirectResponse(
+                "/visualizacion?msg=Heatmap+generado+exitosamente&cat=success",
+                status_code=303
+            )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        error_msg = str(e)[:200]
+        return RedirectResponse(
+            f"/visualizacion?msg=Error:+{error_msg}&cat=danger",
+            status_code=303
+        )

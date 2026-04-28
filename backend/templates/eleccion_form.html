@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% set active_page = "elecciones" %}
+{% block title %}{{ "Editar" if eleccion else "Nueva" }} Elección{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/elecciones">Elecciones</a></li>
+        <li class="breadcrumb-item active">{{ "Editar" if eleccion else "Nueva" }}</li>
+    </ol>
+</nav>
+
+<div class="card shadow-sm" style="max-width: 700px;">
+    <div class="card-body">
+        <h4 class="card-title mb-4">
+            <i class="bi bi-calendar-event me-2"></i>
+            {{ "Editar Elección" if eleccion else "Nueva Elección" }}
+        </h4>
+        <form method="post" action="/elecciones/guardar">
+            {% if eleccion %}
+            <input type="hidden" name="eid" value="{{ eleccion['id'] }}">
+            {% endif %}
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Nombre</label>
+                <input type="text" name="nombre" class="form-control"
+                       value="{{ eleccion['nombre'] if eleccion else '' }}"
+                       placeholder="Ej: Presidenciales 2025" required>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Tipo de Elección</label>
+                    <select name="tipo" class="form-select" required>
+                        {% for t in ['nacional','regional','municipal','asamblea'] %}
+                        <option value="{{ t }}" {{ 'selected' if eleccion and eleccion['tipo']==t }}>
+                            {{ t|capitalize }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Fecha</label>
+                    <input type="date" name="fecha" class="form-control"
+                           value="{{ eleccion['fecha'] if eleccion else '' }}" required>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Hora de Apertura</label>
+                    <input type="time" name="hora_apertura" class="form-control"
+                           value="{{ eleccion['hora_apertura'] if eleccion else '07:00' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Hora de Cierre</label>
+                    <input type="time" name="hora_cierre" class="form-control"
+                           value="{{ eleccion['hora_cierre'] if eleccion else '18:00' }}">
+                </div>
+            </div>
+
+            <div class="form-check mb-4">
+                <input class="form-check-input" type="checkbox" name="activa" value="1"
+                       id="chk_activa" {{ 'checked' if eleccion and eleccion['activa'] }}>
+                <label class="form-check-label" for="chk_activa">
+                    <strong>Elección activa</strong>
+                    <small class="text-muted d-block">Solo puede haber una elección activa a la vez</small>
+                </label>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>Guardar
+                </button>
+                <a href="/elecciones" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

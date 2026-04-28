@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% set active_page = "pesos" %}
+{% block title %}Pesos por Centro{% endblock %}
+
+{% block extra_head %}
+<style>
+    .peso-input {
+        width: 90px;
+        font-size: 13px;
+        padding: 2px 6px;
+        text-align: right;
+    }
+    .peso-input:focus {
+        background: #fff3cd;
+    }
+    .peso-changed {
+        background: #d4edda !important;
+    }
+    .btn-calc { font-size: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-sliders me-2"></i>Pesos por Centro</h2>
+
+{% if msg %}
+<div class="alert alert-{{ cat }} alert-dismissible fade show">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+{% if not eleccion %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    No hay elecci&#243;n activa. <a href="/elecciones" class="alert-link">Active una elecci&#243;n</a> primero.
+</div>
+
+{% elif not tiene_muestra %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>
+    La elecci&#243;n <strong>{{ eleccion["nombre"] }}</strong> no tiene muestra seleccionada.
+    <a href="/muestra" class="alert-link">Seleccione una muestra</a> para luego configurar los pesos.
+</div>
+<div class="card shadow-sm" style="max-width: 500px;">
+    <div class="card-body">
+        <h6 class="text-muted mb-2"><i class="bi bi-info-circle me-1"></i>&#191;Qu&#233; son los pesos?</h6>
+        <p class="small mb-0">
+            Cada centro de la muestra tiene 4 pesos que representan qu&#233; proporci&#243;n del
+            electorado representa a nivel de parroquia, municipio, estado y naci&#243;n.
+            Estos pesos se usan para extrapolar los resultados parciales del exit poll
+            al resultado estimado por nivel geogr&#225;fico.
+        </p>
+    </div>
+</div>
+
+{% else %}
+
+<div class="alert alert-info mb-3">
+    <i class="bi bi-funnel me-2"></i>
+    <strong>{{ eleccion["nombre"] }}</strong> &mdash; {{ pesos|length }} centros en la muestra
+    {% if estado_sel %} (filtrado por estado){% endif %}
+</div>
+
+<!-- Filtro por estado -->
+<form method="get" action="/pesos" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto">
+        <label class="form-label fw-semibold mb-1">Filtrar por estado</label>
+        <select name="estado" class="form-select form-select-sm" style="width: 250px;">
+            <option value="">&mdash; Todos los estados &mdash;</option>
+            {% for e in estados %}
+            <option value="{{ e['id'] }}" {{ 'selected' if estado_sel == e['id']|string }}>
+                {{ e["nombre"] }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+    </div>
+    {% if estado_sel %}
+    <div class="col-auto">
+        <a href="/pesos" class="btn btn-sm btn-outline-secondary">Limpiar</a>
+    </div>
+    {% endif %}
+    <div class="col-auto ms-auto">
+        <button type="button" class="btn btn-sm btn-outline-success btn-calc" id="btnCalcAuto"
+                title="Calcula pesos autom&#225;ticamente seg&#250;n proporci&#243;n de electores">
+            <i class="bi bi-calculator me-1"></i>Auto-calcular pesos
+        </button>
+    </div>
+</form>
+
+<form method="post" action="/pesos/guardar-todos" id="formPesos">
+    <input type="hidden" name="id_eleccion" value="{{ eleccion['id'] }}">
+
+    <div class="table-responsive">
+        <table class="table table-sm table-hover bg-white shadow-sm rounded" id="tablaPesos">
+            <thead class="table-light">
+                <tr>
+                    <th>C&#243;digo</th>
+                    <th>Centro</th>
+                    <th>Estado</th>
+                    <th>Municipio</th>
+                    <th class="text-end">Electores</th>
+                    <th class="text-end">P. Parroquia</th>
+                    <th class="text-end">P. Municipio</th>
+                    <th class="text-end">P. Estado</th>
+                    <th class="text-end">P. Naci&#243;n</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in pesos %}
+                <tr data-id="{{ r['id_muestra'] }}"
+                    data-electores="{{ r['num_electores'] or 0 }}"
+                    data-estado="{{ r['estado'] }}"
+                    data-municipio="{{ r['municipio'] or '' }}"
+                    data-parroquia="{{ r['parroquia'] or '' }}">
+                    <td><code>{{ r["codigo_centro"] }}</code></td>
+                    <td class="small">{{ r["centro_nombre"][:35] }}</td>
+                    <td class="small">{{ r["estado"] }}</td>
+                    <td class="small">{{ r["municipio"] or "&mdash;" }}</td>
+                    <td class="text-end">{{ "{:,}".format(r["num_electores"] or 0) }}</td>
+                    <td class="text-end">
+                        <input type="number" name="pp_{{ r['id_muestra'] }}"
+                               class="form-control form-control-sm peso-input"
+                               step="0.000001" min="0" max="99"
+                               value="{{ '%.6f'|format(r['peso_parroquia']) }}">
+                    </td>
+                    <td class="text-end">
+                        <input type="number" name="pm_{{ r['id_muestra'] }}"
+                               class="form-control form-control-sm peso-input"
+                               step="0.000001" min="0" max="99"
+                               value="{{ '%.6f'|format(r['peso_municipio']) }}">
+                    </td>
+                    <td class="text-end">
+                        <input type="number" name="pe_{{ r['id_muestra'] }}"
+                               class="form-control form-control-sm peso-input"
+                               step="0.000001" min="0" max="99"
+                               value="{{ '%.6f'|format(r['peso_estado']) }}">
+                    </td>
+                    <td class="text-end">
+                        <input type="number" name="pn_{{ r['id_muestra'] }}"
+                               class="form-control form-control-sm peso-input"
+                               step="0.000001" min="0" max="99"
+                               value="{{ '%.6f'|format(r['peso_nacion']) }}">
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-3 mb-4">
+        <span class="text-muted small" id="cambiosInfo">Sin cambios</span>
+        <button type="submit" class="btn btn-primary" id="btnGuardar" disabled>
+            <i class="bi bi-check-lg me-1"></i>Guardar todos los pesos
+        </button>
+    </div>
+</form>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabla = document.getElementById('tablaPesos');
+    if (!tabla) return;
+
+    // Busqueda
+    const search = document.createElement('input');
+    search.type = 'text';
+    search.className = 'form-control form-control-sm mb-3';
+    search.placeholder = 'Buscar centro por nombre o c\u00f3digo...';
+    search.style.maxWidth = '350px';
+    tabla.parentElement.insertBefore(search, tabla);
+    search.addEventListener('input', function() {
+        const val = this.value.toLowerCase();
+        tabla.querySelectorAll('tbody tr').forEach(function(row) {
+            row.style.display = row.textContent.toLowerCase().includes(val) ? '' : 'none';
+        });
+    });
+
+    // Detectar cambios en inputs
+    const origValues = {};
+    tabla.querySelectorAll('.peso-input').forEach(inp => {
+        origValues[inp.name] = inp.value;
+        inp.addEventListener('input', function() {
+            this.classList.toggle('peso-changed', this.value !== origValues[this.name]);
+            updateCambios();
+        });
+    });
+
+    function updateCambios() {
+        const changed = tabla.querySelectorAll('.peso-changed').length;
+        const info = document.getElementById('cambiosInfo');
+        const btn = document.getElementById('btnGuardar');
+        if (changed > 0) {
+            info.textContent = changed + ' peso(s) modificado(s)';
+            info.className = 'text-warning small fw-semibold';
+            btn.disabled = false;
+        } else {
+            info.textContent = 'Sin cambios';
+            info.className = 'text-muted small';
+            btn.disabled = true;
+        }
+    }
+
+    // Auto-calcular pesos
+    const btnCalc = document.getElementById('btnCalcAuto');
+    if (btnCalc) {
+        btnCalc.addEventListener('click', function() {
+            const rows = Array.from(tabla.querySelectorAll('tbody tr'));
+
+            // Agrupar electores por nivel geografico
+            const byParroquia = {};  // estado+municipio+parroquia -> total electores en RE
+            const byMunicipio = {};
+            const byEstado = {};
+            let totalNacional = 0;
+
+            rows.forEach(row => {
+                const elec = parseInt(row.dataset.electores) || 0;
+                const edo = row.dataset.estado;
+                const mun = row.dataset.municipio;
+                const par = row.dataset.parroquia;
+                const kp = edo + '|' + mun + '|' + par;
+                const km = edo + '|' + mun;
+
+                byParroquia[kp] = (byParroquia[kp] || 0) + elec;
+                byMunicipio[km] = (byMunicipio[km] || 0) + elec;
+                byEstado[edo] = (byEstado[edo] || 0) + elec;
+                totalNacional += elec;
+            });
+
+            // Calcular pesos proporcionales
+            rows.forEach(row => {
+                const elec = parseInt(row.dataset.electores) || 0;
+                const edo = row.dataset.estado;
+                const mun = row.dataset.municipio;
+                const par = row.dataset.parroquia;
+                const kp = edo + '|' + mun + '|' + par;
+                const km = edo + '|' + mun;
+
+                const inputs = row.querySelectorAll('.peso-input');
+                if (inputs.length === 4 && elec > 0) {
+                    inputs[0].value = (elec / (byParroquia[kp] || 1)).toFixed(6);  // parroquia
+                    inputs[1].value = (elec / (byMunicipio[km] || 1)).toFixed(6);  // municipio
+                    inputs[2].value = (elec / (byEstado[edo] || 1)).toFixed(6);    // estado
+                    inputs[3].value = (elec / (totalNacional || 1)).toFixed(6);    // nacion
+                    inputs.forEach(inp => {
+                        inp.classList.add('peso-changed');
+                    });
+                }
+            });
+            updateCambios();
+        });
+    }
+});
+</script>
+{% endblock %}

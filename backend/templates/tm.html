@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% set active_page = "tm" %}
+{% block title %}Tabla de Mesa{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-table me-2"></i>Tabla de Mesa (TM)</h2>
+
+{% if msg %}
+<div class="alert alert-{{ cat }} alert-dismissible fade show">
+    <pre class="mb-0" style="white-space: pre-wrap; font-size: .85rem;">{{ msg }}</pre>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Resumen actual -->
+<div class="row g-3 mb-4">
+    <div class="col-md-2">
+        <div class="card card-stat shadow-sm">
+            <div class="card-body text-center">
+                <div class="number">{{ "{:,}".format(stats.centros_activos) }}</div>
+                <div class="text-muted small">Centros activos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card card-stat shadow-sm">
+            <div class="card-body text-center">
+                <div class="number">{{ stats.centros_inactivos }}</div>
+                <div class="text-muted small">Inactivos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card card-stat shadow-sm">
+            <div class="card-body text-center">
+                <div class="number">{{ "{:,}".format(stats.con_gps) }}</div>
+                <div class="text-muted small">Con GPS</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card card-stat shadow-sm">
+            <div class="card-body text-center">
+                <div class="number">{{ "{:,}".format(stats.electores) }}</div>
+                <div class="text-muted small">Electores</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card card-stat shadow-sm">
+            <div class="card-body text-center">
+                <div class="number">{{ stats.estados }}</div>
+                <div class="text-muted small">Estados</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card card-stat shadow-sm">
+            <div class="card-body text-center">
+                <div class="number">{{ stats.municipios }} / {{ stats.parroquias }}</div>
+                <div class="text-muted small">Mun. / Parr.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulario de carga -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-upload me-2"></i>Cargar nueva Tabla de Mesa</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" action="/tm/cargar" enctype="multipart/form-data">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Archivo TM</label>
+                    <input type="file" name="archivo" class="form-control"
+                           accept=".xlsx,.xls,.xlsm,.csv" required>
+                    <small class="text-muted">Excel (.xlsx) o CSV estándar</small>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Formato</label>
+                    <select name="formato" class="form-select">
+                        <option value="auto">Auto-detectar</option>
+                        <option value="2015">TM 2015 (AN)</option>
+                        <option value="2018">TM 2018 (Pres)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Hoja Excel</label>
+                    <input type="text" name="hoja" class="form-control" placeholder="(auto)">
+                    <small class="text-muted">Dejar vacío = auto</small>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" name="dry_run" value="1" id="chk_dry">
+                        <label class="form-check-label" for="chk_dry">
+                            <strong>Simulación</strong>
+                            <small class="text-muted d-block">No escribe en BD</small>
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-cloud-upload me-1"></i>Cargar
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div class="mt-3 p-3 bg-light rounded small">
+            <strong>Carga diferencial:</strong>
+            <ul class="mb-0 mt-1">
+                <li>Centros nuevos se agregan</li>
+                <li>Centros existentes se actualizan (mesas, electores)</li>
+                <li>Centros ausentes se marcan inactivos (no se eliminan)</li>
+                <li>Coordenadas GPS y riesgo nunca se sobreescriben</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Desglose por estado -->
+{% if por_estado %}
+<h4 class="mb-3">Centros por Estado</h4>
+<div class="table-responsive">
+    <table class="table table-sm table-hover bg-white shadow-sm rounded">
+        <thead class="table-light">
+            <tr>
+                <th>Estado</th>
+                <th class="text-end">Centros</th>
+                <th class="text-end">Electores</th>
+                <th class="text-end">Mesas</th>
+                <th class="text-end">Con GPS</th>
+                <th class="text-end">% GPS</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for e in por_estado %}
+            <tr>
+                <td class="fw-semibold">{{ e["nombre"] }}</td>
+                <td class="text-end">{{ "{:,}".format(e["centros"]) }}</td>
+                <td class="text-end">{{ "{:,}".format(e["electores"] or 0) }}</td>
+                <td class="text-end">{{ "{:,}".format(e["mesas"] or 0) }}</td>
+                <td class="text-end">{{ e["con_gps"] }}</td>
+                <td class="text-end">
+                    {% if e["centros"] %}
+                    {{ "%.0f"|format(e["con_gps"] / e["centros"] * 100) }}%
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot class="table-light fw-bold">
+            <tr>
+                <td>TOTAL</td>
+                <td class="text-end">{{ "{:,}".format(stats.centros_activos) }}</td>
+                <td class="text-end">{{ "{:,}".format(stats.electores) }}</td>
+                <td class="text-end">—</td>
+                <td class="text-end">{{ "{:,}".format(stats.con_gps) }}</td>
+                <td class="text-end">
+                    {% if stats.centros_activos %}
+                    {{ "%.0f"|format(stats.con_gps / stats.centros_activos * 100) }}%
+                    {% endif %}
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

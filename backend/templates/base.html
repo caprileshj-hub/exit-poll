@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Exit Poll{% endblock %} &mdash; Configuraci&#243;n</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root { --ep-azul: #1a3a5c; --ep-rojo: #c0392b; --ep-gris: #f8f9fa; }
+        body { background: var(--ep-gris); }
+        .navbar { background: var(--ep-azul) !important; }
+        .sidebar { min-height: calc(100vh - 56px); background: #fff; border-right: 1px solid #dee2e6; }
+        .sidebar .nav-link { color: #495057; padding: .75rem 1.25rem; border-radius: 0; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background: #e9ecef; color: var(--ep-azul); font-weight: 600; }
+        .sidebar .nav-link i { width: 24px; }
+        .card-stat { border-left: 4px solid var(--ep-azul); }
+        .card-stat .number { font-size: 2rem; font-weight: 700; color: var(--ep-azul); }
+        .badge-gobierno { background: var(--ep-rojo); }
+        .badge-oposicion { background: #2980b9; }
+        .badge-otro { background: #7f8c8d; }
+        .foto-candidato { width: 48px; height: 48px; object-fit: cover; border-radius: 50%; }
+        .foto-preview { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #dee2e6; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<nav class="navbar navbar-dark px-3">
+    <a class="navbar-brand fw-bold" href="/">
+        <i class="bi bi-clipboard2-data me-2"></i>Exit Poll &mdash; Configuraci&#243;n
+    </a>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 d-none d-md-block sidebar py-3">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'index' %}active{% endif %}" href="/">
+                        <i class="bi bi-house-door me-2"></i>Inicio
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'tm' %}active{% endif %}" href="/tm">
+                        <i class="bi bi-table me-2"></i>Tabla de Mesa
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'elecciones' %}active{% endif %}" href="/elecciones">
+                        <i class="bi bi-calendar-event me-2"></i>Elecciones
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'candidatos' %}active{% endif %}" href="/candidatos">
+                        <i class="bi bi-people me-2"></i>Candidatos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'muestra' %}active{% endif %}" href="/muestra">
+                        <i class="bi bi-bullseye me-2"></i>Muestra
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'ficha' %}active{% endif %}" href="/ficha">
+                        <i class="bi bi-file-earmark-bar-graph me-2"></i>Ficha T&#233;cnica
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'pesos' %}active{% endif %}" href="/pesos">
+                        <i class="bi bi-sliders me-2"></i>Pesos
+                    </a>
+                </li>
+                <li class="nav-item mt-2 pt-2" style="border-top: 1px solid #dee2e6;">
+                    <a class="nav-link {% if active_page == 'visualizacion' %}active{% endif %}" href="/visualizacion">
+                        <i class="bi bi-map me-2"></i>Visualizaci&#243;n
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main -->
+        <main class="col-md-10 ms-sm-auto px-4 py-4">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

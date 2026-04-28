@@ -1,0 +1,2482 @@
+{
+  "AMAZONAS": {
+    "ALTO ORINOCO": {
+      "municipio": 0,
+      "parroquias": {
+        "LA ESMERALDA": 0,
+        "HUACHAMACARE": 0,
+        "MARAWAKA": 0,
+        "MAVACA": 0,
+        "SIERRA PARIMA": 0
+      }
+    },
+    "ATABAPO": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN FERNANDO": 0
+      }
+    },
+    "AUTANA": {
+      "municipio": 0,
+      "parroquias": {
+        "ISLA DE RATÓN": 0,
+        "SAMARIAPO": 0,
+        "SIPAPO": 0,
+        "MUNDUAPO": 0,
+        "GUAYAPO": 0
+      }
+    },
+    "MANAPIARE": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN JUAN DE MANAPIARE": 0,
+        "ALTO VENTUARI": 0,
+        "MEDIO VENTUARI": 0,
+        "BAJO VENTUARI": 0
+      }
+    },
+    "MARAWARE": {
+      "municipio": 0,
+      "parroquias": {
+        "MARAWAKA": 0
+      }
+    },
+    "RIO NEGRO": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN CARLOS DE RÍO NEGRO": 0,
+        "SOLANO": 0
+      }
+    }
+  },
+  "ANZOATEGUI": {
+    "ANACO": {
+      "municipio": 0.092983507,
+      "parroquias": {
+        "ANACO": 0,
+        "SAN JOAQUÍN": 0,
+        "BUENA VISTA": 0
+      }
+    },
+    "ARAGUA": {
+      "municipio": 0,
+      "parroquias": {
+        "ARAGUA DE BARCELONA": 0,
+        "CACHIPO": 0
+      }
+    },
+    "BOLÍVAR": {
+      "municipio": 0,
+      "parroquias": {
+        "BARCELONA": 0,
+        "EL CARMEN": 0,
+        "SAN CRISTÓBAL": 0,
+        "BERGANTÍN": 0,
+        "CAIGUA": 0,
+        "EL PILAR": 0,
+        "NARICUAL": 0
+      }
+    },
+    "BRUZUAL": {
+      "municipio": 0,
+      "parroquias": {
+        "CLARINES": 0,
+        "GUANAPE": 0,
+        "SABANA DE UCHIRE": 0
+      }
+    },
+    "CAJIGAL": {
+      "municipio": 0,
+      "parroquias": {
+        "C AJIGAL": 0
+      }
+    },
+    "FREITES": {
+      "municipio": 0.102983507,
+      "parroquias": {
+        "CANTAURA": 0,
+        "LIBERTADOR": 0,
+        "SANTA ROSA": 0,
+        "URICA": 0
+      }
+    },
+    "GUANTA": {
+      "municipio": 0.044991753,
+      "parroquias": {
+        "GUANTA": 0,
+        "CHORRERÓN": 0
+      }
+    },
+    "INDEPENDENCIA": {
+      "municipio": 0,
+      "parroquias": {
+        "SOLEDAD": 0
+      }
+    },
+    "LIBERTAD": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN MATEO": 0,
+        "EL CARITO": 0,
+        "SANTA INÉS": 0
+      }
+    },
+    "MIRANDA": {
+      "municipio": 0,
+      "parroquias": {
+        "PARIAGUÁN": 0
+      }
+    },
+    "MC GREGOR": {
+      "municipio": 0,
+      "parroquias": {
+        "EL CHAPARRO": 0,
+        "TOMÁS ALFARO CALATRAVA": 0
+      }
+    },
+    "PEÑALVER": {
+      "municipio": 0,
+      "parroquias": {
+        "PUERTO PÍRITU": 0,
+        "SAN MIGUEL": 0,
+        "SUCRE": 0
+      }
+    },
+    "PÍRITU": {
+      "municipio": 0,
+      "parroquias": {
+        "PÍRITU": 0,
+        "SAN FRANCISCO": 0
+      }
+    },
+    "SAN JUAN DE CAPISTRANO": {
+      "municipio": 0,
+      "parroquias": {
+        "BOCA DE CHÁVEZ": 0
+      }
+    },
+    "SOTILLO": {
+      "municipio": 0.169057226,
+      "parroquias": {
+        "PUERTO LA CRUZ": 0,
+        "POZUELOS": 0
+      }
+    },
+    "SANTA ANA": {
+      "municipio": 0,
+      "parroquias": {
+        "SANTA ANA": 0,
+        "PUEBLO NUEVO": 0
+      }
+    },
+    "SIMÓN RODRÍGUEZ": {
+      "municipio": 0.187986007,
+      "parroquias": {
+        "EL TIGRE": 0
+      }
+    }
+  },
+  "APURE": {
+    "ACHAGUAS": {
+      "municipio": 0,
+      "parroquias": {
+        "ACHAGUAS": 0,
+        "APURITO": 0,
+        "EL YAGUAL": 0,
+        "GUACHARA": 0,
+        "MUCURITAS": 0,
+        "QUESERAS DEL MEDIO": 0
+      }
+    },
+    "BIRUACA": {
+      "municipio": 0.133087983,
+      "parroquias": {
+        "BIRUACA": 0
+      }
+    },
+    "MUÑOZ": {
+      "municipio": 0,
+      "parroquias": {
+        "BRUZUAL": 0,
+        "MANTECAL": 0,
+        "QUINTERO": 0,
+        "RINCÓN HONDO": 0,
+        "SAN VICENTE": 0
+      }
+    },
+    "PÁEZ": {
+      "municipio": 0.318030459,
+      "parroquias": {
+        "GUASDUALITO": 0,
+        "ARAMENDI": 0,
+        "EL AMPARO": 0,
+        "SAN CAMILO": 0,
+        "URDANETA": 0
+      }
+    },
+    "PEDRO CAMEJO": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN JUAN DE PAYARA": 0,
+        "CODAZZI": 0,
+        "CUNAVICHE": 0
+      }
+    },
+    "ROMULO GALLEGOS": {
+      "municipio": 0,
+      "parroquias": {
+        "ELORZA": 0,
+        "LA TRINIDAD": 0
+      }
+    },
+    "SAN FERNANDO": {
+      "municipio": 0.548881558,
+      "parroquias": {
+        "SAN FERNANDO": 0,
+        "EL RECREO": 0,
+        "PEÑALVER": 0,
+        "SAN RAFAEL DE ATAMAICA": 0
+      }
+    }
+  },
+  "ARAGUA": {
+    "BOLIVAR": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN MATEO": 0
+      }
+    },
+    "CAMATAGUA": {
+      "municipio": 0,
+      "parroquias": {
+        "CAMATAGUA": 0,
+        "CARMEN DE CURA": 0
+      }
+    },
+    "FRANCISCO LINARES ALCANTARA": {
+      "municipio": 0.083008534,
+      "parroquias": {
+        "SANTA RITA": 0,
+        "FRANCISCO LINARES ALCÁNTARA": 0,
+        "MONSEÑOR FELICIANO GONZÁLEZ": 0
+      }
+    },
+    "GIRARDOT": {
+      "municipio": 0.339637267,
+      "parroquias": {
+        "LAS DELICIAS": 0,
+        "CHORONÍ": 0,
+        "JOAQUÍN CRESPO": 0,
+        "MADRE MARÍA DE SAN JOSÉ": 0,
+        "PEDRO JOSÉ OVALLES": 0,
+        "JOSÉ CASANOVA GODOY": 0,
+        "ANDRÉS ELOY BLANCO": 0,
+        "LOS TACARIGÜITA": 0
+      }
+    },
+    "JOSE FELIX RIBAS": {
+      "municipio": 0.103108417,
+      "parroquias": {
+        "VICTORIA": 0,
+        "ZUATA": 0,
+        "PAO DE ZÁRATE": 0,
+        "LAS GUACAMAYAS": 0
+      }
+    },
+    "JOSE RAFAEL REVENGA": {
+      "municipio": 0.030802572,
+      "parroquias": {
+        "EL CONSEJO": 0
+      }
+    },
+    "LIBERTADOR": {
+      "municipio": 0.059842922,
+      "parroquias": {
+        "PALO NEGRO": 0,
+        "SAN MARTÍN DE PORRES": 0
+      }
+    },
+    "MARIO BRICEÑO IRAGORRY": {
+      "municipio": 0.077595497,
+      "parroquias": {
+        "EL LIMÓN": 0,
+        "CAÑA DE AZÚCAR": 0
+      }
+    },
+    "SAN CASIMIRO": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN CASIMIRO": 0,
+        "GUIRIPA": 0,
+        "OLLAS DE CARAMACATE": 0,
+        "VALLE MORÍN": 0
+      }
+    },
+    "SAN SEBASTIAN": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN SEBASTIÁN": 0
+      }
+    },
+    "SANTIAGO MARIÑO": {
+      "municipio": 0.130883071,
+      "parroquias": {
+        "TURMERO": 0,
+        "AREVALO APONTE": 0,
+        "CHUAO": 0,
+        "SAMÁN DE GÜERE": 0,
+        "ALFREDO PACHECO MIRANDA": 0
+      }
+    },
+    "SANTOS MICHELENA": {
+      "municipio": 0,
+      "parroquias": {
+        "LAS TEJERÍAS": 0,
+        "TIARA": 0
+      }
+    },
+    "SUCRE": {
+      "municipio": 0.082337875,
+      "parroquias": {
+        "CAGUA": 0,
+        "BELLA VISTA": 0
+      }
+    },
+    "TOVAR": {
+      "municipio": 0,
+      "parroquias": {
+        "COLONIA TOVAR": 0
+      }
+    },
+    "URDANETA": {
+      "municipio": 0,
+      "parroquias": {
+        "BARBACOAS": 0,
+        "SAN FRANCISCO DE CARA": 0,
+        "TAGUAY": 0,
+        "LAS PEÑITAS": 0
+      }
+    },
+    "ZAMORA": {
+      "municipio": 0.092783844,
+      "parroquias": {
+        "MAGDALENO": 0,
+        "SAN FRANCISCO DE ASÍS": 0,
+        "VALLES DE TUCUTUNEMO": 0,
+        "AUGUSTO MIJARES": 0
+      }
+    }
+  },
+  "BARINAS": {
+    "ALBERTO ARVELO TORREALBA": {
+      "municipio": 0,
+      "parroquias": {
+        "SABANETA": 0,
+        "RODRÍGUEZ DOMÍNGUEZ": 0
+      }
+    },
+    "ANDRÉS ELOY BLANCO": {
+      "municipio": 0,
+      "parroquias": {
+        "EL CANTÓN": 0,
+        "SANTA CRUZ DE GUACAS": 0,
+        "PUERTO VIVAS": 0
+      }
+    },
+    "ARISMENDI": {
+      "municipio": 0,
+      "parroquias": {
+        "ARISMENDI": 0,
+        "GUADARRAMA": 0,
+        "LA UNIÓN": 0,
+        "SAN ANTONIO": 0
+      }
+    },
+    "BARINAS": {
+      "municipio": 0.603948321,
+      "parroquias": {
+        "BARINAS": 0,
+        "ALFREDO ARVELO LARRIVA": 0,
+        "SAN SILVESTRE": 0,
+        "SANTA INÉS": 0,
+        "SANTA LUCÍA": 0,
+        "TORUNOS": 0,
+        "EL COROZO": 0,
+        "MÁMARA": 0,
+        "NICOLÁS PULIDO": 0,
+        "ROMULO BETANCOURT": 0
+      }
+    },
+    "BOLÍVAR": {
+      "municipio": 0,
+      "parroquias": {
+        "BARINITAS": 0,
+        "ALTAMIRA": 0,
+        "CALDERAS": 0
+      }
+    },
+    "CRUZ PAREDES": {
+      "municipio": 0,
+      "parroquias": {
+        "BARRANCAS": 0,
+        "EL SOCORRO": 0,
+        "MASPARRITO": 0
+      }
+    },
+    "EZEQUIEL ZAMORA": {
+      "municipio": 0.396051679,
+      "parroquias": {
+        "SANTA BÁRBARA": 0,
+        "PEDRAZA LA VIEJA": 0,
+        "RODRÍGUEZ DOMÍNGUEZ": 0
+      }
+    },
+    "OBISPOS": {
+      "municipio": 0,
+      "parroquias": {
+        "OBISPOS": 0,
+        "EL REAL": 0,
+        "LA LUZ": 0,
+        "LOS GUASIMITOS": 0
+      }
+    },
+    "PEDRAZA": {
+      "municipio": 0,
+      "parroquias": {
+        "CIUDAD BOLÍVAR": 0,
+        "DOLORES": 0,
+        "LIBERTAD": 0,
+        "PALACIO FAJARDO": 0
+      }
+    },
+    "ROJAS": {
+      "municipio": 0,
+      "parroquias": {
+        "LIBERTAD": 0,
+        "DOLORES": 0,
+        "PALACIO FAJARDO": 0,
+        "CIUDAD BOLÍVAR": 0
+      }
+    },
+    "SOSA": {
+      "municipio": 0,
+      "parroquias": {
+        "CIUDAD DE NUTRIAS": 0,
+        "EL REGALO": 0,
+        "PUERTO DE NUTRIAS": 0,
+        "SANTA CATALINA": 0
+      }
+    }
+  },
+  "BOLIVAR": {
+    "CARONÍ": {
+      "municipio": 0.603948321,
+      "parroquias": {
+        "UNARE": 0,
+        "UNIVERSIDAD": 0,
+        "VISTA AL SOL": 0,
+        "CHIRICA": 0,
+        "DALLA COSTA": 0,
+        "ONCE DE ABRIL": 0,
+        "SIMÓN BOLÍVAR": 0,
+        "POZO VERDE": 0,
+        "YOCOIMA": 0,
+        "5 DE JULIO": 0
+      }
+    },
+    "CEDEÑO": {
+      "municipio": 0,
+      "parroquias": {
+        "CAICARA DEL ORINOCO": 0,
+        "ALTAGRACIA": 0,
+        "ASCENSIÓN FARRERAS": 0,
+        "GUANIAMO": 0,
+        "LA URBANA": 0,
+        "PIJIGUAOS": 0
+      }
+    },
+    "EL CALLAO": {
+      "municipio": 0,
+      "parroquias": {
+        "EL CALLAO": 0
+      }
+    },
+    "GRAN SABANA": {
+      "municipio": 0,
+      "parroquias": {
+        "SANTA ELENA DE UAIRÉN": 0,
+        "IKABARÚ": 0
+      }
+    },
+    "HERES": {
+      "municipio": 0.396051679,
+      "parroquias": {
+        "CIUDAD BOLÍVAR": 0,
+        "AGUA SALADA": 0,
+        "CATEDRAL": 0,
+        "JOSE ANTONIO PÁEZ": 0,
+        "LA SABANITA": 0,
+        "MARHUANTA": 0,
+        "ORINOCO": 0,
+        "PANAPANA": 0,
+        "ZEA": 0
+      }
+    },
+    "PIAR": {
+      "municipio": 0,
+      "parroquias": {
+        "UPATA": 0,
+        "ANDRÉS ELOY BLANCO": 0,
+        "PEDRO COVA": 0
+      }
+    },
+    "RAÚL LEONI": {
+      "municipio": 0,
+      "parroquias": {
+        "CIUDAD PIAR": 0,
+        "ARIPAO": 0,
+        "GUARATARO": 0,
+        "LAS MAJADAS": 0,
+        "MOITACO": 0
+      }
+    },
+    "ROSCIO": {
+      "municipio": 0,
+      "parroquias": {
+        "GUASIPATI": 0,
+        "SALOM": 0
+      }
+    },
+    "SIFONTES": {
+      "municipio": 0,
+      "parroquias": {
+        "TUMEREMO": 0,
+        "DALLA COSTA": 0,
+        "SAN ISIDRO": 0
+      }
+    },
+    "SUCRE": {
+      "municipio": 0,
+      "parroquias": {
+        "MARIPA": 0,
+        "ARIPAO": 0,
+        "GUARATARO": 0,
+        "LAS MAJADAS": 0,
+        "MOITACO": 0
+      }
+    },
+    "PADRE PEDRO CHIEN": {
+      "municipio": 0,
+      "parroquias": {
+        "EL PALMAR": 0
+      }
+    }
+  },
+  "CARABOBO": {
+    "BEJUMA": {
+      "municipio": 0.022175041,
+      "parroquias": {
+        "BEJUMA": 0,
+        "CANOABO": 0,
+        "SIMÓN BOLÍVAR": 0
+      }
+    },
+    "CARLOS ARVELO": {
+      "municipio": 0.066819648,
+      "parroquias": {
+        "GUIGÜE": 0,
+        "BELÉN": 0,
+        "TACARIGUA": 0
+      }
+    },
+    "DIEGO IBARRA": {
+      "municipio": 0.045035052,
+      "parroquias": {
+        "MARIARA": 0,
+        "AGUAS CALIENTES": 0
+      }
+    },
+    "GUACARA": {
+      "municipio": 0.077790643,
+      "parroquias": {
+        "GUACARA": 0,
+        "CIUDAD ALIANZA": 0,
+        "YAGUA": 0
+      }
+    },
+    "JUAN JOSE MORA": {
+      "municipio": 0.03297986,
+      "parroquias": {
+        "MORÓN": 0,
+        "URAMA": 0
+      }
+    },
+    "LIBERTADOR": {
+      "municipio": 0.073634891,
+      "parroquias": {
+        "TOCUYITO": 0,
+        "INDEPENDENCIA": 0
+      }
+    },
+    "LOS GUAYOS": {
+      "municipio": 0.065288937,
+      "parroquias": {
+        "LOS GUAYOS": 0
+      }
+    },
+    "NAGUANAGUA": {
+      "municipio": 0.067149973,
+      "parroquias": {
+        "NAGUANAGUA": 0
+      }
+    },
+    "PUERTO CABELLO": {
+      "municipio": 0.095133745,
+      "parroquias": {
+        "BARTOLOMÉ SALOM": 0,
+        "DEMOCRACIA": 0,
+        "FRATERNIDAD": 0,
+        "GOAIGOAZA": 0,
+        "JUAN JOSÉ FLORES": 0,
+        "UNIÓN": 0,
+        "BORBURATA": 0,
+        "PATANEMO": 0
+      }
+    },
+    "SAN DIEGO": {
+      "municipio": 0.040048421,
+      "parroquias": {
+        "SAN DIEGO": 0
+      }
+    },
+    "SAN JOAQUIN": {
+      "municipio": 0.026206499,
+      "parroquias": {
+        "SAN JOAQUÍN": 0
+      }
+    },
+    "VALENCIA": {
+      "municipio": 0.387737291,
+      "parroquias": {
+        "CATEDRAL": 0,
+        "EL SOCORRO": 0,
+        "MIGUEL PEÑA": 0,
+        "RAFAEL URDANETA": 0,
+        "SAN BLAS": 0,
+        "SAN JOSÉ": 0,
+        "SANTA ROSA": 0,
+        "NEGRO PRIMERO": 0
+      }
+    }
+  },
+  "COJEDES": {
+    "EZEQUIEL ZAMORA": {
+      "municipio": 0.527880567,
+      "parroquias": {
+        "SAN CARLOS": 0,
+        "JUAN ANGEL BRAVO": 0,
+        "MANUEL MANRIQUE": 0
+      }
+    },
+    "TINAQUILLO": {
+      "municipio": 0.472119433,
+      "parroquias": {
+        "TINAQUILLO": 0
+      }
+    }
+  },
+  "DELTA AMACURO": {
+    "ANTONIO DÍAZ": {
+      "municipio": 0,
+      "parroquias": {
+        "CACAHUAL": 0,
+        "MANUEL RENAUD": 0,
+        "PADRE BARRAL": 0,
+        "SANTO DOMINGO": 0,
+        "SAN JOSÉ DE AMACURO": 0
+      }
+    },
+    "CASACOIMA": {
+      "municipio": 0,
+      "parroquias": {
+        "CASACOIMA": 0
+      }
+    },
+    "PEDERNALES": {
+      "municipio": 0,
+      "parroquias": {
+        "PEDERNALES": 0,
+        "LUIS BELTRÁN PRIETO FIGUEROA": 0
+      }
+    },
+    "TUCUPITA": {
+      "municipio": 0.702983507,
+      "parroquias": {
+        "TUCUPITA": 0,
+        "SAN JOSÉ": 0,
+        "SAN RAFAEL": 0,
+        "SAN SIMÓN": 0
+      }
+    }
+  },
+  "DISTRITO CAPITAL": {
+    "LIBERTADOR": {
+      "municipio": 0,
+      "parroquias": {
+        "23 DE ENERO": 0.046817408,
+        "ALTAGRACIA": 0.022793094,
+        "ANTÍMANO": 0.061599161,
+        "CANDELARIA": 0.032523093,
+        "CARICUAO": 0.068060797,
+        "COCHE": 0.034306484,
+        "EL JUNQUITO": 0.027633172,
+        "EL PARAÍSO": 0.058412361,
+        "EL RECREO": 0.061028864,
+        "EL VALLE": 0.074227251,
+        "LA PASTORA": 0.045369333,
+        "LA VEGA": 0.062593458,
+        "MACARAO": 0.029707213,
+        "SAN AGUSTÍN": 0.021350846,
+        "SAN JOSÉ": 0.021493905,
+        "SAN JUAN": 0.050435329,
+        "SAN PEDRO": 0.037928936,
+        "SANTA ROSALÍA": 0.055092212,
+        "SUCRE": 0.18862708
+      }
+    }
+  },
+  "FALCON": {
+    "ACOSTA": {
+      "municipio": 0,
+      "parroquias": {
+        "CAPADARE": 0,
+        "LA PASTORA": 0,
+        "LIBERTADOR": 0,
+        "SAN JUAN DE LOS CAYOS": 0
+      }
+    },
+    "BOLIVAR": {
+      "municipio": 0,
+      "parroquias": {
+        "ARACUA": 0,
+        "LA PEÑA": 0
+      }
+    },
+    "BUCHIVACOA": {
+      "municipio": 0,
+      "parroquias": {
+        "BARIRO": 0,
+        "BOROJO": 0,
+        "CAPATÁRIDA": 0,
+        "GUAJIRO": 0,
+        "SEQUE": 0,
+        "ZAZÁRIDA": 0,
+        "VALLE DE EROA": 0
+      }
+    },
+    "CACIQUE MANAURE": {
+      "municipio": 0,
+      "parroquias": {
+        "YARACAL": 0
+      }
+    },
+    "CARIRUBANA": {
+      "municipio": 0.435203956,
+      "parroquias": {
+        "CARIRUBANA": 0,
+        "NORTE": 0,
+        "PUNTA CARDÓN": 0,
+        "SANTA ANA": 0
+      }
+    },
+    "COLINA": {
+      "municipio": 0,
+      "parroquias": {
+        "LA VELA DE CORO": 0,
+        "ACURIGUA": 0,
+        "GUAIBACOA": 0,
+        "LAS CALDERAS": 0,
+        "MACORUCA": 0
+      }
+    },
+    "DABAJURO": {
+      "municipio": 0,
+      "parroquias": {
+        "DABAJURO": 0
+      }
+    },
+    "DEMOCRACIA": {
+      "municipio": 0,
+      "parroquias": {
+        "AGUA CLARA": 0,
+        "AVARIA": 0,
+        "PEDREGAL": 0,
+        "PIEDRA GRANDE": 0,
+        "PURURECHE": 0
+      }
+    },
+    "FALCON": {
+      "municipio": 0.101091762,
+      "parroquias": {
+        "PUEBLO NUEVO": 0,
+        "ADÍCORA": 0,
+        "BARAIVED": 0,
+        "BUENA VISTA": 0,
+        "JADACAQUIVA": 0,
+        "MORUY": 0,
+        "EL VÍNCULO": 0,
+        "EL HATO": 0,
+        "ADAURE": 0
+      }
+    },
+    "FEDERACION": {
+      "municipio": 0,
+      "parroquias": {
+        "CHURUGUARA": 0,
+        "AGUA LARGA": 0,
+        "INDEPENDENCIA": 0,
+        "MAPARARÍ": 0
+      }
+    },
+    "JACURA": {
+      "municipio": 0,
+      "parroquias": {
+        "JACURA": 0,
+        "AGUA LINDA": 0,
+        "ARAURIMA": 0
+      }
+    },
+    "LOS TAQUES": {
+      "municipio": 0.08879282,
+      "parroquias": {
+        "JUDIBANA": 0,
+        "LOS TAQUES": 0
+      }
+    },
+    "MAUROA": {
+      "municipio": 0,
+      "parroquias": {
+        "MAUROA": 0,
+        "CASIGUA": 0,
+        "SAN FÉLIX": 0
+      }
+    },
+    "MIRANDA": {
+      "municipio": 0.374911462,
+      "parroquias": {
+        "SAN ANTONIO": 0,
+        "SAN GABRIEL": 0,
+        "SANTA ANA": 0,
+        "GUZMAN GUILLERMO": 0,
+        "MITARE": 0,
+        "RÍO SECO": 0,
+        "SABANETA": 0,
+        "CHICHIRIVICHE": 0,
+        "BOCA DE AROA": 0
+      }
+    },
+    "MONSEÑOR ITURRIZA": {
+      "municipio": 0,
+      "parroquias": {
+        "CHICHIRIVICHE": 0,
+        "BOCA DE AROA": 0
+      }
+    },
+    "PALMASOLA": {
+      "municipio": 0,
+      "parroquias": {
+        "PALMASOLA": 0
+      }
+    },
+    "PETIT": {
+      "municipio": 0,
+      "parroquias": {
+        "CABURE": 0,
+        "COLINA": 0,
+        "CURIMAGUA": 0
+      }
+    },
+    "PIRITU": {
+      "municipio": 0,
+      "parroquias": {
+        "PÍRITU": 0,
+        "SAN JOSÉ DE LA COSTA": 0
+      }
+    },
+    "SAN FRANCISCO": {
+      "municipio": 0,
+      "parroquias": {
+        "MIRIMIRE": 0
+      }
+    },
+    "SILVA": {
+      "municipio": 0,
+      "parroquias": {
+        "TUCACAS": 0,
+        "BOCA DE YARACUY": 0
+      }
+    },
+    "SUCRE": {
+      "municipio": 0,
+      "parroquias": {
+        "LA CRUZ DE TARATARA": 0,
+        "EL PAUJI": 0,
+        "SUCRE": 0
+      }
+    },
+    "TOCOPERO": {
+      "municipio": 0,
+      "parroquias": {
+        "TOCOPERO": 0
+      }
+    },
+    "UNION": {
+      "municipio": 0,
+      "parroquias": {
+        "SANTA CRUZ DE BUCARAL": 0,
+        "EL CHARAL": 0,
+        "LAS VEGAS DEL TUY": 0
+      }
+    },
+    "ZAMORA": {
+      "municipio": 0,
+      "parroquias": {
+        "PUERTO CUMAREBO": 0,
+        "LA CIÉNAGA": 0,
+        "LA SOLEDAD": 0,
+        "PUEBLO CUMAREBO": 0,
+        "ZAZÁRIDA": 0
+      }
+    }
+  },
+  "GUARICO": {
+    "CAMAGUAN": {
+      "municipio": 0,
+      "parroquias": {
+        "CAMAGUÁN": 0,
+        "PUERTO MIRANDA": 0,
+        "UVERITO": 0
+      }
+    },
+    "CHAGUARAMAS": {
+      "municipio": 0,
+      "parroquias": {
+        "CHAGUARAMAS": 0
+      }
+    },
+    "EL SOCORRO": {
+      "municipio": 0,
+      "parroquias": {
+        "EL SOCORRO": 0
+      }
+    },
+    "INFANTE": {
+      "municipio": 0.271918616,
+      "parroquias": {
+        "VALLE DE LA PASCUA": 0,
+        "ESPINO": 0
+      }
+    },
+    "LAS MERCEDES": {
+      "municipio": 0,
+      "parroquias": {
+        "LAS MERCEDES": 0
+      }
+    },
+    "MELLADO": {
+      "municipio": 0,
+      "parroquias": {
+        "EL SOMBRERO": 0
+      }
+    },
+    "MIRANDA": {
+      "municipio": 0.089502316,
+      "parroquias": {
+        "CALABOZO": 0
+      }
+    },
+    "MONAGAS": {
+      "municipio": 0,
+      "parroquias": {
+        "ALTAGRACIA DE ORITUCO": 0,
+        "LEZAMA": 0,
+        "LIBERTAD DE ORITUCO": 0,
+        "PASO REAL DE MACAIRA": 0,
+        "SAN FRANCISCO DE MACAIRA": 0,
+        "SAN RAFAEL DE ORITUCO": 0,
+        "SOMBRERO": 0
+      }
+    },
+    "ORTIZ": {
+      "municipio": 0,
+      "parroquias": {
+        "ORTIZ": 0,
+        "SAN FRANCISCO DE TIZNADOS": 0,
+        "SAN JOSÉ DE TIZNADOS": 0,
+        "SAN LORENZO DE TIZNADOS": 0
+      }
+    },
+    "RIBAS": {
+      "municipio": 0,
+      "parroquias": {
+        "TUCUPIDO": 0,
+        "SAN RAFAEL DE LAYA": 0
+      }
+    },
+    "ROSCIO": {
+      "municipio": 0.243437303,
+      "parroquias": {
+        "SAN JUAN DE LOS MORROS": 0,
+        "CANTAGALLO": 0,
+        "PARAPARA": 0
+      }
+    },
+    "SAN GERONIMO DE GUAYABAL": {
+      "municipio": 0,
+      "parroquias": {
+        "GUAYABAL": 0,
+        "CAZORLA": 0
+      }
+    },
+    "SAN JOSE DE GUARIBE": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN JOSÉ DE GUARIBE": 0
+      }
+    },
+    "SANTA MARIA DE IPIRE": {
+      "municipio": 0,
+      "parroquias": {
+        "SANTA MARÍA DE IPIRÉ": 0,
+        "ALTAMIRA": 0
+      }
+    },
+    "ZARAZA": {
+      "municipio": 0.395141765,
+      "parroquias": {
+        "ZARAZA": 0,
+        "SAN JOSÉ DE UNARE": 0
+      }
+    }
+  },
+  "LA GUAIRA": {
+    "VARGAS": {
+      "municipio": 0,
+      "parroquias": {
+        "CARABALLEDA": 0,
+        "CARAYACA": 0,
+        "CARUAO": 0,
+        "CATIA LA MAR": 0.504687305,
+        "EL JUNKO": 0,
+        "LA GUAIRA": 0,
+        "MACUTO": 0,
+        "MAIQUETIA": 0.2333297,
+        "NAIGUATÁ": 0,
+        "URIMARE": 0,
+        "CARLOS SOUBLETTE": 0.261982995
+      }
+    }
+  },
+  "LARA": {
+    "ANDRES ELOY BLANCO": {
+      "municipio": 0.02633163,
+      "parroquias": {
+        "SANARE": 0,
+        "GUSTAVO VEGAS LEÓN": 0,
+        "EL BLANCO": 0
+      }
+    },
+    "CRESPO": {
+      "municipio": 0.02875735,
+      "parroquias": {
+        "DUACA": 0,
+        "SANTA ROSA": 0
+      }
+    },
+    "IRIBARREN": {
+      "municipio": 0.580126325,
+      "parroquias": {
+        "AGUEDO FELIPE ALVARADO": 0,
+        "BUENA VISTA": 0,
+        "CATEDRAL": 0,
+        "CONCEPCIÓN": 0,
+        "EL CUJI": 0,
+        "JUÁREZ": 0,
+        "JUAN DE VILLEGAS": 0,
+        "SANTA ROSA": 0,
+        "TAMACA": 0,
+        "UNIÓN": 0
+      }
+    },
+    "JIMENEZ": {
+      "municipio": 0.054886055,
+      "parroquias": {
+        "JUAN BAUTISTA RODRÍGUEZ": 0,
+        "CUARA": 0,
+        "DIEGO DE LOZADA": 0,
+        "PARAÍSO DE SAN JOSÉ": 0,
+        "SAN MIGUEL": 0,
+        "TINTORERO": 0,
+        "JIMÉNEZ": 0
+      }
+    },
+    "MORAN": {
+      "municipio": 0.074250031,
+      "parroquias": {
+        "BOLÍVAR": 0,
+        "ANZOÁTEGUI": 0,
+        "GUARICO": 0,
+        "HUMOCARO ALTO": 0,
+        "HUMOCARO BAJO": 0,
+        "LA CANDELARIA": 0,
+        "MORÁN": 0
+      }
+    },
+    "PALAVECINO": {
+      "municipio": 0.087221874,
+      "parroquias": {
+        "CABUDARE": 0,
+        "JOSÉ GREGORIO BASTIDAS": 0,
+        "AGUA VIVA": 0
+      }
+    },
+    "TORRES": {
+      "municipio": 0.111492708,
+      "parroquias": {
+        "TRINIDAD SAMUEL": 0,
+        "ANTONIO DÍAZ": 0,
+        "CAMACARO": 0,
+        "CASTAÑEDA": 0,
+        "CECILIO ZUBILLAGA": 0,
+        "CHIQUINQUIRÁ": 0,
+        "EL BLANCO": 0,
+        "ESPINOZA DE LOS MONTEROS": 0,
+        "HERIBERTO ARROYO": 0,
+        "LARA": 0,
+        "LAS MERCEDES": 0,
+        "MANUEL MORILLO": 0,
+        "MONTAÑA VERDE": 0,
+        "MONTES DE OCA": 0,
+        "REYES VARGAS": 0,
+        "TORRES": 0
+      }
+    },
+    "URDANETA": {
+      "municipio": 0.036934027,
+      "parroquias": {
+        "SIOPA": 0,
+        "MOROTURO": 0,
+        "SAN MIGUEL": 0,
+        "XAGUAS": 0
+      }
+    }
+  },
+  "MERIDA": {
+    "ALBERTO ADRIANI": {
+      "municipio": 0.214993708,
+      "parroquias": {
+        "EL VIGÍA": 0,
+        "ALBERTO ADRIANI": 0,
+        "PRESIDENTE BETANCOURT": 0,
+        "PRESIDENTE PÁEZ": 0,
+        "PRESIDENTE RÓMULO GALLEGOS": 0,
+        "GABRIEL PICÓN GONZÁLEZ": 0,
+        "HECTOR AMABLE MORA": 0
+      }
+    },
+    "ANDRÉS BELLO": {
+      "municipio": 0,
+      "parroquias": {
+        "LA AZULITA": 0
+      }
+    },
+    "ANTONIO PINTO SALINAS": {
+      "municipio": 0,
+      "parroquias": {
+        "SANTA CRUZ DE MORA": 0,
+        "MESA BOLÍVAR": 0,
+        "MESA DE LAS PALMAS": 0
+      }
+    },
+    "ARICAGUA": {
+      "municipio": 0,
+      "parroquias": {
+        "ARICAGUA": 0,
+        "SAN ANTONIO": 0
+      }
+    },
+    "ARZOBISPO CHACÓN": {
+      "municipio": 0,
+      "parroquias": {
+        "CANAGUA": 0,
+        "CAPURÍ": 0,
+        "CHACANTÁ": 0,
+        "EL MOLINO": 0,
+        "GUAIMARAL": 0,
+        "MUCUTUY": 0,
+        "MUCUCHACHÍ": 0
+      }
+    },
+    "CAMPO ELÍAS": {
+      "municipio": 0.095995181,
+      "parroquias": {
+        "EJIDO": 0,
+        "FERNÁNDEZ PEÑA": 0,
+        "MATAPALO": 0,
+        "MONTALBÁN": 0,
+        "ACEQUIAS": 0,
+        "JAYÁ": 0,
+        "LA MESA": 0,
+        "SAN JOSÉ DEL SUR": 0
+      }
+    },
+    "CARACCIOLO PARRA OLMEDO": {
+      "municipio": 0,
+      "parroquias": {
+        "TUCANÍ": 0,
+        "FLORENCIO RAMÍREZ": 0
+      }
+    },
+    "CARDENAL QUINTERO": {
+      "municipio": 0,
+      "parroquias": {
+        "SANTO DOMINGO": 0
+      }
+    },
+    "GUARAQUE": {
+      "municipio": 0,
+      "parroquias": {
+        "GUARAQUE": 0,
+        "MESA DE QUINTERO": 0,
+        "RÍO NEGRO": 0
+      }
+    },
+    "JULIO CÉSAR SALAS": {
+      "municipio": 0,
+      "parroquias": {
+        "ARAPUEY": 0
+      }
+    },
+    "JUSTO BRICEÑO": {
+      "municipio": 0,
+      "parroquias": {
+        "TORONDOY": 0
+      }
+    },
+    "LIBERTADOR": {
+      "municipio": 0.389011111,
+      "parroquias": {
+        "MÉRIDA": 0,
+        "ARIAS": 0,
+        "CARACCIOLO PARRA PÉREZ": 0,
+        "DOMINGO PEÑA": 0,
+        "EL LLANO": 0,
+        "GONZALO PICÓN FEBRES": 0,
+        "JACINTO PLAZA": 0,
+        "JUAN RODRÍGUEZ SUÁREZ": 0,
+        "LASSO DE LA VEGA": 0,
+        "MARIANO PICÓN SALAS": 0,
+        "MILLA": 0,
+        "OSUNA RODRÍGUEZ": 0,
+        "SAGRARIO": 0,
+        "SAN JUAN BAUTISTA": 0,
+        "SUCRE": 0,
+        "SPINETTI DÍAZ": 0,
+        "EL MORRO": 0,
+        "LOS NEVADOS": 0
+      }
+    },
+    "MIRANDA": {
+      "municipio": 0,
+      "parroquias": {
+        "TIMOTES": 0,
+        "ANDRÉS ELOY BLANCO": 0,
+        "LA VENTA": 0,
+        "PIÑANGO": 0
+      }
+    },
+    "OBISPO RAMOS DE LORA": {
+      "municipio": 0,
+      "parroquias": {
+        "SANTA ELENA DE ARENALES": 0,
+        "ELOY PAREDES": 0,
+        "SAN RAFAEL": 0
+      }
+    },
+    "PADRE NOGUERA": {
+      "municipio": 0,
+      "parroquias": {
+        "SANTA MARÍA DE CAPARO": 0
+      }
+    },
+    "PUEBLO LLANO": {
+      "municipio": 0,
+      "parroquias": {
+        "PUEBLO LLANO": 0
+      }
+    },
+    "RANGEL": {
+      "municipio": 0,
+      "parroquias": {
+        "MUCUCHÍES": 0,
+        "MUCURUBÁ": 0,
+        "SAN RAFAEL": 0,
+        "CACUTE": 0,
+        "LA TOMA": 0
+      }
+    },
+    "RIVAS DÁVILA": {
+      "municipio": 0,
+      "parroquias": {
+        "BAILADORES": 0,
+        "GERÓNIMO MALDONADO": 0
+      }
+    },
+    "SANTOS MARQUINA": {
+      "municipio": 0,
+      "parroquias": {
+        "TABAY": 0
+      }
+    },
+    "SUCRE": {
+      "municipio": 0,
+      "parroquias": {
+        "LAGUNILLAS": 0,
+        "CHIGUARÁ": 0,
+        "ESTÁNQUEZ": 0,
+        "LA TRAMPA": 0,
+        "PUEBLO NUEVO DEL SUR": 0,
+        "SAN JUAN": 0
+      }
+    },
+    "TOVAR": {
+      "municipio": 0,
+      "parroquias": {
+        "TOVAR": 0,
+        "EL AMPARO": 0,
+        "SAN FRANCISCO": 0
+      }
+    },
+    "TULIO FEBRES CORDERO": {
+      "municipio": 0,
+      "parroquias": {
+        "NUEVA BOLIVIA": 0,
+        "INDEPENDENCIA": 0,
+        "MARÍA DE LA CONCEPCIÓN PALACIOS BLANCO": 0,
+        "SANTA APOLONIA": 0
+      }
+    },
+    "ZEA": {
+      "municipio": 0,
+      "parroquias": {
+        "ZEA": 0,
+        "CAÑO EL TIGRE": 0
+      }
+    }
+  },
+  "MIRANDA": {
+    "ACEVEDO": {
+      "municipio": 0.030138839,
+      "parroquias": {
+        "CAUCAGUA": 0,
+        "ARAGÜITA": 0,
+        "AREVALO GONZÁLEZ": 0,
+        "CAPAYA": 0,
+        "EL CAFÉ": 0,
+        "MARIZAPA": 0,
+        "PANAQUIRE": 0,
+        "RIBAS": 0
+      }
+    },
+    "ANDRÉS BELLO": {
+      "municipio": 0,
+      "parroquias": {
+        "CUMBO": 0
+      }
+    },
+    "BARUTA": {
+      "municipio": 0.123231869,
+      "parroquias": {
+        "BARUTA": 0,
+        "EL CAFETAL": 0,
+        "LAS MINAS DE BARUTA": 0
+      }
+    },
+    "BRION": {
+      "municipio": 0.020941561,
+      "parroquias": {
+        "HIGUEROTE": 0,
+        "CURIEPE": 0,
+        "TACARIGUA": 0
+      }
+    },
+    "BUROZ": {
+      "municipio": 0,
+      "parroquias": {
+        "MAMPORAL": 0
+      }
+    },
+    "CARRIZAL": {
+      "municipio": 0.019643775,
+      "parroquias": {
+        "CARRIZAL": 0
+      }
+    },
+    "CHACAO": {
+      "municipio": 0.044308712,
+      "parroquias": {
+        "CHACAO": 0
+      }
+    },
+    "CRISTOBAL ROJAS": {
+      "municipio": 0.042658555,
+      "parroquias": {
+        "CHARALLAVE": 0,
+        "LAS BRISAS": 0
+      }
+    },
+    "EL HATILLO": {
+      "municipio": 0.027637702,
+      "parroquias": {
+        "EL HATILLO": 0
+      }
+    },
+    "GUAICAIPURO": {
+      "municipio": 0.101229416,
+      "parroquias": {
+        "LOS TEQUES": 0,
+        "CECILIO ACOSTA": 0,
+        "PARACOTOS": 0,
+        "SAN PEDRO": 0,
+        "TÁCATA": 0,
+        "EL JARILLO": 0,
+        "ALTAGRACIA DE LA MONTAÑA": 0
+      }
+    },
+    "INDEPENDENCIA": {
+      "municipio": 0.049110788,
+      "parroquias": {
+        "SANTA TERESA DEL TUY": 0
+      }
+    },
+    "LANDER": {
+      "municipio": 0.0481848,
+      "parroquias": {
+        "OCUMARE DEL TUY": 0,
+        "LA DEMOCRACIA": 0,
+        "SANTA BÁRBARA": 0
+      }
+    },
+    "LOS SALIAS": {
+      "municipio": 0.029736282,
+      "parroquias": {
+        "SAN ANTONIO DE LOS ALTOS": 0
+      }
+    },
+    "PAZ CASTILLO": {
+      "municipio": 0.034049463,
+      "parroquias": {
+        "SANTA LUCÍA": 0
+      }
+    },
+    "PLAZA": {
+      "municipio": 0.073756838,
+      "parroquias": {
+        "GUARENAS": 0
+      }
+    },
+    "SUCRE": {
+      "municipio": 0.247215967,
+      "parroquias": {
+        "PETARE": 0,
+        "LEONCIO MARTÍNEZ": 0,
+        "CAUCAGÜITA": 0,
+        "FILAS DE MARICHES": 0,
+        "LA DOLORITA": 0
+      }
+    },
+    "URDANETA": {
+      "municipio": 0.044134955,
+      "parroquias": {
+        "CUA": 0,
+        "NUEVA CUA": 0
+      }
+    },
+    "ZAMORA": {
+      "municipio": 0.06402048,
+      "parroquias": {
+        "GUATIRE": 0,
+        "BOLÍVAR": 0
+      }
+    }
+  },
+  "MONAGAS": {
+    "ACOSTA": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN ANTONIO": 0,
+        "SAN FRANCISCO": 0
+      }
+    },
+    "AGUASAY": {
+      "municipio": 0,
+      "parroquias": {
+        "AGUASAY": 0
+      }
+    },
+    "BOLÍVAR": {
+      "municipio": 0,
+      "parroquias": {
+        "CARIPE": 0,
+        "EL GUÁCHARO": 0,
+        "SAN AGUSTÍN": 0,
+        "TERESÉN": 0,
+        "YAGUARAPARO": 0
+      }
+    },
+    "CEDEÑO": {
+      "municipio": 0,
+      "parroquias": {
+        "CAICARA": 0,
+        "AREO": 0,
+        "SAN FÉLIX": 0,
+        "VIENTO FRESCO": 0
+      }
+    },
+    "EZEQUIEL ZAMORA": {
+      "municipio": 0,
+      "parroquias": {
+        "PUNTA DE MATA": 0,
+        "EL TEJERO": 0
+      }
+    },
+    "LIBERTADOR": {
+      "municipio": 0,
+      "parroquias": {
+        "TEMBLADOR": 0,
+        "TABASCA": 0,
+        "LAS ALHUACAS": 0,
+        "CHAGUARAMAS": 0
+      }
+    },
+    "MATURÍN": {
+      "municipio": 0.702983507,
+      "parroquias": {
+        "MATURÍN": 0,
+        "ALTO DE LOS GODOS": 0,
+        "BOQUERÓN": 0,
+        "LAS COCUIZAS": 0,
+        "SAN SIMÓN": 0,
+        "SANTA CRUZ": 0,
+        "EL COROZO": 0,
+        "EL FURRIAL": 0,
+        "JUSEPÍN": 0,
+        "LA PICA": 0
+      }
+    },
+    "PIAR": {
+      "municipio": 0,
+      "parroquias": {
+        "ARAGUA DE MATURÍN": 0,
+        "CHAGUARAMAL": 0,
+        "EL PINTO": 0,
+        "GUANAGUANA": 0,
+        "LA TOSCANA": 0,
+        "TAGUAYA": 0
+      }
+    },
+    "PUNCERES": {
+      "municipio": 0,
+      "parroquias": {
+        "QUIRIQUIRE": 0,
+        "EL TEPUY": 0
+      }
+    },
+    "SOTILLO": {
+      "municipio": 0,
+      "parroquias": {
+        "BARRANCAS": 0,
+        "LOS BARRANCOS DE FAJARDO": 0
+      }
+    },
+    "URACOA": {
+      "municipio": 0,
+      "parroquias": {
+        "URACOA": 0
+      }
+    }
+  },
+  "NUEVA ESPARTA": {
+    "ANTOLÍN DEL CAMPO": {
+      "municipio": 0,
+      "parroquias": {
+        "LA PLAZA DE PARAGUACHÍ": 0
+      }
+    },
+    "ARISMENDI": {
+      "municipio": 0,
+      "parroquias": {
+        "LA ASUNCIÓN": 0
+      }
+    },
+    "DÍAZ": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN JUAN BAUTISTA": 0,
+        "ZABALA": 0
+      }
+    },
+    "GARCÍA": {
+      "municipio": 0,
+      "parroquias": {
+        "EL VALLE DEL ESPÍRITU SANTO": 0,
+        "FRANCISCO FAJARDO": 0
+      }
+    },
+    "GÓMEZ": {
+      "municipio": 0,
+      "parroquias": {
+        "SANTA ANA": 0,
+        "BOLÍVAR": 0,
+        "GUEVARA": 0,
+        "MATASIETE": 0,
+        "SUCRE": 0
+      }
+    },
+    "MARCANO": {
+      "municipio": 0,
+      "parroquias": {
+        "JUAN GRIEGO": 0,
+        "ADRIÁN": 0
+      }
+    },
+    "MARIÑO": {
+      "municipio": 0.702983507,
+      "parroquias": {
+        "PORLAMAR": 0
+      }
+    },
+    "PENÍNSULA DE MACANAO": {
+      "municipio": 0,
+      "parroquias": {
+        "BOCA DE RÍO": 0,
+        "SAN FRANCISCO": 0
+      }
+    },
+    "TUBORES": {
+      "municipio": 0,
+      "parroquias": {
+        "PUNTA DE PIEDRAS": 0,
+        "LOS BARALES": 0
+      }
+    },
+    "VILLALBA": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN PEDRO DE COCHE": 0,
+        "VICENTE FUENTES": 0
+      }
+    }
+  },
+  "PORTUGUESA": {
+    "ARAURE": {
+      "municipio": 0.199563547,
+      "parroquias": {
+        "ARAURE": 0,
+        "RÍO ACARIGUA": 0
+      }
+    },
+    "GUANARE": {
+      "municipio": 0.280225501,
+      "parroquias": {
+        "GUANARE": 0,
+        "CORDOBA": 0,
+        "SAN JUAN DE GUANAGUANARE": 0,
+        "VIRGEN DE LA COROMOTO": 0
+      }
+    },
+    "OSPINO": {
+      "municipio": 0.072203405,
+      "parroquias": {
+        "OSPINO": 0,
+        "APARICIÓN": 0,
+        "LA ESTACIÓN": 0
+      }
+    },
+    "PAEZ": {
+      "municipio": 0.279261667,
+      "parroquias": {
+        "ACARIGUA": 0,
+        "PAYARA": 0,
+        "PIMPINELA": 0,
+        "RAMÓN PERAZA": 0
+      }
+    },
+    "SUCRE": {
+      "municipio": 0.072407993,
+      "parroquias": {
+        "SUCRE": 0,
+        "CONCEPCIÓN": 0,
+        "SAN RAFAEL DE ONOTO": 0
+      }
+    },
+    "TUREN": {
+      "municipio": 0.096337887,
+      "parroquias": {
+        "VILLA BRUZUAL": 0,
+        "CANELONES": 0,
+        "SANTA CRUZ": 0,
+        "SAN ISIDRO LABRADOR": 0
+      }
+    }
+  },
+  "SUCRE": {
+    "ANDRÉS ELOY BLANCO": {
+      "municipio": 0,
+      "parroquias": {
+        "CASANAY": 0
+      }
+    },
+    "ANDRÉS MATA": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN JOSÉ DE AEROCUAR": 0,
+        "TAVERA ACOSTA": 0
+      }
+    },
+    "ARISMENDI": {
+      "municipio": 0,
+      "parroquias": {
+        "RIO CARIBE": 0,
+        "SAN JUAN DE LAS GALDONAS": 0
+      }
+    },
+    "BENÍTEZ": {
+      "municipio": 0,
+      "parroquias": {
+        "EL PILAR": 0,
+        "EL RINCÓN": 0,
+        "GUARAÚNOS": 0,
+        "TUNAPUICITO": 0,
+        "UNIÓN": 0
+      }
+    },
+    "BERMÚDEZ": {
+      "municipio": 0.402983507,
+      "parroquias": {
+        "CARÚPANO": 0,
+        "SANTA CATALINA": 0,
+        "SANTA ROSA": 0,
+        "SANTA TERESA": 0,
+        "BOLÍVAR": 0
+      }
+    },
+    "BOLÍVAR": {
+      "municipio": 0,
+      "parroquias": {
+        "MARIGÜITAR": 0
+      }
+    },
+    "CAJIGAL": {
+      "municipio": 0,
+      "parroquias": {
+        "YAGUARAPARO": 0,
+        "EL PAUJÍ": 0,
+        "LIBERTAD": 0
+      }
+    },
+    "CRUZ SALMERÓN ACOSTA": {
+      "municipio": 0,
+      "parroquias": {
+        "ARAYA": 0,
+        "CHACOPATA": 0,
+        "MANICUARE": 0
+      }
+    },
+    "LIBERTADOR": {
+      "municipio": 0,
+      "parroquias": {
+        "TUNAPUY": 0,
+        "CAMPO ELÍAS": 0
+      }
+    },
+    "MARIÑO": {
+      "municipio": 0,
+      "parroquias": {
+        "IRAPA": 0,
+        "CAMPO CLARO": 0,
+        "MARABAL": 0,
+        "SAN ANTONIO DE IRAPA": 0,
+        "SORO": 0
+      }
+    },
+    "MEJÍA": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN ANTONIO DEL GOLFO": 0
+      }
+    },
+    "MONTES": {
+      "municipio": 0,
+      "parroquias": {
+        "CUMANACOA": 0,
+        "ARENAS": 0,
+        "ARICAGUA": 0,
+        "COCOLLAR": 0,
+        "SAN FERNANDO": 0,
+        "SAN LORENZO": 0
+      }
+    },
+    "RIBERO": {
+      "municipio": 0,
+      "parroquias": {
+        "CARIACO": 0,
+        "CATUARO": 0,
+        "RENDÓN": 0,
+        "SANTA CRUZ": 0,
+        "SANTA MARÍA": 0
+      }
+    },
+    "SUCRE": {
+      "municipio": 0.597016493,
+      "parroquias": {
+        "CUMANÁ": 0,
+        "ALTAGRACIA": 0,
+        "AYACUCHO": 0,
+        "SANTA INÉS": 0,
+        "VALENTÍN VALIENTE": 0,
+        "RAÚL LEONI": 0,
+        "GRAN MARISCAL": 0
+      }
+    },
+    "VALDEZ": {
+      "municipio": 0,
+      "parroquias": {
+        "GÜIRIA": 0,
+        "BIDEAU": 0,
+        "CRISTÓBAL COLÓN": 0,
+        "PUNTA DE PIEDRA": 0
+      }
+    }
+  },
+  "TACHIRA": {
+    "ANDRÉS BELLO": {
+      "municipio": 0,
+      "parroquias": {
+        "CORDERA": 0
+      }
+    },
+    "ANTONIO ROMULO COSTA": {
+      "municipio": 0,
+      "parroquias": {
+        "LAS MESAS": 0
+      }
+    },
+    "AYACUCHO": {
+      "municipio": 0.05399763,
+      "parroquias": {
+        "COLÓN": 0,
+        "RIVAS BERTI": 0,
+        "SAN PEDRO DEL RÍO": 0
+      }
+    },
+    "BOLÍVAR": {
+      "municipio": 0.05399763,
+      "parroquias": {
+        "SAN ANTONIO": 0,
+        "PALOTAL": 0,
+        "JUAN VICENTE GÓMEZ": 0,
+        "ISAÍAS MEDINA ANGARITA": 0
+      }
+    },
+    "CÁRDENAS": {
+      "municipio": 0.05399763,
+      "parroquias": {
+        "TÁRIBA": 0,
+        "AMENODORO RANGEL LAMÚS": 0,
+        "LA FLORIDA": 0
+      }
+    },
+    "CÓRDOBA": {
+      "municipio": 0,
+      "parroquias": {
+        "SANTA ANA": 0
+      }
+    },
+    "FERNÁNDEZ FEO": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN RAFAEL DEL PIÑAL": 0,
+        "SANTO DOMINGO": 0,
+        "LAS HERNÁNDEZ": 0
+      }
+    },
+    "FRANCISCO DE MIRANDA": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN JOSÉ DE BOLÍVAR": 0
+      }
+    },
+    "GARCÍA DE HEVIA": {
+      "municipio": 0,
+      "parroquias": {
+        "LA FRÍA": 0,
+        "BOCA DE GRITA": 0,
+        "JOSÉ ANTONIO PÁEZ": 0
+      }
+    },
+    "GUÁSIMOS": {
+      "municipio": 0,
+      "parroquias": {
+        "PALMIRA": 0
+      }
+    },
+    "INDEPENDENCIA": {
+      "municipio": 0,
+      "parroquias": {
+        "CAPACHO NUEVO": 0
+      }
+    },
+    "JÁUREGUI": {
+      "municipio": 0,
+      "parroquias": {
+        "LA GUAIRA": 0,
+        "EMILIO CONSTANTINO GUERRERO": 0,
+        "MONSEÑOR MIGUEL ANTONIO SALAS": 0
+      }
+    },
+    "JUNÍN": {
+      "municipio": 0.05399763,
+      "parroquias": {
+        "RUBIO": 0,
+        "BRAMÓN": 0,
+        "LA PETRÓLEA": 0,
+        "QUINIMARÍ": 0,
+        "BETANIA": 0
+      }
+    },
+    "LIBERTAD": {
+      "municipio": 0,
+      "parroquias": {
+        "CAPACHO VIEJO": 0
+      }
+    },
+    "LIBERTADOR": {
+      "municipio": 0,
+      "parroquias": {
+        "ABEJAL": 0
+      }
+    },
+    "LOBATERA": {
+      "municipio": 0,
+      "parroquias": {
+        "LOBATERA": 0,
+        "CONSTITUCIÓN": 0
+      }
+    },
+    "MICHELENA": {
+      "municipio": 0,
+      "parroquias": {
+        "MICHELENA": 0
+      }
+    },
+    "PANAMERICANO": {
+      "municipio": 0,
+      "parroquias": {
+        "COLÓN": 0,
+        "LA PALMITA": 0
+      }
+    },
+    "PEDRO MARÍA UREÑA": {
+      "municipio": 0.05399763,
+      "parroquias": {
+        "UREÑA": 0,
+        "NUEVA ARCADIA": 0
+      }
+    },
+    "RAFAEL URDANETA": {
+      "municipio": 0,
+      "parroquias": {
+        "DELICIAS": 0,
+        "TÁRIBA": 0
+      }
+    },
+    "SAMUEL DARÍO MALDONADO": {
+      "municipio": 0,
+      "parroquias": {
+        "LA TENDIDA": 0,
+        "BOCONÓ": 0,
+        "HERNÁNDEZ": 0
+      }
+    },
+    "SAN CRISTÓBAL": {
+      "municipio": 0.16199289,
+      "parroquias": {
+        "SAN CRISTÓBAL": 0,
+        "LA CONCORDIA": 0,
+        "PEDRO MARÍA MORANTES": 0,
+        "SAN SEBASTIÁN": 0,
+        "ZONA SUR": 0
+      }
+    },
+    "SEBORUCO": {
+      "municipio": 0,
+      "parroquias": {
+        "SEBORUCO": 0
+      }
+    },
+    "SIMÓN RODRÍGUEZ": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN SIMÓN": 0
+      }
+    },
+    "SUCRE": {
+      "municipio": 0,
+      "parroquias": {
+        "QUENIQUEA": 0,
+        "SAN PABLO": 0
+      }
+    },
+    "TORBES": {
+      "municipio": 0,
+      "parroquias": {
+        "SAN JOSÉ DE BOLÍVAR": 0
+      }
+    },
+    "URIBANTE": {
+      "municipio": 0,
+      "parroquias": {
+        "PREGONERO": 0,
+        "BATATAL": 0,
+        "LA FUNDACIÓN": 0
+      }
+    },
+    "SAN JUDAS TADEO": {
+      "municipio": 0,
+      "parroquias": {
+        "UMUQUENA": 0
+      }
+    }
+  },
+  "TRUJILLO": {
+    "ANDRÉS BELLO": {
+      "municipio": 0,
+      "parroquias": {
+        "SANTA ISABEL": 0
+      }
+    },
+    "BOCONÓ": {
+      "municipio": 0.164508103,
+      "parroquias": {
+        "BOCONÓ": 0,
+        "EL CARMEN": 0,
+        "MOSQUEY": 0,
+        "AYACUCHO": 0,
+        "BURBUSAY": 0,
+        "GENERAL RIVAS": 0,
+        "GUARAMACAL": 0,
+        "VEGA DE GUARAMACAL": 0,
+        "MONSEÑOR JÁUREGUI": 0,
+        "RAFAEL RANGEL": 0,
+        "SAN MIGUEL": 0,
+        "SAN JOSÉ": 0
+      }
+    },
+    "BOLÍVAR": {
+      "municipio": 0,
+      "parroquias": {
+        "SABANA GRANDE": 0,
+        "CHEREGÜÉ": 0,
+        "GRANADOS": 0
+      }
+    },
+    "CANDELARIA": {
+      "municipio": 0,
+      "parroquias": {
+        "CHEJENDÉ": 0,
+        "ARNOLDO GABALDÓN": 0,
+        "BOLIVIA": 0,
+        "CARRILLO": 0,
+        "CEGARRA": 0,
+        "MANUEL SALVADOR ULLOA": 0,
+        "SAN JOSÉ": 0
+      }
+    },
+    "CARACHE": {
+      "municipio": 0,
+      "parroquias": {
+        "CARACHE": 0,
+        "CUICAS": 0,
+        "LA CONCEPCIÓN": 0,
+        "PANAMERICANA": 0,
+        "SANTA CRUZ": 0
+      }
+    },
+    "ESCUQUE": {
+      "municipio": 0,
+      "parroquias": {
+        "ESCUQUE": 0,
+        "LA UNIÓN": 0,
+        "SABANA LIBRE": 0,
+        "SANTA RITA": 0
+      }
+    },
+    "MIRANDA": {
+      "municipio": 0,
+      "parroquias": {
+        "EL DIVIDIVE": 0,
+        "AGUA CALIENTE": 0,
+        "AGUA SANTA": 0,
+        "EL CENIZO": 0,
+        "VALERITA": 0
+      }
+    },
+    "MONTE CARMELO": {
+      "municipio": 0,
+      "parroquias": {
+        "MONTE CARMELO": 0,
+        "BUENA VISTA": 0,
+        "SANTA MARÍA DEL HORCÓN": 0
+      }
+    },
+    "MOTATÁN": {
+      "municipio": 0,
+      "parroquias": {
+        "MOTATÁN": 0,
+        "EL BAÑO": 0,
+        "JALISCO": 0
+      }
+    },
+    "PAMPÁN": {
+      "municipio": 0,
+      "parroquias": {
+        "PAMPÁN": 0,
+        "FLOR DE PATRIA": 0
+      }
+    },
+    "PAMPANITO": {
+      "municipio": 0,
+      "parroquias": {
+        "PAMPANITO": 0,
+        "LA CONCEPCIÓN": 0,
+        "PAMPANITO II": 0
+      }
+    },
+    "RAFAEL RANGEL": {
+      "municipio": 0,
+      "parroquias": {
+        "BETIJOQUE": 0,
+        "LA PUEBLITA": 0,
+        "LOS CEDROS": 0,
+        "JOSÉ GREGORIO HERNÁNDEZ": 0
+      }
+    },
+    "SAN RAFAEL DE CARVAJAL": {
+      "municipio": 0,
+      "parroquias": {
+        "CARVAJAL": 0,
+        "ANTONIO NICOLÁS BRICEÑO": 0,
+        "CAMPO ALEGRE": 0,
+        "JOSÉ LEONARDO SUÁREZ": 0
+      }
+    },
+    "SUCRE": {
+      "municipio": 0,
+      "parroquias": {
+        "SABANA DE MENDOZA": 0,
+        "EL PARAÍSO": 0,
+        "JUNÍN": 0,
+        "VALMORE RODRÍGUEZ": 0
+      }
+    },
+    "TRUJILLO": {
+      "municipio": 0.188350014,
+      "parroquias": {
+        "TRUJILLO": 0,
+        "ANDRÉS LINARES": 0,
+        "CHIQUINQUIRÁ": 0,
+        "CRISTÓBAL MENDOZA": 0,
+        "CRUZ CARRILLO": 0,
+        "MATRIZ": 0,
+        "MONSEÑOR CARRILLO": 0,
+        "TRES ESQUINAS": 0
+      }
+    },
+    "URDANETA": {
+      "municipio": 0,
+      "parroquias": {
+        "LA QUEBRADA": 0,
+        "CABIMBU": 0,
+        "JAJÓ": 0,
+        "LA MESA": 0,
+        "SANTIAGO": 0,
+        "TUÑAME": 0
+      }
+    },
+    "VALERA": {
+      "municipio": 0.647141883,
+      "parroquias": {
+        "VALERA": 0,
+        "AGUA VIVA": 0,
+        "MENDOZA": 0,
+        "LA BEATRIZ": 0,
+        "LA PUERTA": 0,
+        "SAN LUIS": 0
+      }
+    }
+  },
+  "YARACUY": {
+    "BRUZUAL": {
+      "municipio": 0.179379489,
+      "parroquias": {
+        "CHIVACOA": 0,
+        "CAMPO ELIAS": 0
+      }
+    },
+    "INDEPENDENCIA": {
+      "municipio": 0.147013039,
+      "parroquias": {
+        "INDEPENDENCIA": 0
+      }
+    },
+    "NIRGUA": {
+      "municipio": 0.160379612,
+      "parroquias": {
+        "SALOM": 0,
+        "TEMERLA": 0,
+        "NIRGUA": 0
+      }
+    },
+    "PEÑA": {
+      "municipio": 0.246189236,
+      "parroquias": {
+        "YUMARE": 0,
+        "SAN ANDRÉS": 0,
+        "PEÑA": 0
+      }
+    },
+    "SAN FELIPE": {
+      "municipio": 0.267038624,
+      "parroquias": {
+        "SAN FELIPE": 0,
+        "ALBARICO": 0,
+        "SAN JAVIER": 0
+      }
+    }
+  },
+  "ZULIA": {
+    "ALMIRANTE PADILLA": {
+      "municipio": 0,
+      "parroquias": {
+        "ISLA DE TOAS": 0,
+        "MONAGAS": 0
+      }
+    },
+    "BARALT": {
+      "municipio": 0.024478842,
+      "parroquias": {
+        "SAN TIMOTEO": 0,
+        "GENERAL URDANETA": 0,
+        "LIBERTADOR": 0,
+        "MARCELINO BRICEÑO": 0,
+        "PUEBLO NUEVO": 0,
+        "MANUEL GUANIPA MATOS": 0
+      }
+    },
+    "CABIMAS": {
+      "municipio": 0.080442124,
+      "parroquias": {
+        "AMBROSIO": 0,
+        "CARMEN HERRERA": 0,
+        "LA ROSA": 0,
+        "GERMÁN RÍOS LINARES": 0,
+        "SAN BENITO": 0,
+        "RÓMULO BETANCOURT": 0,
+        "JORGE HERNÁNDEZ": 0,
+        "PUNTA GORDA": 0,
+        "ARÍSTIDES CALVANI": 0
+      }
+    },
+    "CATATUMBO": {
+      "municipio": 0,
+      "parroquias": {
+        "ENCONTRADOS": 0,
+        "UDÓN PÉREZ": 0
+      }
+    },
+    "COLÓN": {
+      "municipio": 0.030297237,
+      "parroquias": {
+        "MORALITO": 0,
+        "SAN CARLOS DEL ZULIA": 0,
+        "SANTA CRUZ DEL ZULIA": 0,
+        "SANTA BÁRBARA": 0,
+        "URRIBARRÍ": 0
+      }
+    },
+    "FRANCISCO JAVIER PULGAR": {
+      "municipio": 0,
+      "parroquias": {
+        "CARLOS QUEVEDO": 0,
+        "FRANCISCO JAVIER PULGAR": 0,
+        "SIMÓN RODRÍGUEZ": 0,
+        "GUAMO-GAVILANES": 0
+      }
+    },
+    "GUAJIRA": {
+      "municipio": 0.027700369,
+      "parroquias": {
+        "SINAMAICA": 0,
+        "ALTA GUAJIRA": 0,
+        "ELÍAS SÁNCHEZ RUBIO": 0,
+        "GUAJIRA": 0
+      }
+    },
+    "JESÚS ENRIQUE LOSADA": {
+      "municipio": 0.028373043,
+      "parroquias": {
+        "LA CONCEPCIÓN": 0,
+        "SAN JOSÉ": 0,
+        "MARIANO PARRA LEÓN": 0,
+        "JOSÉ RAMÓN YÉPEZ": 0
+      }
+    },
+    "JESÚS MARÍA SEMPRÚN": {
+      "municipio": 0,
+      "parroquias": {
+        "JESÚS MARÍA SEMPRÚN": 0,
+        "BARÍ": 0
+      }
+    },
+    "LA CAÑADA DE URDANETA": {
+      "municipio": 0.020614597,
+      "parroquias": {
+        "CONCEPCIÓN": 0,
+        "ANDRÉS BELLO": 0,
+        "CHIQUINQUIRÁ": 0,
+        "EL CARMELO": 0,
+        "POTRERITOS": 0
+      }
+    },
+    "LAGUNILLAS": {
+      "municipio": 0.05435362,
+      "parroquias": {
+        "LIBERTAD": 0,
+        "ALONSO DE OJEDA": 0,
+        "VENEZUELA": 0,
+        "ELEAZAR LÓPEZ CONTRERAS": 0,
+        "CAMPO LARA": 0
+      }
+    },
+    "MACHIQUES DE PERIJÁ": {
+      "municipio": 0.033223614,
+      "parroquias": {
+        "BARTOLOMÉ DE LAS CASAS": 0,
+        "LIBERTAD": 0,
+        "RÍO NEGRO": 0,
+        "SAN JOSÉ DE PERIJÁ": 0
+      }
+    },
+    "MARA": {
+      "municipio": 0.053603854,
+      "parroquias": {
+        "SAN RAFAEL": 0,
+        "LA SIERRITA": 0,
+        "LAS PARCELAS": 0,
+        "LUIS DE VICENTE": 0,
+        "MONSEÑOR MARCOS SERGIO GODOY": 0,
+        "RICAURTE": 0,
+        "TAMARE": 0
+      }
+    },
+    "MARACAIBO": {
+      "municipio": 0.408136061,
+      "parroquias": {
+        "ANTONIO BORJAS ROMERO": 0,
+        "BOLÍVAR": 0,
+        "CACIQUE MARA": 0,
+        "CARRACCIOLO PARRA PÉREZ": 0,
+        "CECILIO ACOSTA": 0,
+        "CRISTO DE ARANZA": 0,
+        "COQUÍVACOA": 0,
+        "CHIQUINQUIRÁ": 0,
+        "FRANCISCO EUGENIO BUSTAMANTE": 0,
+        "IDELFONZO VÁSQUEZ": 0,
+        "JUANA DE ÁVILA": 0,
+        "LUIS HURTADO HIGUERA": 0,
+        "MANUEL DAGNINO": 0,
+        "OLEGARIO VILLALOBOS": 0,
+        "RAÚL LEONI": 0,
+        "SANTA LUCÍA": 0,
+        "VENANCIO PULGAR": 0,
+        "SAN ISIDRO": 0
+      }
+    },
+    "MIRANDA": {
+      "municipio": 0.028806515,
+      "parroquias": {
+        "ALTAGRACIA": 0,
+        "FARÍA": 0,
+        "ANA MARÍA CAMPOS": 0,
+        "SAN ANTONIO": 0,
+        "SAN JOSÉ": 0
+      }
+    },
+    "ROSARIO DE PERIJÁ": {
+      "municipio": 0.024533467,
+      "parroquias": {
+        "DONALDO GARCÍA": 0,
+        "EL ROSARIO": 0,
+        "SIXTO ZAMBRANO": 0
+      }
+    },
+    "SAN FRANCISCO": {
+      "municipio": 0.12035328,
+      "parroquias": {
+        "SAN FRANCISCO": 0,
+        "EL BAJO": 0,
+        "DOMITILA FLORES": 0,
+        "FRANCISCO OCHOA": 0,
+        "LOS CORTIJOS": 0,
+        "MARCIAL HERNÁNDEZ": 0
+      }
+    },
+    "SANTA RITA": {
+      "municipio": 0.017209814,
+      "parroquias": {
+        "SANTA RITA": 0,
+        "EL MENE": 0,
+        "PEDRO LUCAS URRIBARRÍ": 0,
+        "JOSÉ CENOBIO URRIBARRÍ": 0
+      }
+    },
+    "SIMÓN BOLÍVAR": {
+      "municipio": 0.014205905,
+      "parroquias": {
+        "RAFAEL MARÍA BARALT": 0,
+        "MANUEL MANRIQUE": 0,
+        "RAFAEL URDANETA": 0
+      }
+    },
+    "SUCRE": {
+      "municipio": 0.017445052,
+      "parroquias": {
+        "BOBURES": 0,
+        "GIBRALTAR": 0,
+        "HERAS": 0,
+        "MONSEÑOR ARTURO ÁLVAREZ": 0,
+        "RÓMULO GALLEGOS": 0,
+        "EL BATEY": 0
+      }
+    },
+    "VALMORE RODRÍGUEZ": {
+      "municipio": 0.016222607,
+      "parroquias": {
+        "RAFAEL URDANETA": 0,
+        "LA VICTORIA": 0,
+        "RAÚL CUENCA": 0
+      }
+    }
+  }
+}

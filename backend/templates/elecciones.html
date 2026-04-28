@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% set active_page = "elecciones" %}
+{% block title %}Elecciones{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-calendar-event me-2"></i>Elecciones</h2>
+    <a href="/elecciones/nueva" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Nueva Elección
+    </a>
+</div>
+
+{% if msg %}
+<div class="alert alert-{{ cat }} alert-dismissible fade show">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+{% if elecciones %}
+<div class="table-responsive">
+    <table class="table table-hover bg-white shadow-sm rounded">
+        <thead class="table-light">
+            <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Fecha</th>
+                <th>Horario</th>
+                <th>Estado</th>
+                <th class="text-end">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for e in elecciones %}
+            <tr>
+                <td class="fw-semibold">{{ e["nombre"] }}</td>
+                <td>
+                    <span class="badge bg-secondary">{{ e["tipo"] }}</span>
+                </td>
+                <td>{{ e["fecha"] }}</td>
+                <td>{{ e["hora_apertura"] }} — {{ e["hora_cierre"] }}</td>
+                <td>
+                    {% if e["activa"] %}
+                        <span class="badge bg-success"><i class="bi bi-broadcast me-1"></i>Activa</span>
+                    {% else %}
+                        <span class="badge bg-light text-dark">Inactiva</span>
+                    {% endif %}
+                </td>
+                <td class="text-end">
+                    {% if not e["activa"] %}
+                    <form method="post" action="/elecciones/{{ e['id'] }}/activar" class="d-inline">
+                        <button class="btn btn-sm btn-outline-success" title="Activar">
+                            <i class="bi bi-check-circle"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                    <a href="/elecciones/{{ e['id'] }}/editar" class="btn btn-sm btn-outline-primary" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <form method="post" action="/elecciones/{{ e['id'] }}/eliminar" class="d-inline"
+                          onsubmit="return confirm('¿Eliminar esta elección?')">
+                        <button class="btn btn-sm btn-outline-danger" title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>
+    No hay elecciones registradas.
+</div>
+{% endif %}
+{% endblock %}
