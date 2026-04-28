@@ -289,3 +289,30 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - `peso_nacion`: fracción del electorado del estado sobre el total nacional (universo BD)
 - Excepciones: `estados.es_excepcion=1` (DC, La Guaira) y `municipios.es_excepcion=1` (Chacao, Baruta, El Hatillo, Sucre)
 - Edición manual: `python calculador_pesos.py <id> --set <id_muestra> campo=valor`
+
+---
+
+## Deploy Azure — Estado al 2026-04-28 (PENDIENTE DE RESOLVER)
+
+### Problemas encontrados y resueltos
+1. **Startup command incorrecto**: el `startup.sh` hacía `cd /home/site/wwwroot/backend` pero el zip despliega en la raíz sin subcarpeta `backend/`. → Corregido a `cd /home/site/wwwroot`. El startup command en Azure Portal también se actualizó a `bash /home/site/wwwroot/startup.sh`.
+2. **Plan F1 agotado (QuotaExceeded)**: la cuota de 60 min CPU/día del plan gratuito se consumió. → Se hizo upgrade a **B1 Basic** (~$13/mes del crédito de estudiante).
+3. **Exit code 127 (uvicorn no encontrado)**: el zip deploy directo no ejecutaba `pip install`. → Se intentó activar el venv de Oryx (`antenv`).
+4. **ExtractTarball panic en PythonStartupScriptGenerator**: el mecanismo de Oryx (compresión `.zst`) falla al extraer dentro del contenedor. Error en `compressionHelper.go:29`. No es un bug del código, es un problema de infraestructura Azure.
+
+### Estado actual del deploy
+- **Plan**: B1 Basic ✅
+- **Startup command en Portal**: `bash /home/site/wwwroot/startup.sh` ✅
+- **SCM_DO_BUILD_DURING_DEPLOYMENT**: `0` (Oryx build desactivado) ✅
+- **startup.sh actual**: instala dependencias con pip si uvicorn no está disponible, luego corre `uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}`
+- **Último intento**: zipdeploy sin Oryx, el contenedor lleva >5 min iniciando (posible timeout por `pip install` lento en B1)
+
+### Próximos pasos para resolver
+El pip install en startup tarda demasiado (pandas, plotly, etc.) → supera el timeout de 230s del contenedor. Soluciones a probar:
+1. **Opción A (recomendada)**: Incluir el venv pre-instalado en el zip. Correr `pip install -r requirements.txt --target=packages/` localmente y subirlo.
+2. **Opción B**: Mover `init_db.py` al evento `@app.on_event("startup")` de FastAPI y usar el startup command directo: `/home/site/wwwroot/antenv/bin/uvicorn app:app --host 0.0.0.0 --port 8000` dejando que Oryx maneje el venv (investigar por qué falla el tarball).
+3. **Opción C**: Usar `WEBSITE_RUN_FROM_PACKAGE=1` con paquetes pre-instalados.
+
+### Archivos modificados en esta sesión
+- `backend/startup.sh` — versión actual usa pip install condicional
+- `backend_deploy.zip` — último rebuild sin antenv ni __pycache__
