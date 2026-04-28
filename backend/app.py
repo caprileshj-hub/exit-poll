@@ -5,9 +5,11 @@ Uso: uvicorn app:app --reload
 """
 
 import os
+import re
 import sys
 import sqlite3
 import shutil
+import tempfile
 import uuid
 import io
 import traceback
@@ -986,3 +988,241 @@ async def visualizacion_generar(
             f"/visualizacion?msg=Error:+{error_msg}&cat=danger",
             status_code=303
         )
+
+
+# ══════════════════════════════════════════════════════════════════
+# LIVE — Dashboard en tiempo real para el Showcase
+# ══════════════════════════════════════════════════════════════════
+
+def _norm_estado(nombre: str) -> str:
+    """Normaliza nombres de estado del CNE para que coincidan con el GeoJSON."""
+    nombre = (nombre
+              .replace("EDO. ", "")
+              .replace("DTTO. ", "Distrito ")
+              .replace("DELTA AMAC", "Delta Amacuro")
+              .replace("LA GUAIRA", "La Guaira")
+              .replace("NVA. ESPARTA", "Nueva Esparta"))
+    if nombre not in ("Distrito Capital", "La Guaira", "Delta Amacuro", "Nueva Esparta"):
+        nombre = nombre.title()
+    return nombre
+
+
+def _datos_vivos(db, id_eleccion: int) -> tuple:
+    """
+    Lee votos reales de la BD y devuelve
+    (datos_ventaja, datos_tendencia, total_votos).
+
+    datos_ventaja  : {nombre_estado: ventaja_float}   — gobierno - oposición en %
+    datos_tendencia: {NOMBRE_UPPER: [{"hora","gob","opo"}, ...]}  — acumulados por turno
+    """
+    total = db.execute("""
+        SELECT COUNT(*) c FROM votos v
+        JOIN muestra m ON m.codigo_centro = v.codigo_centro
+        WHERE m.id_eleccion = ? AND v.valido = 1
+    """, (id_eleccion,)).fetchone()["c"]
+
+    if total == 0:
+        return {}, {}, 0
+
+    # ── Ventaja final por estado ──────────────────────────────────
+    rows_est = db.execute("""
+        SELECT
+            est.nombre                                              AS estado,
+            SUM(CASE WHEN ca.bando = 'gobierno'  THEN 1 ELSE 0 END) AS gob,
+            SUM(CASE WHEN ca.bando = 'oposicion' THEN 1 ELSE 0 END) AS opo,
+            COUNT(*)                                                AS total
+        FROM votos v
+        JOIN muestra    m   ON m.codigo_centro = v.codigo_centro
+        JOIN centros    c   ON c.codigo_cne    = v.codigo_centro
+        JOIN estados    est ON est.id          = c.id_estado
+        JOIN candidatos ca  ON ca.id           = v.id_candidato
+        WHERE v.valido = 1 AND m.id_eleccion = ?
+        GROUP BY est.id
+    """, (id_eleccion,)).fetchall()
+
+    datos_ventaja = {}
+    for r in rows_est:
+        if r["total"] > 0:
+            ventaja = round(100 * r["gob"] / r["total"] - 100 * r["opo"] / r["total"], 1)
+            datos_ventaja[_norm_estado(r["estado"])] = ventaja
+
+    # ── Tendencias acumuladas — nacional ─────────────────────────
+    rows_nac = db.execute("""
+        SELECT
+            v.turno,
+            MIN(v.hora)                                             AS hora_min,
+            SUM(CASE WHEN ca.bando = 'gobierno'  THEN 1 ELSE 0 END) AS gob,
+            SUM(CASE WHEN ca.bando = 'oposicion' THEN 1 ELSE 0 END) AS opo
+        FROM votos v
+        JOIN muestra    m  ON m.codigo_centro = v.codigo_centro
+        JOIN candidatos ca ON ca.id           = v.id_candidato
+        WHERE v.valido = 1 AND m.id_eleccion = ?
+        GROUP BY v.turno
+        ORDER BY v.turno
+    """, (id_eleccion,)).fetchall()
+
+    datos_tendencia = {}
+    puntos_nac, cum_g, cum_o = [], 0, 0
+    for r in rows_nac:
+        cum_g += r["gob"]
+        cum_o += r["opo"]
+        tot = cum_g + cum_o
+        if tot:
+            h = r["hora_min"]
+            hora = h[11:16] if h and "T" in h else (h or "07:00")[:5]
+            puntos_nac.append({
+                "hora": hora,
+                "gob": round(100 * cum_g / tot, 1),
+                "opo": round(100 * cum_o / tot, 1),
+            })
+    datos_tendencia["VENEZUELA"] = puntos_nac
+
+    # ── Tendencias acumuladas — por estado ────────────────────────
+    rows_t = db.execute("""
+        SELECT
+            est.nombre                                              AS estado,
+            v.turno,
+            MIN(v.hora)                                             AS hora_min,
+            SUM(CASE WHEN ca.bando = 'gobierno'  THEN 1 ELSE 0 END) AS gob,
+            SUM(CASE WHEN ca.bando = 'oposicion' THEN 1 ELSE 0 END) AS opo
+        FROM votos v
+        JOIN muestra    m   ON m.codigo_centro = v.codigo_centro
+        JOIN centros    c   ON c.codigo_cne    = v.codigo_centro
+        JOIN estados    est ON est.id          = c.id_estado
+        JOIN candidatos ca  ON ca.id           = v.id_candidato
+        WHERE v.valido = 1 AND m.id_eleccion = ?
+        GROUP BY est.id, v.turno
+        ORDER BY est.nombre, v.turno
+    """, (id_eleccion,)).fetchall()
+
+    por_estado = {}
+    for r in rows_t:
+        por_estado.setdefault(r["estado"], []).append(r)
+
+    for estado_db, turnos in por_estado.items():
+        nombre_up = _norm_estado(estado_db).upper()
+        puntos, cum_g, cum_o = [], 0, 0
+        for r in sorted(turnos, key=lambda x: x["turno"]):
+            cum_g += r["gob"]
+            cum_o += r["opo"]
+            tot = cum_g + cum_o
+            if tot:
+                h = r["hora_min"]
+                hora = h[11:16] if h and "T" in h else (h or "07:00")[:5]
+                puntos.append({
+                    "hora": hora,
+                    "gob": round(100 * cum_g / tot, 1),
+                    "opo": round(100 * cum_o / tot, 1),
+                })
+        datos_tendencia[nombre_up] = puntos
+
+    return datos_ventaja, datos_tendencia, total
+
+
+def _html_sin_datos(motivo: str, refresh: int) -> str:
+    """Página con mapa base en gris y mensaje de espera. Auto-refresca."""
+    try:
+        sys.path.insert(0, str(BASE_DIR))
+        import generador_heatmap
+        import importlib
+        importlib.reload(generador_heatmap)
+        tmp = tempfile.mktemp(suffix=".html")
+        generador_heatmap.generar_heatmap(
+            {}, nivel="estado", ruta_salida=tmp,
+            titulo="Exit Poll — En Vivo"
+        )
+        with open(tmp, encoding="utf-8") as f:
+            base_html = f.read()
+        os.unlink(tmp)
+    except Exception:
+        base_html = "<html><head></head><body></body></html>"
+
+    overlay = f"""
+<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+     z-index:9999;background:rgba(0,0,0,.75);color:white;
+     font-family:sans-serif;font-size:16px;padding:28px 40px;
+     border-radius:12px;text-align:center;max-width:440px;
+     box-shadow:0 4px 24px rgba(0,0,0,.4);">
+  <div style="font-size:36px;margin-bottom:14px;">&#x1F4E1;</div>
+  <div style="font-weight:bold;margin-bottom:10px;line-height:1.4">{motivo}</div>
+  <div style="font-size:12px;opacity:.65;margin-top:6px;">
+    Actualizando cada {refresh}s&nbsp;&nbsp;&#x21BB;
+  </div>
+</div>"""
+
+    meta = f'<meta http-equiv="refresh" content="{refresh}">'
+    html = base_html.replace("</head>", f"{meta}</head>", 1)
+    html = re.sub(r"(<body[^>]*>)", r"\1" + overlay, html, count=1)
+    return html
+
+
+@app.get("/live", response_class=HTMLResponse)
+async def live_dashboard(refresh: int = 5):
+    """
+    Dashboard en tiempo real.
+    Abrir en el browser y correr simulador_showcase.py en otra terminal.
+    El mapa y las tendencias se actualizan solos cada `refresh` segundos.
+    """
+    db = get_db()
+    try:
+        eleccion = db.execute(
+            "SELECT * FROM elecciones WHERE activa = 1 LIMIT 1"
+        ).fetchone()
+
+        if not eleccion:
+            return HTMLResponse(_html_sin_datos("No hay elección activa", refresh))
+
+        eid = eleccion["id"]
+        datos_ventaja, datos_tendencia, total_votos = _datos_vivos(db, eid)
+        candidatos_dict = _nombres_candidatos(db, eid)
+    finally:
+        db.close()
+
+    if total_votos == 0:
+        return HTMLResponse(_html_sin_datos(
+            f"Simulación no iniciada<br>"
+            f"<small style='font-size:13px;opacity:.8'>{eleccion['nombre']}</small><br>"
+            f"<small style='font-size:11px;opacity:.55'>"
+            f"Corre: python backend/simulador_showcase.py --reset</small>",
+            refresh,
+        ))
+
+    # ── Generar dashboard completo ────────────────────────────────
+    sys.path.insert(0, str(BASE_DIR))
+    import generador_dashboard
+    import importlib
+    importlib.reload(generador_dashboard)
+
+    titulo = f"{eleccion['nombre']} — EN VIVO"
+    tmp = tempfile.mktemp(suffix=".html")
+    try:
+        generador_dashboard.generar_dashboard(
+            datos_ventaja, datos_tendencia,
+            nivel="estado", ruta_salida=tmp,
+            titulo=titulo, candidatos=candidatos_dict,
+        )
+        with open(tmp, encoding="utf-8") as f:
+            html = f.read()
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+    # ── Inyectar meta-refresh y barra de estado ───────────────────
+    meta = f'<meta http-equiv="refresh" content="{refresh}">'
+
+    barra = (
+        f'<div style="position:fixed;top:0;left:0;right:0;z-index:99999;'
+        f'background:#1B5E20;color:white;font-family:sans-serif;font-size:12px;'
+        f'padding:5px 16px;display:flex;justify-content:space-between;align-items:center;'
+        f'box-shadow:0 2px 6px rgba(0,0,0,.35);">'
+        f'<span>&#x1F534;&nbsp; EN VIVO &nbsp;&#x2502;&nbsp; {eleccion["nombre"]}'
+        f'&nbsp;&#x2502;&nbsp; {total_votos:,} votos procesados</span>'
+        f'<span style="opacity:.7">&#x21BB;&nbsp;cada {refresh}s</span>'
+        f'</div>'
+        f'<div style="height:28px"></div>'
+    )
+
+    html = html.replace("</head>", f"{meta}</head>", 1)
+    html = re.sub(r"(<body[^>]*>)", r"\1" + barra, html, count=1)
+
+    return HTMLResponse(html)
