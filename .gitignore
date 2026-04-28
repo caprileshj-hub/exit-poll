@@ -11,6 +11,7 @@ graficos_test/
 
 # BD y archivos generados
 backend/exitpoll.db
+backend/.env
 backend/static/viz/
 backend/static/uploads/
 backend/_adm2_lookup.json
