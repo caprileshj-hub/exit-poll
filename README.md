@@ -182,7 +182,7 @@ The `legacy/` folder contains `Core.xlsx` — the original Excel model that this
 ## Repository Structure
 
 ```
-exit poll/
+exit_poll/
 ├── backend/
 │   ├── app.py                  # FastAPI dashboard (30 routes)
 │   ├── schema.sql              # Database schema (19 tables)
