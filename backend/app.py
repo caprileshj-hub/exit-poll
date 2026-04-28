@@ -65,8 +65,8 @@ async def index(request: Request):
                WHERE m.id_eleccion=?""", (eid,)
         ).fetchone()["c"]
     db.close()
-    return templates.TemplateResponse("index.html", {
-        "request": request, "eleccion": eleccion, "stats": stats
+    return templates.TemplateResponse(request=request, name="index.html", context={
+        "eleccion": eleccion, "stats": stats
     })
 
 
@@ -79,15 +79,15 @@ async def elecciones_list(request: Request, msg: str = "", cat: str = "success")
     db = get_db()
     rows = db.execute("SELECT * FROM elecciones ORDER BY fecha DESC").fetchall()
     db.close()
-    return templates.TemplateResponse("elecciones.html", {
-        "request": request, "elecciones": rows, "msg": msg, "cat": cat
+    return templates.TemplateResponse(request=request, name="elecciones.html", context={
+        "elecciones": rows, "msg": msg, "cat": cat
     })
 
 
 @app.get("/elecciones/nueva", response_class=HTMLResponse)
 async def eleccion_form(request: Request):
-    return templates.TemplateResponse("eleccion_form.html", {
-        "request": request, "eleccion": None
+    return templates.TemplateResponse(request=request, name="eleccion_form.html", context={
+        "eleccion": None
     })
 
 
@@ -98,8 +98,8 @@ async def eleccion_edit(request: Request, eid: int):
     db.close()
     if not row:
         raise HTTPException(404)
-    return templates.TemplateResponse("eleccion_form.html", {
-        "request": request, "eleccion": row
+    return templates.TemplateResponse(request=request, name="eleccion_form.html", context={
+        "eleccion": row
     })
 
 
@@ -171,8 +171,8 @@ async def candidatos_list(request: Request, msg: str = "", cat: str = "success")
             (eleccion["id"],)
         ).fetchall()
     db.close()
-    return templates.TemplateResponse("candidatos.html", {
-        "request": request, "candidatos": rows, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="candidatos.html", context={
+        "candidatos": rows, "eleccion": eleccion,
         "msg": msg, "cat": cat
     })
 
@@ -185,8 +185,8 @@ async def candidato_form(request: Request):
     db.close()
     if not eleccion:
         return RedirectResponse("/elecciones?msg=Primero+active+una+elección&cat=warning", status_code=303)
-    return templates.TemplateResponse("candidato_form.html", {
-        "request": request, "candidato": None, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="candidato_form.html", context={
+        "candidato": None, "eleccion": eleccion,
         "estados": estados
     })
 
@@ -200,8 +200,8 @@ async def candidato_edit(request: Request, cid: int):
     db.close()
     if not row:
         raise HTTPException(404)
-    return templates.TemplateResponse("candidato_form.html", {
-        "request": request, "candidato": row, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="candidato_form.html", context={
+        "candidato": row, "eleccion": eleccion,
         "estados": estados
     })
 
@@ -366,8 +366,8 @@ async def ficha_tecnica(request: Request):
         error_muestral = 1.96 * math.sqrt(0.25 / n) * math.sqrt(1 - n / N) * 100
 
     db.close()
-    return templates.TemplateResponse("ficha.html", {
-        "request": request, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="ficha.html", context={
+        "eleccion": eleccion,
         "re": re, "re_estados": re_estados,
         "muestra": muestra, "muestra_estados": muestra_estados,
         "error_muestral": error_muestral
@@ -428,8 +428,8 @@ async def pesos_list(request: Request, estado: str = "", msg: str = "", cat: str
         rows = db.execute(query, params).fetchall()
 
     db.close()
-    return templates.TemplateResponse("pesos.html", {
-        "request": request, "eleccion": eleccion, "pesos": rows,
+    return templates.TemplateResponse(request=request, name="pesos.html", context={
+        "eleccion": eleccion, "pesos": rows,
         "estados": estados, "estado_sel": estado, "msg": msg, "cat": cat,
         "tiene_muestra": tiene_muestra
     })
@@ -515,8 +515,8 @@ async def peso_edit_form(request: Request, id_muestra: int):
     db.close()
     if not row:
         raise HTTPException(404)
-    return templates.TemplateResponse("peso_edit.html", {
-        "request": request, "centro": row
+    return templates.TemplateResponse(request=request, name="peso_edit.html", context={
+        "centro": row
     })
 
 
@@ -555,8 +555,8 @@ async def tm_index(request: Request, msg: str = "", cat: str = "success"):
            GROUP BY e.id ORDER BY e.nombre"""
     ).fetchall()
     db.close()
-    return templates.TemplateResponse("tm.html", {
-        "request": request, "stats": stats, "por_estado": por_estado,
+    return templates.TemplateResponse(request=request, name="tm.html", context={
+        "stats": stats, "por_estado": por_estado,
         "msg": msg, "cat": cat
     })
 
@@ -682,8 +682,8 @@ async def muestra_index(request: Request, msg: str = "", cat: str = "success"):
     ).fetchall()
 
     db.close()
-    return templates.TemplateResponse("muestra.html", {
-        "request": request, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="muestra.html", context={
+        "eleccion": eleccion,
         "muestra": muestra_actual, "pct_nac": pct_nac,
         "refs": refs, "msg": msg, "cat": cat
     })
@@ -717,8 +717,8 @@ async def muestra_generar(
     )
 
     db.close()
-    return templates.TemplateResponse("muestra_generar.html", {
-        "request": request, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="muestra_generar.html", context={
+        "eleccion": eleccion,
         "candidatos": candidatos, "nac": nac,
         "centros_por_unidad": centros_por_unidad,
         "candidatos_por_unidad": candidatos_por_unidad,
@@ -907,8 +907,8 @@ async def visualizacion_index(request: Request, msg: str = "", cat: str = "succe
     ).fetchall()
 
     db.close()
-    return templates.TemplateResponse("visualizacion.html", {
-        "request": request, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="visualizacion.html", context={
+        "eleccion": eleccion,
         "tiene_resultados": tiene_resultados,
         "tiene_muestra": tiene_muestra,
         "heatmap_existe": heatmap_existe,
