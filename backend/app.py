@@ -195,11 +195,12 @@ async def candidato_form(request: Request):
 async def candidato_edit(request: Request, cid: int):
     db = get_db()
     row = db.execute("SELECT * FROM candidatos WHERE id=?", (cid,)).fetchone()
+    if not row:
+        db.close()
+        raise HTTPException(404)
     eleccion = db.execute("SELECT * FROM elecciones WHERE id=?", (row["id_eleccion"],)).fetchone()
     estados = db.execute("SELECT * FROM estados ORDER BY nombre").fetchall()
     db.close()
-    if not row:
-        raise HTTPException(404)
     return templates.TemplateResponse("candidato_form.html", {
         "request": request, "candidato": row, "eleccion": eleccion,
         "estados": estados
