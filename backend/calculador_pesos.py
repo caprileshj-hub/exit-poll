@@ -106,23 +106,9 @@ def calcular(id_eleccion: int, dry_run: bool = False):
     elec_universo_estado = {r['id_estado']: r['total'] for r in universo}
     elec_universo_total  = sum(elec_universo_estado.values())
 
-    # --- Calcular los 4 pesos ---
+    # --- Calcular pesos según tipo de elección ---
 
-    # peso_parroquia: siempre por parroquia
-    p_parroquia = _normalizar_dentro_grupo(centros, 'id_parroquia')
-
-    # peso_municipio: por municipio, salvo excepciones → por parroquia
-    for c in centros:
-        if c['estado_excepcion'] or c['municipio_excepcion']:
-            c['_grupo_muni'] = f"p_{c['id_parroquia']}"   # excepción: grupo = parroquia
-        else:
-            c['_grupo_muni'] = f"m_{c['id_municipio']}"   # normal: grupo = municipio
-    p_municipio = _normalizar_dentro_grupo(centros, '_grupo_muni')
-
-    # peso_estado: siempre por estado
-    p_estado = _normalizar_dentro_grupo(centros, 'id_estado')
-
-    # peso_nacion: fracción del electorado del estado (universo real)
+    # peso_nacion: siempre (fracción del electorado del estado sobre total nacional)
     p_nacion = {
         c['id_muestra']: (
             elec_universo_estado.get(c['id_estado'], 0) / elec_universo_total
@@ -131,11 +117,41 @@ def calcular(id_eleccion: int, dry_run: bool = False):
         for c in centros
     }
 
+    zero = {c['id_muestra']: 0.0 for c in centros}
+
+    if tipo in ('nacional', 'asamblea'):
+        # Centros-muestra suman 1 por estado
+        p_estado    = _normalizar_dentro_grupo(centros, 'id_estado')
+        p_municipio = zero
+        p_parroquia = zero
+        clave_verif, label_verif, p_verif = 'id_estado', 'peso_estado', p_estado
+
+    elif tipo == 'regional':
+        # Centros-muestra suman 1 por municipio (con excepciones DC/La Guaira/municipios especiales)
+        for c in centros:
+            if c['estado_excepcion'] or c['municipio_excepcion']:
+                c['_grupo_muni'] = f"p_{c['id_parroquia']}"
+            else:
+                c['_grupo_muni'] = f"m_{c['id_municipio']}"
+        p_municipio = _normalizar_dentro_grupo(centros, '_grupo_muni')
+        p_estado    = zero
+        p_parroquia = zero
+        clave_verif, label_verif, p_verif = '_grupo_muni', 'peso_municipio', p_municipio
+
+    elif tipo == 'municipal':
+        # Centros-muestra suman 1 por parroquia
+        p_parroquia = _normalizar_dentro_grupo(centros, 'id_parroquia')
+        p_municipio = zero
+        p_estado    = zero
+        clave_verif, label_verif, p_verif = 'id_parroquia', 'peso_parroquia', p_parroquia
+
+    else:
+        conn.close()
+        raise ValueError(f'Tipo de elección no soportado: {tipo!r}')
+
     # --- Verificación de sumas ---
     print('\n[+] Verificación:')
-    _verificar_suma(centros, p_parroquia,  'id_parroquia',  'peso_parroquia')
-    _verificar_suma(centros, p_municipio,  '_grupo_muni',   'peso_municipio')
-    _verificar_suma(centros, p_estado,     'id_estado',     'peso_estado')
+    _verificar_suma(centros, p_verif, clave_verif, label_verif)
     _verificar_suma_nacion(p_nacion, elec_universo_estado, elec_universo_total)
 
     # --- Persistir ---

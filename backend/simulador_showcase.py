@@ -228,12 +228,14 @@ def insertar_voto_bd(conn, codigo_centro: str, id_candidato: int,
 # Resultado ponderado
 # ──────────────────────────────────────────────
 
-def calcular_resultado_ponderado(conn, id_eleccion: int,
+def calcular_resultado_ponderado(conn, id_eleccion: int, tipo: str,
                                   centros: list[dict],
                                   candidatos: list[dict]) -> dict[int, float]:
     """
-    Agrega resultados usando peso_estado (dentro del estado) × peso_nacion (estado vs nación).
-    Devuelve {id_candidato: pct_nacional} normalizado a 100.
+    Devuelve {id_candidato: pct} según el tipo de elección:
+      nacional/asamblea → pct nacional  (peso_estado × peso_nacion)
+      regional          → pct por estado (peso_municipio × universo_municipio/estado)
+      municipal         → pct por municipio (peso_parroquia × universo_parroquia/municipio)
     """
     rows = conn.execute('''
         SELECT v.codigo_centro, v.id_candidato, COUNT(*) AS n
@@ -248,46 +250,112 @@ def calcular_resultado_ponderado(conn, id_eleccion: int,
         votos_centro[r['codigo_centro']][r['id_candidato']] = r['n']
 
     peso_map = {c['codigo_centro']: c for c in centros}
-
-    # Ponderación por estado: pct_en_centro × peso_estado
-    por_estado: dict[int, dict[int, float]] = defaultdict(lambda: defaultdict(float))
-    for codigo, vc in votos_centro.items():
-        centro = peso_map.get(codigo)
-        if not centro:
-            continue
-        total = sum(vc.values())
-        if not total:
-            continue
-        pe = centro.get('peso_estado') or 0.0
-        for id_cand, n in vc.items():
-            por_estado[centro['id_estado']][id_cand] += (n / total) * pe
-
-    # peso_nacion por estado (tomar el primero disponible)
-    pn_estado: dict[int, float] = {}
-    for c in centros:
-        eid = c['id_estado']
-        if eid not in pn_estado and c.get('peso_nacion') is not None:
-            pn_estado[eid] = c['peso_nacion']
-
     resultado: dict[int, float] = defaultdict(float)
-    for id_estado, por_cand in por_estado.items():
-        pn = pn_estado.get(id_estado, 0.0)
-        for id_cand, val in por_cand.items():
-            resultado[id_cand] += val * pn
 
+    if tipo in ('nacional', 'asamblea'):
+        # Primer nivel: peso_estado → resultado por estado
+        # Segundo nivel: peso_nacion → agrega estados al total nacional
+        pn_estado: dict[int, float] = {}
+        for c in centros:
+            eid = c['id_estado']
+            if eid not in pn_estado and c.get('peso_nacion') is not None:
+                pn_estado[eid] = c['peso_nacion']
+
+        por_estado: dict[int, dict[int, float]] = defaultdict(lambda: defaultdict(float))
+        for codigo, vc in votos_centro.items():
+            centro = peso_map.get(codigo)
+            if not centro:
+                continue
+            total_v = sum(vc.values())
+            if not total_v:
+                continue
+            pe = centro.get('peso_estado') or 0.0
+            for id_cand, n in vc.items():
+                por_estado[centro['id_estado']][id_cand] += (n / total_v) * pe
+
+        for id_estado, por_cand in por_estado.items():
+            pn = pn_estado.get(id_estado, 0.0)
+            for id_cand, val in por_cand.items():
+                resultado[id_cand] += val * pn
+
+    elif tipo == 'regional':
+        # Primer nivel: peso_municipio → resultado por municipio
+        # Segundo nivel: universo real municipio/estado → agrega municipios al estado
+        uni_muni = {r['id_municipio']: r['total'] for r in conn.execute(
+            'SELECT id_municipio, SUM(num_electores) AS total FROM centros WHERE activo=1 GROUP BY id_municipio'
+        ).fetchall()}
+        uni_estado = {r['id_estado']: r['total'] for r in conn.execute(
+            'SELECT id_estado, SUM(num_electores) AS total FROM centros WHERE activo=1 GROUP BY id_estado'
+        ).fetchall()}
+
+        por_estado_r: dict[int, dict[int, float]] = defaultdict(lambda: defaultdict(float))
+        for codigo, vc in votos_centro.items():
+            centro = peso_map.get(codigo)
+            if not centro:
+                continue
+            total_v = sum(vc.values())
+            if not total_v:
+                continue
+            pm  = centro.get('peso_municipio') or 0.0
+            den = uni_estado.get(centro['id_estado'], 0)
+            w2  = (uni_muni.get(centro['id_municipio'], 0) / den) if den else 0.0
+            for id_cand, n in vc.items():
+                por_estado_r[centro['id_estado']][id_cand] += (n / total_v) * pm * w2
+
+        for id_estado, por_cand in por_estado_r.items():
+            total_e = sum(por_cand.values())
+            if total_e > 0:
+                for id_cand, val in por_cand.items():
+                    resultado[id_cand] = val / total_e * 100
+        total_r = sum(resultado.values())
+        return dict(resultado) if total_r > 0 else _fallback_conteos(votos_centro)
+
+    elif tipo == 'municipal':
+        # Primer nivel: peso_parroquia → resultado por parroquia
+        # Segundo nivel: universo real parroquia/municipio → agrega parroquias al municipio
+        uni_parr = {r['id_parroquia']: r['total'] for r in conn.execute(
+            'SELECT id_parroquia, SUM(num_electores) AS total FROM centros WHERE activo=1 GROUP BY id_parroquia'
+        ).fetchall()}
+        uni_muni_m = {r['id_municipio']: r['total'] for r in conn.execute(
+            'SELECT id_municipio, SUM(num_electores) AS total FROM centros WHERE activo=1 GROUP BY id_municipio'
+        ).fetchall()}
+
+        por_muni_m: dict[int, dict[int, float]] = defaultdict(lambda: defaultdict(float))
+        for codigo, vc in votos_centro.items():
+            centro = peso_map.get(codigo)
+            if not centro:
+                continue
+            total_v = sum(vc.values())
+            if not total_v:
+                continue
+            pp  = centro.get('peso_parroquia') or 0.0
+            den = uni_muni_m.get(centro['id_municipio'], 0)
+            w2  = (uni_parr.get(centro['id_parroquia'], 0) / den) if den else 0.0
+            for id_cand, n in vc.items():
+                por_muni_m[centro['id_municipio']][id_cand] += (n / total_v) * pp * w2
+
+        for id_muni, por_cand in por_muni_m.items():
+            total_m = sum(por_cand.values())
+            if total_m > 0:
+                for id_cand, val in por_cand.items():
+                    resultado[id_cand] = val / total_m * 100
+        total_m2 = sum(resultado.values())
+        return dict(resultado) if total_m2 > 0 else _fallback_conteos(votos_centro)
+
+    # nacional/asamblea: normalizar a 100
     total = sum(resultado.values())
     if total > 0:
         return {k: v / total * 100 for k, v in resultado.items()}
+    return _fallback_conteos(votos_centro)
 
-    # Fallback sin pesos: conteos directos
+
+def _fallback_conteos(votos_centro: dict) -> dict[int, float]:
     conteos: dict[int, int] = defaultdict(int)
     for vc in votos_centro.values():
         for id_cand, n in vc.items():
             conteos[id_cand] += n
     total_v = sum(conteos.values())
-    if total_v:
-        return {k: v / total_v * 100 for k, v in conteos.items()}
-    return {}
+    return {k: v / total_v * 100 for k, v in conteos.items()} if total_v else {}
 
 
 # ──────────────────────────────────────────────
@@ -411,8 +479,14 @@ def main():
             bar = '█' * int(pct / 2)
             print(f'  {cand["nombre"]:<30}  {n:5d}  ({pct:4.1f}%)  {bar}')
 
-        print(f'\n  Resultado ponderado (peso_estado × peso_nacion):')
-        resultado = calcular_resultado_ponderado(conn, eleccion['id'], centros, candidatos)
+        _formula = {
+            'nacional':  'peso_estado × peso_nacion',
+            'asamblea':  'peso_estado × peso_nacion',
+            'regional':  'peso_municipio × universo_municipio/estado',
+            'municipal': 'peso_parroquia × universo_parroquia/municipio',
+        }.get(eleccion['tipo'], 'ponderado')
+        print(f'\n  Resultado ponderado ({_formula}):')
+        resultado = calcular_resultado_ponderado(conn, eleccion['id'], eleccion['tipo'], centros, candidatos)
         if resultado:
             for cand in candidatos:
                 pct = resultado.get(cand['id'], 0.0)
