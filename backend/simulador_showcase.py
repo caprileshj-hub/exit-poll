@@ -3,15 +3,20 @@ simulador_showcase.py
 Simula el día de elección insertando votos turno a turno en la BD.
 
 Uso:
-    python simulador_showcase.py [--delay 5] [--reset] [--sesgo 0.52]
+    python simulador_showcase.py [--delay 5] [--reset] [--sesgo 0.52] [--datos 2024]
 
 Flags:
-    --delay N     Segundos entre turnos (default: 5)
-    --reset       Limpia votos y sms_raw antes de empezar
-    --sesgo F     Fracción de votos para oposición, 0.0–1.0 (default: 0.52)
+    --delay N      Segundos entre turnos (default: 5)
+    --reset        Limpia votos y sms_raw antes de empezar
+    --sesgo F      Fracción de votos para oposición, 0.0–1.0 (default: 0.52)
+    --datos 2024   Usa porcentajes reales CNE 2024 por centro (ignora --sesgo)
+                   Simula reporte gradual: los centros se incorporan turno a turno
+                   para mostrar cómo evoluciona la confianza estadística.
 """
 
 import argparse
+import csv
+import math
 import os
 import random
 import sqlite3
@@ -21,9 +26,11 @@ from datetime import datetime, timedelta
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH  = os.path.join(BASE_DIR, 'exitpoll.db')
+CSV_2024 = os.path.join(BASE_DIR, 'resultados_cne2024.csv')
 
 VOTOS_MIN_TURNO = 8
 VOTOS_MAX_TURNO = 25
+MUESTRA_MINIMA  = 385   # n mínimo para error ≤ ±5% con 95% de confianza (z=1.96, p=0.5)
 
 
 # ──────────────────────────────────────────────
@@ -154,6 +161,29 @@ def registrar_encuestadores(conn, centros: list[dict], id_eleccion: int) -> dict
 # ──────────────────────────────────────────────
 # Lógica de simulación
 # ──────────────────────────────────────────────
+
+def cargar_pct_2024() -> dict[str, tuple[float, float]]:
+    """Devuelve {codigo_cne: (p_gobierno, p_oposicion)} desde el CSV CNE 2024."""
+    pct: dict[str, tuple[float, float]] = {}
+    with open(CSV_2024, encoding='utf-8-sig') as f:
+        for row in csv.DictReader(f):
+            p_g = float(row['pct_gobierno']) / 100
+            p_o = float(row['pct_oposicion']) / 100
+            pct[row['centro_cne_id']] = (p_g, p_o)
+    return pct
+
+
+def calcular_confianza(n: int, z: float = 1.96) -> tuple[float, float]:
+    """
+    Devuelve (confianza_pct, error_pct) para n muestras.
+    Usa p=0.5 (peor caso) para el error máximo posible.
+    Con n=385: error ≈ ±5.0% a 95% de confianza.
+    """
+    if n == 0:
+        return 95.0, float('inf')
+    error = z * math.sqrt(0.25 / n) * 100
+    return 95.0, error
+
 
 def generar_turnos(hora_apertura: str, hora_cierre: str) -> list[str]:
     t      = datetime.strptime(hora_apertura, '%H:%M')
@@ -372,10 +402,17 @@ def main():
                         help='Limpia votos y sms_raw antes de empezar')
     parser.add_argument('--sesgo', type=float, default=0.52,
                         help='Fracción de votos para oposición 0.0–1.0 (default: 0.52)')
+    parser.add_argument('--datos', choices=['2024'], default=None,
+                        help='Usa porcentajes reales CNE 2024 por centro (ignora --sesgo)')
     args = parser.parse_args()
 
     if not 0.0 <= args.sesgo <= 1.0:
         raise SystemExit('--sesgo debe estar entre 0.0 y 1.0')
+
+    pct_2024: dict[str, tuple[float, float]] = {}
+    if args.datos == '2024':
+        pct_2024 = cargar_pct_2024()
+        print(f'[+] Usando datos reales CNE 2024 ({len(pct_2024):,} centros cargados)')
 
     conn = get_conn()
 
@@ -406,8 +443,10 @@ def main():
         print(f'  Candidatos:')
         for c in candidatos:
             print(f'    [{c["id"]:2d}] {c["nombre"]:<30} ({c["bando"] or "—"})')
-        print(f'  Sesgo oposición : {args.sesgo:.0%}')
+        modo_datos = f'CNE 2024 por centro' if args.datos == '2024' else f'sesgo fijo {args.sesgo:.0%}'
+        print(f'  Modo datos      : {modo_datos}')
         print(f'  Delay por turno : {args.delay}s')
+        print(f'  Muestra mínima  : {MUESTRA_MINIMA} votos (error ≤ ±5% con 95% confianza)')
         print(f'{"─"*60}')
 
         # ── Reset opcional ────────────────────────────────
@@ -420,48 +459,98 @@ def main():
         # ── Encuestadores ─────────────────────────────────
         telefonos = registrar_encuestadores(conn, centros, eleccion['id'])
 
+        # ── Asignar turno de inicio por centro (solo modo 2024) ──────────
+        # Simula que los encuestadores no reportan todos al mismo tiempo:
+        # los primeros turnos tienen pocos centros, el reporte se va completando
+        # gradualmente — igual que en campo real. Esto hace que la muestra crezca
+        # despacio al principio y el error sea alto hasta cruzar la muestra mínima.
+        if args.datos == '2024':
+            turno_inicio = {c['codigo_centro']: random.randint(1, 6) for c in centros}
+        else:
+            turno_inicio = {c['codigo_centro']: 1 for c in centros}
+
         # ── Simular turnos ────────────────────────────────
         turnos = generar_turnos(eleccion['hora_apertura'], eleccion['hora_cierre'])
         print(f'  Turnos a simular: {len(turnos)}')
         print(f'{"─"*60}')
 
         conteo_total: dict[int, int] = defaultdict(int)
+        muestra_alcanzada = False
 
         for idx, hora_str in enumerate(turnos):
             turno_num = calcular_num_turno(hora_str, eleccion['hora_apertura'])
             hora_iso  = f'{eleccion["fecha"]}T{hora_str}:00'
 
             votos_turno: dict[int, int] = defaultdict(int)
+            centros_activos = 0
 
             conn.execute('BEGIN')
             for centro in centros:
                 codigo = centro['codigo_centro']
+
+                # En modo 2024: el centro no reporta hasta su turno de inicio
+                if turno_num < turno_inicio.get(codigo, 1):
+                    continue
+
                 cands  = cands_por_centro[codigo]
                 if not cands:
                     continue
+                centros_activos += 1
 
-                tel    = telefonos[codigo]
-                pesos  = pesos_por_candidato(cands, args.sesgo)
-                n      = votos_para_turno(centro['num_electores'])
-                lat    = centro.get('lat') or 10.5 + random.uniform(-2, 2)
-                lon    = centro.get('lon') or -66.9 + random.uniform(-3, 3)
+                tel = telefonos[codigo]
+                lat = centro.get('lat') or 10.5 + random.uniform(-2, 2)
+                lon = centro.get('lon') or -66.9 + random.uniform(-3, 3)
 
-                ids_cands = list(pesos.keys())
-                probs     = [pesos[cid] for cid in ids_cands]
-
-                for _ in range(n):
-                    id_cand = random.choices(ids_cands, weights=probs, k=1)[0]
-                    insertar_voto_bd(conn, codigo, id_cand, tel, hora_iso, turno_num, lat, lon)
-                    votos_turno[id_cand]   += 1
-                    conteo_total[id_cand]  += 1
+                if args.datos == '2024' and codigo in pct_2024:
+                    # Probabilidades reales por centro
+                    p_g, p_o = pct_2024[codigo]
+                    p_tot = p_g + p_o
+                    cand_gob = next((c for c in cands if c['bando'] == 'gobierno'), None)
+                    cand_op  = next((c for c in cands if c['bando'] == 'oposicion'), None)
+                    n = votos_para_turno(centro['num_electores'])
+                    for _ in range(n):
+                        if cand_gob and cand_op and p_tot > 0:
+                            id_cand = cand_gob['id'] if random.random() < (p_g / p_tot) else cand_op['id']
+                        else:
+                            id_cand = random.choice(cands)['id']
+                        insertar_voto_bd(conn, codigo, id_cand, tel, hora_iso, turno_num, lat, lon)
+                        votos_turno[id_cand]  += 1
+                        conteo_total[id_cand] += 1
+                else:
+                    pesos  = pesos_por_candidato(cands, args.sesgo)
+                    n      = votos_para_turno(centro['num_electores'])
+                    ids_cands = list(pesos.keys())
+                    probs     = [pesos[cid] for cid in ids_cands]
+                    for _ in range(n):
+                        id_cand = random.choices(ids_cands, weights=probs, k=1)[0]
+                        insertar_voto_bd(conn, codigo, id_cand, tel, hora_iso, turno_num, lat, lon)
+                        votos_turno[id_cand]  += 1
+                        conteo_total[id_cand] += 1
             conn.commit()
 
-            total_turno = sum(votos_turno.values())
+            # ── Estadísticas del turno ────────────────────
+            total_turno  = sum(votos_turno.values())
+            n_acum       = sum(conteo_total.values())
+            _, error_pct = calcular_confianza(n_acum)
+
             detalle = '  '.join(
-                f'{next(c["nombre"] for c in candidatos if c["id"] == cid)}: {n}'
-                for cid, n in sorted(votos_turno.items())
+                f'{next(c["nombre"] for c in candidatos if c["id"] == cid)}: {v}'
+                for cid, v in sorted(votos_turno.items())
             )
-            print(f'  Turno {turno_num:2d}  {hora_str}  │  {total_turno:4d} votos  │  {detalle}')
+            print(f'  Turno {turno_num:2d}  {hora_str}  │  +{total_turno:4d} votos  │  {detalle}')
+            print(f'         {"":8}  │  Muestra acum: {n_acum:5d}  │  '
+                  f'Centros reportando: {centros_activos}/{len(centros)}  │  '
+                  f'Error: ±{error_pct:.1f}%', end='')
+
+            if n_acum >= MUESTRA_MINIMA:
+                if not muestra_alcanzada:
+                    print(f'  ← [✓ MUESTRA MÍNIMA ALCANZADA — tendencia confiable]')
+                    muestra_alcanzada = True
+                else:
+                    print()
+            else:
+                faltan = MUESTRA_MINIMA - n_acum
+                print(f'  [⚠ muestra insuficiente — faltan {faltan} datos]')
 
             if args.delay > 0 and idx < len(turnos) - 1:
                 time.sleep(args.delay)
