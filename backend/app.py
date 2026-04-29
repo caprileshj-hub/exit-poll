@@ -16,7 +16,7 @@ import traceback
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -1224,8 +1224,199 @@ def _html_sin_datos(motivo: str, refresh: int) -> str:
 
     meta = f'<meta http-equiv="refresh" content="{refresh}">'
     html = base_html.replace("</head>", f"{meta}</head>", 1)
-    html = re.sub(r"(<body[^>]*>)", r"\1" + overlay, html, count=1)
+    html = re.sub(r"(<body[^>]*>)", r"\1" + overlay + _analista_live_panel(), html, count=1)
     return html
+
+
+def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
+    """Codex: resume el live dashboard en datos cerrados para el analista sin tokens."""
+    if not eleccion:
+        return {
+            "ok": False,
+            "motivo": "No hay eleccion activa",
+            "total_votos": 0,
+        }
+
+    eid = eleccion["id"]
+    datos_ventaja, datos_tendencia, total_votos = _datos_vivos(db, eid)
+    muestra_total = db.execute(
+        "SELECT COUNT(*) c FROM muestra WHERE id_eleccion=? AND activo=1",
+        (eid,),
+    ).fetchone()["c"]
+    centros_reportando = db.execute("""
+        SELECT COUNT(DISTINCT v.codigo_centro) c
+        FROM votos v
+        JOIN muestra m ON m.codigo_centro = v.codigo_centro
+        WHERE m.id_eleccion = ? AND v.valido = 1
+    """, (eid,)).fetchone()["c"]
+
+    puntos_nac = datos_tendencia.get("VENEZUELA") or []
+    ventajas_nacionales = [
+        round(float(p["gob"]) - float(p["opo"]), 1)
+        for p in puntos_nac
+    ]
+    ventaja_actual = ventajas_nacionales[-1] if ventajas_nacionales else None
+    hora_actual = puntos_nac[-1]["hora"] if puntos_nac else None
+
+    if ventaja_actual is None:
+        candidato_arriba = None
+        candidato_abajo = None
+    elif ventaja_actual >= 0:
+        candidato_arriba = candidatos_dict.get("gobierno", "Gobierno")
+        candidato_abajo = candidatos_dict.get("oposicion", "Oposicion")
+    else:
+        candidato_arriba = candidatos_dict.get("oposicion", "Oposicion")
+        candidato_abajo = candidatos_dict.get("gobierno", "Gobierno")
+
+    return {
+        "ok": True,
+        "eleccion": eleccion["nombre"],
+        "hora_actual": hora_actual,
+        "total_votos": total_votos,
+        "centros_reportando": centros_reportando,
+        "centros_muestra_total": muestra_total,
+        "cobertura_pct": round(100 * centros_reportando / muestra_total, 1) if muestra_total else 0,
+        "ventaja_actual": ventaja_actual,
+        "ventajas_nacionales": ventajas_nacionales,
+        "candidato_arriba": candidato_arriba,
+        "candidato_abajo": candidato_abajo,
+        "ventajas_por_estado": datos_ventaja,
+    }
+
+
+@app.get("/api/analista/contexto")
+async def analista_contexto():
+    db = get_db()
+    try:
+        eleccion = db.execute(
+            "SELECT * FROM elecciones WHERE activa = 1 LIMIT 1"
+        ).fetchone()
+        candidatos_dict = _nombres_candidatos(db, eleccion["id"]) if eleccion else {}
+        return JSONResponse(_contexto_analista(db, eleccion, candidatos_dict))
+    finally:
+        db.close()
+
+
+@app.post("/api/analista/preguntar")
+async def analista_preguntar(request: Request):
+    payload = await request.json()
+    pregunta = (payload.get("pregunta") or "").strip()
+    db = get_db()
+    try:
+        eleccion = db.execute(
+            "SELECT * FROM elecciones WHERE activa = 1 LIMIT 1"
+        ).fetchone()
+        candidatos_dict = _nombres_candidatos(db, eleccion["id"]) if eleccion else {}
+        contexto = _contexto_analista(db, eleccion, candidatos_dict)
+
+        sys.path.insert(0, str(BASE_DIR))
+        import analista_ia
+        return JSONResponse(analista_ia.analizar_contexto(contexto, pregunta))
+    finally:
+        db.close()
+
+
+def _analista_live_panel() -> str:
+    """Codex: panel persistente; localStorage evita perder el chat con refresh cada 5s."""
+    return """
+<!-- Codex: AI electoral analyst panel, deterministic and refresh-safe. -->
+<style>
+  #ai-analyst {
+    position: fixed; right: 16px; bottom: 16px; z-index: 100000;
+    width: min(390px, calc(100vw - 32px)); background: #fff; color: #1f2933;
+    border: 1px solid rgba(0,0,0,.18); border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.28); font-family: Arial, sans-serif;
+  }
+  #ai-analyst header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 11px; background: #1a3a5c; color: #fff;
+    border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 700;
+  }
+  #ai-analyst-log { max-height: 270px; overflow-y: auto; padding: 10px; font-size: 12px; }
+  .ai-msg { margin-bottom: 8px; line-height: 1.35; }
+  .ai-q { color: #1a3a5c; font-weight: 700; }
+  .ai-a { background: #f4f7fb; border-left: 3px solid #1a3a5c; padding: 8px; border-radius: 4px; }
+  #ai-analyst form { display: flex; gap: 6px; padding: 9px; border-top: 1px solid #e5e7eb; }
+  #ai-analyst input { flex: 1; min-width: 0; padding: 7px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 12px; }
+  #ai-analyst button { border: 0; border-radius: 5px; padding: 7px 9px; background: #1a3a5c; color: #fff; font-size: 12px; cursor: pointer; }
+  #ai-analyst-clear { background: transparent !important; padding: 0 !important; color: #dbeafe !important; }
+</style>
+<section id="ai-analyst" aria-label="Analista electoral">
+  <header>
+    <span>AI Electoral Analyst</span>
+    <button id="ai-analyst-clear" type="button">limpiar</button>
+  </header>
+  <div id="ai-analyst-log"></div>
+  <form id="ai-analyst-form">
+    <input id="ai-analyst-input" autocomplete="off" placeholder="Pregunta por la tendencia actual">
+    <button type="submit">Analizar</button>
+  </form>
+</section>
+<script>
+(function() {
+  var key = 'exitpoll.aiAnalyst.history';
+  var draftKey = 'exitpoll.aiAnalyst.draft';
+  var log = document.getElementById('ai-analyst-log');
+  var input = document.getElementById('ai-analyst-input');
+  var form = document.getElementById('ai-analyst-form');
+  var clear = document.getElementById('ai-analyst-clear');
+
+  function history() {
+    try { return JSON.parse(localStorage.getItem(key) || '[]'); }
+    catch(e) { return []; }
+  }
+  function save(items) { localStorage.setItem(key, JSON.stringify(items.slice(-8))); }
+  function render() {
+    var items = history();
+    if (!items.length) {
+      log.innerHTML = '<div class="ai-msg ai-a">Pregunta por ventaja, estabilidad o suficiencia de datos. No declaro ganadores.</div>';
+      return;
+    }
+    log.innerHTML = items.map(function(item) {
+      return '<div class="ai-msg"><div class="ai-q">' + escapeHtml(item.q) + '</div>' +
+             '<div class="ai-a">' + escapeHtml(item.a) + '</div></div>';
+    }).join('');
+    log.scrollTop = log.scrollHeight;
+  }
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function(c) {
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var q = (input.value || '').trim();
+    if (!q) return;
+    input.value = '';
+    localStorage.removeItem(draftKey);
+    fetch('/api/analista/preguntar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({pregunta: q})
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      var items = history();
+      items.push({q: q, a: data.resumen || 'No hay lectura disponible.'});
+      save(items);
+      render();
+    }).catch(function() {
+      var items = history();
+      items.push({q: q, a: 'No pude consultar el analista en este momento.'});
+      save(items);
+      render();
+    });
+  });
+  input.value = localStorage.getItem(draftKey) || '';
+  input.addEventListener('input', function() { localStorage.setItem(draftKey, input.value || ''); });
+  clear.addEventListener('click', function() {
+    localStorage.removeItem(key);
+    localStorage.removeItem(draftKey);
+    input.value = '';
+    render();
+  });
+  render();
+})();
+</script>
+"""
 
 
 @app.get("/live", response_class=HTMLResponse)
@@ -1283,6 +1474,7 @@ async def live_dashboard(refresh: int = 5):
     meta = f'<meta http-equiv="refresh" content="{refresh}">'
 
     barra = (
+        f'<style>:root{{--ep-top-offset:28px;}}</style>'
         f'<div style="position:fixed;top:0;left:0;right:0;z-index:99999;'
         f'background:#1B5E20;color:white;font-family:sans-serif;font-size:12px;'
         f'padding:5px 16px;display:flex;justify-content:space-between;align-items:center;'
@@ -1291,10 +1483,9 @@ async def live_dashboard(refresh: int = 5):
         f'&nbsp;&#x2502;&nbsp; {total_votos:,} votos procesados</span>'
         f'<span style="opacity:.7">&#x21BB;&nbsp;cada {refresh}s</span>'
         f'</div>'
-        f'<div style="height:28px"></div>'
     )
 
     html = html.replace("</head>", f"{meta}</head>", 1)
-    html = re.sub(r"(<body[^>]*>)", r"\1" + barra, html, count=1)
+    html = re.sub(r"(<body[^>]*>)", r"\1" + barra + _analista_live_panel(), html, count=1)
 
     return HTMLResponse(html)

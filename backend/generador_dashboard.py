@@ -324,10 +324,11 @@ def _crear_mapa(datos_ventaja, nivel, candidatos):
 _LAYOUT_CSS = """
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
 <style>
+  :root { --ep-top-offset: 0px; }
   html, body { margin:0; padding:0; height:100%; overflow:hidden; }
-  #ep-outer { display:flex; height:100vh; width:100vw; }
-  #ep-map   { flex: 0 0 58%; height:100vh; position:relative; overflow:hidden; }
-  #ep-panel { flex: 0 0 42%; height:100vh; display:flex; flex-direction:column;
+  #ep-outer { display:flex; height:calc(100vh - var(--ep-top-offset)); width:100vw; }
+  #ep-map   { flex: 0 0 58%; height:calc(100vh - var(--ep-top-offset)); position:relative; overflow:hidden; }
+  #ep-panel { flex: 0 0 42%; height:calc(100vh - var(--ep-top-offset)); min-height:0; display:flex; flex-direction:column;
               background:#F5F5F5; font-family:sans-serif; }
   #ep-panel-header {
       padding:10px 14px 8px;
@@ -337,11 +338,19 @@ _LAYOUT_CSS = """
   }
   #ep-panel-header h2 { margin:0; font-size:15px; color:#333; flex:1; }
   #ep-zone-name { font-size:12px; color:#888; }
-  #ep-charts-scroll { flex:1; overflow-y:auto; padding:10px 10px 20px; }
+  #ep-charts-scroll { flex:1; min-height:0; overflow-y:auto; padding:10px 10px 28px; }
   .ep-chart-block { background:white; border-radius:6px; padding:8px;
-                    box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:10px; }
+                    box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:10px; overflow:visible; }
+  .ep-chart-block .plotly-graph-div { width:100% !important; max-width:100% !important; }
   .ep-hint { font-size:11px; color:#AAA; text-align:center;
              padding:6px 0; border-top:1px solid #EEE; margin-top:4px; }
+  @media (max-width: 760px) {
+    html, body { overflow:auto; }
+    #ep-outer { flex-direction:column; height:auto; min-height:calc(100vh - var(--ep-top-offset)); }
+    #ep-map { flex:0 0 48vh; height:48vh; width:100vw; }
+    #ep-panel { flex:0 0 auto; width:100vw; height:auto; min-height:52vh; }
+    #ep-charts-scroll { max-height:none; overflow:visible; padding-bottom:96px; }
+  }
 </style>
 """
 
@@ -394,6 +403,11 @@ function epShowChart(nombre, wrapId) {{
   var el = document.getElementById(wrapId);
   if (!el) el = document.getElementById('{_id_wrap("VENEZUELA")}');
   if (el)  el.style.display = 'block';
+  if (window.Plotly && el) {{
+    el.querySelectorAll('.plotly-graph-div').forEach(function(g) {{
+      try {{ Plotly.Plots.resize(g); }} catch(e) {{}}
+    }});
+  }}
   var zn = document.getElementById('ep-zone-name');
   if (zn) zn.textContent = nombre;
 }}
