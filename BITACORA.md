@@ -289,3 +289,67 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - `peso_nacion`: fracción del electorado del estado sobre el total nacional (universo BD)
 - Excepciones: `estados.es_excepcion=1` (DC, La Guaira) y `municipios.es_excepcion=1` (Chacao, Baruta, El Hatillo, Sucre)
 - Edición manual: `python calculador_pesos.py <id> --set <id_muestra> campo=valor`
+- 
+---
+
+### 2026-04-28 - Bugs pendientes para corregir
+
+#### 1. Agregacion incorrecta en simulador para elecciones regionales y municipales
+- Archivo: `backend/simulador_showcase.py`
+- Funcion: `calcular_resultado_ponderado()`
+- Hallazgo:
+  - En ramas `regional` y `municipal`, el dict `resultado` se pisa por grupo.
+  - Hay asignaciones tipo `resultado[id_cand] = ...` dentro de loops por estado/municipio.
+  - Efecto: el ultimo estado o municipio procesado sobrescribe los anteriores.
+- Impacto:
+  - Los porcentajes finales no representan un agregado correcto.
+  - La salida actual no coincide con lo que promete el docstring.
+- Accion sugerida:
+  - Definir si la funcion debe devolver:
+    - un agregado global por candidato, o
+    - un resultado separado por estado/municipio.
+  - Ajustar estructura de retorno y consumidor en consola/dashboard.
+
+#### 2. Soporte incompleto de candidatos para elecciones regional, municipal y asamblea
+- Archivos:
+  - `backend/app.py`
+  - `backend/templates/candidato_form.html`
+  - `backend/schema.sql`
+- Hallazgo:
+  - El esquema soporta `id_estado`, `id_municipio`, `id_circuito`, `id_circ_indigena`.
+  - El formulario y guardado actual solo manejan:
+    - `id_eleccion`
+    - `nombre`
+    - `partido`
+    - `bando`
+    - `tipo`
+    - `orden`
+    - `foto_url`
+- Impacto:
+  - Un candidato `lista`, `nominal` o `indigena` no puede asociarse a su geografia/circuito real.
+  - La app aparenta soportar esos tipos, pero no queda correctamente configurada.
+- Accion sugerida:
+  - Extender formulario y endpoint de guardado.
+  - Validar campos segun `tipo` de candidato y `tipo` de eleccion.
+
+#### 3. Cobertura de pruebas muy debil para el backend actual
+- Archivo: `test_flujo.py`
+- Hallazgo:
+  - `pytest` pasa con una sola prueba del core legado.
+  - Sigue usando:
+    - `procesador_datos`
+    - `generador_mapa`
+    - `graficador_tendencias`
+  - El flujo de error principal hace `return` en vez de fallar explicitamente.
+- Impacto:
+  - `pytest` verde no protege:
+    - rutas FastAPI
+    - logica de pesos del backend
+    - simulador showcase
+    - formularios/configuracion actual
+- Accion sugerida:
+  - Agregar tests minimos para:
+    - import de `backend.app`
+    - calculo de pesos por tipo de eleccion
+    - `calcular_resultado_ponderado()`
+    - rutas criticas (`/candidatos`, `/pesos`, `/visualizacion`)
