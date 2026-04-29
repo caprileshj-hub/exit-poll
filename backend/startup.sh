@@ -11,5 +11,12 @@ if [ ! -f exitpoll.db ]; then
     python init_db.py
 fi
 
+# Sembrar datos si centros está vacía (BD recién creada o reseteada)
+CENTROS=$(python -c "import sqlite3; c=sqlite3.connect('exitpoll.db'); print(c.execute('SELECT COUNT(*) FROM centros').fetchone()[0])")
+if [ "$CENTROS" = "0" ]; then
+    echo "[startup] BD vacía — sembrando datos demo..."
+    python init_showcase.py
+fi
+
 # Arrancar la app
 exec uvicorn app:app --host 0.0.0.0 --port 8000

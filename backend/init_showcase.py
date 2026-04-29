@@ -17,14 +17,12 @@ Uso: python init_showcase.py
 import csv
 import os
 import sqlite3
-import subprocess
 import sys
 
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
 DB_PATH      = os.path.join(BASE_DIR, 'exitpoll.db')
 TM_PATH      = os.path.join(BASE_DIR, 'tm_2018_con_gps.csv')
 CNE2024_PATH = os.path.join(BASE_DIR, 'resultados_cne2024.csv')
-SIM_PATH     = os.path.join(BASE_DIR, 'simulador_showcase.py')
 
 sys.path.insert(0, BASE_DIR)
 import calculador_pesos
@@ -101,24 +99,24 @@ def main():
     cur = conn.execute(
         '''INSERT INTO elecciones
                (nombre, tipo, fecha, hora_apertura, hora_cierre, activa)
-           VALUES ('Presidenciales 2006', 'nacional', '2006-12-03', '07:00', '18:00', 1)'''
+           VALUES ('Presidenciales 2024', 'nacional', '2024-07-28', '07:00', '18:00', 1)'''
     )
     id_eleccion = cur.lastrowid
-    print(f'[+] Elección id={id_eleccion}: Presidenciales 2006')
+    print(f'[+] Elección id={id_eleccion}: Presidenciales 2024')
 
     cur = conn.execute(
-        "INSERT INTO candidatos (id_eleccion, nombre, bando, tipo, orden) VALUES (?, ?, 'gobierno', 'unico', 1)",
-        (id_eleccion, 'Hugo Chávez Frías'),
+        "INSERT INTO candidatos (id_eleccion, nombre, partido, bando, tipo, orden) VALUES (?, ?, 'PSUV', 'gobierno', 'unico', 1)",
+        (id_eleccion, 'Nicolás Maduro'),
     )
-    id_chavez = cur.lastrowid
+    id_maduro = cur.lastrowid
 
     cur = conn.execute(
-        "INSERT INTO candidatos (id_eleccion, nombre, bando, tipo, orden) VALUES (?, ?, 'oposicion', 'unico', 2)",
-        (id_eleccion, 'Manuel Rosales'),
+        "INSERT INTO candidatos (id_eleccion, nombre, partido, bando, tipo, orden) VALUES (?, ?, 'PUD', 'oposicion', 'unico', 2)",
+        (id_eleccion, 'Edmundo González'),
     )
-    id_rosales = cur.lastrowid
+    id_gonzalez = cur.lastrowid
     conn.commit()
-    print(f'[+] Candidatos: Chávez id={id_chavez}, Rosales id={id_rosales}')
+    print(f'[+] Candidatos: Maduro id={id_maduro}, González id={id_gonzalez}')
 
     # 5. Selección de muestra
     print('\n=== Paso 5: Seleccionar muestra ===')
@@ -138,11 +136,11 @@ def main():
     for codigo in codigos:
         conn.execute(
             'INSERT OR IGNORE INTO centros_candidatos (codigo_centro, id_candidato) VALUES (?, ?)',
-            (codigo, id_chavez),
+            (codigo, id_maduro),
         )
         conn.execute(
             'INSERT OR IGNORE INTO centros_candidatos (codigo_centro, id_candidato) VALUES (?, ?)',
-            (codigo, id_rosales),
+            (codigo, id_gonzalez),
         )
     conn.commit()
     conn.close()
@@ -152,13 +150,7 @@ def main():
     print('\n=== Paso 7: Calcular pesos ===')
     calculador_pesos.calcular(id_eleccion)
 
-    # 8. Simulador
-    print('\n=== Paso 8: Simular jornada electoral ===')
-    subprocess.run(
-        [sys.executable, SIM_PATH, '--reset', '--delay', '0', '--sesgo', '0.55'],
-        check=True,
-    )
-    print('\n[OK] Showcase listo. Servidor: uvicorn app:app --reload')
+    print('\n[OK] BD sembrada. Usa "Test Total" en el dashboard para cargar los votos demo.')
 
 
 if __name__ == '__main__':
