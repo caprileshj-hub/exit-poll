@@ -1338,7 +1338,6 @@ async def test_demo():
         db.execute("DELETE FROM votos"); db.execute("DELETE FROM sms_raw"); db.commit()
         _encuestadores_demo(db, centros, eleccion["id"])
         turnos = _turnos(eleccion)
-        db.execute("BEGIN")
         _insertar_votos(db, eleccion, centros, cands, pct, turnos)
         db.commit()
         total = db.execute("SELECT COUNT(*) FROM votos").fetchone()[0]
@@ -1370,7 +1369,6 @@ async def test_entrada():
         # Solo la mitad de centros reportan (simula entrada parcial de datos)
         centros_activos = centros[: len(centros) // 2]
         turnos = _turnos(eleccion)[:6]
-        db.execute("BEGIN")
         _insertar_votos(db, eleccion, centros_activos, cands, pct, turnos)
         db.commit()
         total = db.execute("SELECT COUNT(*) FROM votos").fetchone()[0]
