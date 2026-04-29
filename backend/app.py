@@ -4,7 +4,9 @@ FastAPI + Jinja2 + Bootstrap 5
 Uso: uvicorn app:app --reload
 """
 
+import csv
 import os
+import random
 import re
 import sys
 import sqlite3
@@ -13,10 +15,11 @@ import tempfile
 import uuid
 import io
 import traceback
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -1227,3 +1230,169 @@ async def live_dashboard(refresh: int = 5):
     html = re.sub(r"(<body[^>]*>)", r"\1" + barra, html, count=1)
 
     return HTMLResponse(html)
+
+
+# =============================================================
+# TEST — carga de datos de demostración
+# =============================================================
+
+CSV_2024 = BASE_DIR / "resultados_cne2024.csv"
+_CANDIDATOS_DEMO = [
+    {"nombre": "Nicolás Maduro",   "partido": "PSUV", "bando": "gobierno",  "tipo": "unico", "orden": 1},
+    {"nombre": "Edmundo González", "partido": "PUD",  "bando": "oposicion", "tipo": "unico", "orden": 2},
+]
+
+
+def _pct_2024() -> dict[str, tuple[float, float]]:
+    pct: dict[str, tuple[float, float]] = {}
+    with open(CSV_2024, encoding="utf-8-sig") as f:
+        for row in csv.DictReader(f):
+            pct[row["centro_cne_id"]] = (
+                float(row["pct_gobierno"]) / 100,
+                float(row["pct_oposicion"]) / 100,
+            )
+    return pct
+
+
+def _asegurar_candidatos(db: sqlite3.Connection, id_eleccion: int) -> dict[str, int]:
+    rows = db.execute(
+        "SELECT id, bando FROM candidatos WHERE id_eleccion=?", (id_eleccion,)
+    ).fetchall()
+    if rows:
+        return {r["bando"]: r["id"] for r in rows}
+    for c in _CANDIDATOS_DEMO:
+        db.execute(
+            "INSERT INTO candidatos (id_eleccion, nombre, partido, bando, tipo, orden) "
+            "VALUES (?,?,?,?,?,?)",
+            (id_eleccion, c["nombre"], c["partido"], c["bando"], c["tipo"], c["orden"]),
+        )
+    db.commit()
+    return {r["bando"]: r["id"] for r in db.execute(
+        "SELECT id, bando FROM candidatos WHERE id_eleccion=?", (id_eleccion,)
+    )}
+
+
+def _insertar_votos(db: sqlite3.Connection, eleccion, centros, cands, pct, turnos_subset):
+    for idx, hora_str in enumerate(turnos_subset):
+        turno_num = idx + 1
+        hora_iso  = f'{eleccion["fecha"]}T{hora_str}:00'
+        for c in centros:
+            cod  = c["codigo_centro"]
+            p_g, p_o = pct.get(cod, (0.5, 0.5))
+            p_tot = p_g + p_o
+            tel  = f'+58414{c["id_muestra"]:07d}'
+            lat  = c["lat"]  or (10.5  + random.uniform(-2, 2))
+            lon  = c["lon"]  or (-66.9 + random.uniform(-3, 3))
+            for _ in range(3):
+                id_cand = (cands["gobierno"]
+                           if random.random() < (p_g / p_tot)
+                           else cands["oposicion"])
+                cur = db.execute(
+                    "INSERT INTO sms_raw (from_number, contenido, recibido_at, procesado) "
+                    "VALUES (?,?,?,1)",
+                    (tel, f"DEMO T{turno_num}", hora_iso),
+                )
+                db.execute(
+                    "INSERT INTO votos (id_sms, codigo_centro, id_candidato, telefono, "
+                    "hora, turno, lat, lon, distancia_m, valido) VALUES (?,?,?,?,?,?,?,?,?,1)",
+                    (cur.lastrowid, cod, id_cand, tel,
+                     hora_iso, turno_num, lat, lon, random.randint(30, 280)),
+                )
+
+
+def _encuestadores_demo(db: sqlite3.Connection, centros, id_eleccion: int):
+    for c in centros:
+        tel = f'+58414{c["id_muestra"]:07d}'
+        db.execute(
+            "INSERT OR IGNORE INTO encuestadores (telefono, nombre, codigo_centro, id_eleccion) "
+            "VALUES (?,?,?,?)",
+            (tel, f'Demo-{c["id_muestra"]}', c["codigo_centro"], id_eleccion),
+        )
+
+
+def _turnos(eleccion) -> list[str]:
+    t      = datetime.strptime(eleccion["hora_apertura"], "%H:%M")
+    cierre = datetime.strptime(eleccion["hora_cierre"],   "%H:%M")
+    result = []
+    while t <= cierre:
+        result.append(t.strftime("%H:%M"))
+        t += timedelta(minutes=20)
+    return result
+
+
+@app.post("/test/demo")
+async def test_demo():
+    """Carga el dataset completo (todos los turnos) con datos CNE 2024."""
+    db = get_db()
+    try:
+        eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1").fetchone()
+        if not eleccion:
+            return JSONResponse({"ok": False, "mensaje": "No hay elección activa."}, status_code=400)
+        cands   = _asegurar_candidatos(db, eleccion["id"])
+        centros = db.execute(
+            "SELECT m.id AS id_muestra, m.codigo_centro, c.num_electores, c.lat, c.lon "
+            "FROM muestra m JOIN centros c ON c.codigo_cne=m.codigo_centro "
+            "WHERE m.id_eleccion=? AND m.activo=1 AND c.activo=1", (eleccion["id"],)
+        ).fetchall()
+        pct = _pct_2024()
+        db.execute("DELETE FROM votos"); db.execute("DELETE FROM sms_raw"); db.commit()
+        _encuestadores_demo(db, centros, eleccion["id"])
+        turnos = _turnos(eleccion)
+        db.execute("BEGIN")
+        _insertar_votos(db, eleccion, centros, cands, pct, turnos)
+        db.commit()
+        total = db.execute("SELECT COUNT(*) FROM votos").fetchone()[0]
+        return JSONResponse({"ok": True, "mensaje": f"Dataset completo cargado: {total:,} votos en {len(turnos)} turnos."})
+    except Exception as e:
+        db.rollback()
+        return JSONResponse({"ok": False, "mensaje": str(e)}, status_code=500)
+    finally:
+        db.close()
+
+
+@app.post("/test/entrada")
+async def test_entrada():
+    """Carga solo los primeros 6 turnos (~2 horas) para mostrar el estado de muestra parcial."""
+    db = get_db()
+    try:
+        eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1").fetchone()
+        if not eleccion:
+            return JSONResponse({"ok": False, "mensaje": "No hay elección activa."}, status_code=400)
+        cands   = _asegurar_candidatos(db, eleccion["id"])
+        centros = db.execute(
+            "SELECT m.id AS id_muestra, m.codigo_centro, c.num_electores, c.lat, c.lon "
+            "FROM muestra m JOIN centros c ON c.codigo_cne=m.codigo_centro "
+            "WHERE m.id_eleccion=? AND m.activo=1 AND c.activo=1", (eleccion["id"],)
+        ).fetchall()
+        pct = _pct_2024()
+        db.execute("DELETE FROM votos"); db.execute("DELETE FROM sms_raw"); db.commit()
+        _encuestadores_demo(db, centros, eleccion["id"])
+        # Solo la mitad de centros reportan (simula entrada parcial de datos)
+        centros_activos = centros[: len(centros) // 2]
+        turnos = _turnos(eleccion)[:6]
+        db.execute("BEGIN")
+        _insertar_votos(db, eleccion, centros_activos, cands, pct, turnos)
+        db.commit()
+        total = db.execute("SELECT COUNT(*) FROM votos").fetchone()[0]
+        return JSONResponse({"ok": True, "mensaje": f"Entrada parcial cargada: {total:,} votos — {len(centros_activos)}/{len(centros)} centros, primeros 6 turnos."})
+    except Exception as e:
+        db.rollback()
+        return JSONResponse({"ok": False, "mensaje": str(e)}, status_code=500)
+    finally:
+        db.close()
+
+
+@app.post("/test/reset")
+async def test_reset():
+    """Elimina todos los votos y sms_raw de la elección activa."""
+    db = get_db()
+    try:
+        db.execute("DELETE FROM votos")
+        db.execute("DELETE FROM sms_raw")
+        db.commit()
+        return JSONResponse({"ok": True, "mensaje": "Datos de prueba eliminados."})
+    except Exception as e:
+        db.rollback()
+        return JSONResponse({"ok": False, "mensaje": str(e)}, status_code=500)
+    finally:
+        db.close()
