@@ -226,13 +226,15 @@ def _crear_mapa(datos_ventaja, nivel, candidatos):
         geojson_path = GEOJSON_ADM2
         lookup = _lookup_adm2()
         datos_id = {}
+        labels_id = {}
         for (est, mun), v in datos_ventaja.items():
             key = f'{_norm(est)}|{_norm(mun)}'
             sid = lookup.get(key)
             if sid:
                 datos_id[sid] = v
+                labels_id[sid] = f'{est} - {mun}'
         get_clave  = lambda feat: feat['properties']['shapeID']
-        get_nombre = lambda feat: feat['properties']['shapeName']
+        get_nombre = lambda feat: labels_id.get(feat['properties']['shapeID'], feat['properties']['shapeName'])
     else:
         geojson_path = GEOJSON_ADM1
         datos_id   = {_norm(k): v for k, v in datos_ventaja.items()}
@@ -258,7 +260,8 @@ def _crear_mapa(datos_ventaja, nivel, candidatos):
         ventaja = datos_id.get(clave)
         feat['properties']['VENTAJA']    = ventaja if ventaja is not None else 0.0
         feat['properties']['TIENE_DATO'] = ventaja is not None
-        feat['properties']['CHART_ID']   = _id_chart(nombre)
+        feat['properties']['CHART_NAME'] = nombre
+        feat['properties']['WRAP_ID']    = _id_wrap(nombre)
 
         if ventaja is None:
             tt = f'<b>{nombre}</b><br><i style="color:#aaa">Sin datos</i>'
@@ -478,8 +481,8 @@ window.addEventListener('load', function() {{
   try {{
     {gj_name}.eachLayer(function(layer) {{
       layer.on('click', function(e) {{
-        var nombre = e.target.feature.properties.shapeName || '';
-        var id     = normId(nombre);
+        var nombre = e.target.feature.properties.CHART_NAME || e.target.feature.properties.shapeName || '';
+        var id     = e.target.feature.properties.WRAP_ID || normId(nombre);
         epShowChart(nombre, id);
       }});
     }});

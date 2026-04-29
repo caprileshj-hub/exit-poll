@@ -195,11 +195,12 @@ async def candidato_form(request: Request):
 async def candidato_edit(request: Request, cid: int):
     db = get_db()
     row = db.execute("SELECT * FROM candidatos WHERE id=?", (cid,)).fetchone()
+    if not row:
+        db.close()
+        raise HTTPException(404)
     eleccion = db.execute("SELECT * FROM elecciones WHERE id=?", (row["id_eleccion"],)).fetchone()
     estados = db.execute("SELECT * FROM estados ORDER BY nombre").fetchall()
     db.close()
-    if not row:
-        raise HTTPException(404)
     return templates.TemplateResponse(request=request, name="candidato_form.html", context={
         "candidato": row, "eleccion": eleccion,
         "estados": estados
@@ -792,7 +793,7 @@ def _datos_ventaja_por_estado(db) -> dict:
             nombre = nombre.replace("NVA. ESPARTA", "Nueva Esparta")
             if nombre not in ("Distrito Capital", "La Guaira", "Delta Amacuro", "Nueva Esparta"):
                 nombre = nombre.title()
-            datos[nombre] = ventaja
+            datos[_norm_estado(r["nombre"])] = ventaja
     return datos
 
 
@@ -823,7 +824,68 @@ def _datos_ventaja_muestra(db, id_eleccion: int) -> dict:
             nombre = nombre.replace("NVA. ESPARTA", "Nueva Esparta")
             if nombre not in ("Distrito Capital", "La Guaira", "Delta Amacuro", "Nueva Esparta"):
                 nombre = nombre.title()
-            datos[nombre] = ventaja
+            datos[_norm_estado(r["nombre"])] = ventaja
+    return datos
+
+
+def _norm_municipio(nombre: str) -> str:
+    """Normaliza nombres CNE de municipio para cruzarlos con ADM2."""
+    nombre = (nombre or "").strip()
+    for pref in ("MP. ", "CM. ", "MCPIO. ", "MUNICIPIO "):
+        if nombre.upper().startswith(pref):
+            nombre = nombre[len(pref):]
+            break
+    especiales = {
+        "BLVNO LIBERTADOR": "Libertador",
+        "LIBERTADOR": "Libertador",
+    }
+    return especiales.get(nombre.upper(), nombre.title())
+
+
+def _datos_ventaja_por_municipio(db) -> dict:
+    """Extrae ventaja gobierno-oposicion por municipio."""
+    rows = db.execute("""
+        SELECT e.nombre AS estado, mu.nombre AS municipio,
+               SUM(rh.votos_gobierno) AS gob,
+               SUM(rh.votos_oposicion) AS opo,
+               SUM(rh.votos_validos) AS val
+        FROM resultados_historicos rh
+        JOIN centros c ON rh.codigo_centro = c.codigo_cne
+        JOIN estados e ON c.id_estado = e.id
+        JOIN municipios mu ON c.id_municipio = mu.id
+        WHERE c.activo = 1
+        GROUP BY e.id, mu.id
+    """).fetchall()
+    datos = {}
+    for r in rows:
+        if r["val"] and r["val"] > 0:
+            pct_gob = 100 * r["gob"] / r["val"]
+            pct_opo = 100 * r["opo"] / r["val"]
+            datos[(_norm_estado(r["estado"]), _norm_municipio(r["municipio"]))] = round(pct_gob - pct_opo, 1)
+    return datos
+
+
+def _datos_ventaja_muestra_municipio(db, id_eleccion: int) -> dict:
+    """Extrae ventaja de centros en muestra por municipio."""
+    rows = db.execute("""
+        SELECT e.nombre AS estado, mu.nombre AS municipio,
+               SUM(rh.votos_gobierno) AS gob,
+               SUM(rh.votos_oposicion) AS opo,
+               SUM(rh.votos_validos) AS val
+        FROM muestra m
+        JOIN centros c ON m.codigo_centro = c.codigo_cne
+        JOIN estados e ON c.id_estado = e.id
+        JOIN municipios mu ON c.id_municipio = mu.id
+        LEFT JOIN resultados_historicos rh ON rh.codigo_centro = m.codigo_centro
+        WHERE m.id_eleccion = ? AND m.activo = 1
+        GROUP BY e.id, mu.id
+    """, (id_eleccion,)).fetchall()
+    datos = {}
+    for r in rows:
+        if r["val"] and r["val"] > 0:
+            pct_gob = 100 * r["gob"] / r["val"]
+            pct_opo = 100 * r["opo"] / r["val"]
+            datos[(_norm_estado(r["estado"]), _norm_municipio(r["municipio"]))] = round(pct_gob - pct_opo, 1)
     return datos
 
 
@@ -844,12 +906,17 @@ def _tendencia_simulada(datos_ventaja: dict, n_puntos: int = 15) -> dict:
     else:
         final_gob, final_opo = 50, 50
 
-    for nombre in ["VENEZUELA"] + [n.upper() for n in datos_ventaja.keys()]:
+    etiquetas = {
+        (f"{k[0]} - {k[1]}" if isinstance(k, tuple) else str(k)): v
+        for k, v in datos_ventaja.items()
+    }
+
+    for nombre in ["VENEZUELA"] + [n.upper() for n in etiquetas.keys()]:
         if nombre == "VENEZUELA":
             tgt_gob, tgt_opo = final_gob, final_opo
         else:
-            orig = next((k for k in datos_ventaja if k.upper() == nombre), None)
-            v = datos_ventaja.get(orig, 0) if orig else 0
+            orig = next((k for k in etiquetas if k.upper() == nombre), None)
+            v = etiquetas.get(orig, 0) if orig else 0
             tgt_gob = 50 + v / 2
             tgt_opo = 50 - v / 2
 
@@ -932,7 +999,12 @@ async def visualizacion_generar(
     candidatos_dict = _nombres_candidatos(db, eid)
 
     # Obtener datos de ventaja
-    if fuente == "muestra" and eid:
+    if nivel == "municipio":
+        if fuente == "muestra" and eid:
+            datos_ventaja = _datos_ventaja_muestra_municipio(db, eid)
+        else:
+            datos_ventaja = _datos_ventaja_por_municipio(db)
+    elif fuente == "muestra" and eid:
         datos_ventaja = _datos_ventaja_muestra(db, eid)
     else:
         datos_ventaja = _datos_ventaja_por_estado(db)
