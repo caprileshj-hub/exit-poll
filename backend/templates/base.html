@@ -21,6 +21,8 @@
         .badge-otro { background: #7f8c8d; }
         .foto-candidato { width: 48px; height: 48px; object-fit: cover; border-radius: 50%; }
         .foto-preview { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #dee2e6; }
+        .mobile-nav-scroll { overflow-x: auto; white-space: nowrap; }
+        .mobile-nav-scroll .btn { flex: 0 0 auto; }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -34,6 +36,32 @@
 
 <div class="container-fluid">
     <div class="row">
+        <div class="col-12 d-md-none bg-white border-bottom py-2 mobile-nav-scroll">
+            <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-outline-primary {% if active_page == 'index' %}active{% endif %}" href="/">
+                    <i class="bi bi-house-door me-1"></i>Inicio
+                </a>
+                <a class="btn btn-sm btn-outline-primary {% if active_page == 'tm' %}active{% endif %}" href="/tm">
+                    <i class="bi bi-table me-1"></i>TM
+                </a>
+                <a class="btn btn-sm btn-outline-primary {% if active_page == 'elecciones' %}active{% endif %}" href="/elecciones">
+                    <i class="bi bi-calendar-event me-1"></i>Elecciones
+                </a>
+                <a class="btn btn-sm btn-outline-primary {% if active_page == 'candidatos' %}active{% endif %}" href="/candidatos">
+                    <i class="bi bi-people me-1"></i>Candidatos
+                </a>
+                <a class="btn btn-sm btn-outline-primary {% if active_page == 'muestra' %}active{% endif %}" href="/muestra">
+                    <i class="bi bi-bullseye me-1"></i>Muestra
+                </a>
+                <a class="btn btn-sm btn-outline-primary {% if active_page == 'visualizacion' %}active{% endif %}" href="/visualizacion">
+                    <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                </a>
+                <a class="btn btn-sm btn-outline-danger" href="/live">
+                    <i class="bi bi-broadcast me-1"></i>Live
+                </a>
+            </div>
+        </div>
+
         <!-- Sidebar -->
         <nav class="col-md-2 d-none d-md-block sidebar py-3">
             <ul class="nav flex-column">

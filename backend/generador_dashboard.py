@@ -39,8 +39,15 @@ from folium.features import DivIcon
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
 
-GEOJSON_ADM1 = os.path.join(BASE_DIR, 'geoBoundaries-VEN-ADM1_simplified.geojson')
+GEOJSON_ADM1_STATIC = os.path.join(BASE_DIR, 'static', 'geoBoundaries-VEN-ADM1_simplified.geojson')
+GEOJSON_ADM1_BASE = os.path.join(BASE_DIR, 'geoBoundaries-VEN-ADM1_simplified.geojson')
+GEOJSON_ADM1_REPO = os.path.join(ROOT_DIR, 'geoBoundaries-VEN-ADM1_simplified.geojson')
+GEOJSON_ADM1 = next(
+    (path for path in (GEOJSON_ADM1_STATIC, GEOJSON_ADM1_BASE, GEOJSON_ADM1_REPO) if os.path.exists(path)),
+    GEOJSON_ADM1_REPO,
+)
 GEOJSON_ADM2 = os.path.join(BASE_DIR, 'geoBoundaries-VEN-ADM2_simplified.geojson')
 LOOKUP_ADM2  = os.path.join(BASE_DIR, '_adm2_lookup.json')
 
@@ -219,13 +226,15 @@ def _crear_mapa(datos_ventaja, nivel, candidatos):
         geojson_path = GEOJSON_ADM2
         lookup = _lookup_adm2()
         datos_id = {}
+        labels_id = {}
         for (est, mun), v in datos_ventaja.items():
             key = f'{_norm(est)}|{_norm(mun)}'
             sid = lookup.get(key)
             if sid:
                 datos_id[sid] = v
+                labels_id[sid] = f'{est} - {mun}'
         get_clave  = lambda feat: feat['properties']['shapeID']
-        get_nombre = lambda feat: feat['properties']['shapeName']
+        get_nombre = lambda feat: labels_id.get(feat['properties']['shapeID'], feat['properties']['shapeName'])
     else:
         geojson_path = GEOJSON_ADM1
         datos_id   = {_norm(k): v for k, v in datos_ventaja.items()}
@@ -251,7 +260,8 @@ def _crear_mapa(datos_ventaja, nivel, candidatos):
         ventaja = datos_id.get(clave)
         feat['properties']['VENTAJA']    = ventaja if ventaja is not None else 0.0
         feat['properties']['TIENE_DATO'] = ventaja is not None
-        feat['properties']['CHART_ID']   = _id_chart(nombre)
+        feat['properties']['CHART_NAME'] = nombre
+        feat['properties']['WRAP_ID']    = _id_wrap(nombre)
 
         if ventaja is None:
             tt = f'<b>{nombre}</b><br><i style="color:#aaa">Sin datos</i>'
@@ -314,10 +324,11 @@ def _crear_mapa(datos_ventaja, nivel, candidatos):
 _LAYOUT_CSS = """
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
 <style>
+  :root { --ep-top-offset: 0px; }
   html, body { margin:0; padding:0; height:100%; overflow:hidden; }
-  #ep-outer { display:flex; height:100vh; width:100vw; }
-  #ep-map   { flex: 0 0 58%; height:100vh; position:relative; overflow:hidden; }
-  #ep-panel { flex: 0 0 42%; height:100vh; display:flex; flex-direction:column;
+  #ep-outer { display:flex; height:calc(100vh - var(--ep-top-offset)); width:100vw; }
+  #ep-map   { flex: 0 0 58%; height:calc(100vh - var(--ep-top-offset)); position:relative; overflow:hidden; }
+  #ep-panel { flex: 0 0 42%; height:calc(100vh - var(--ep-top-offset)); min-height:0; display:flex; flex-direction:column;
               background:#F5F5F5; font-family:sans-serif; }
   #ep-panel-header {
       padding:10px 14px 8px;
@@ -327,11 +338,19 @@ _LAYOUT_CSS = """
   }
   #ep-panel-header h2 { margin:0; font-size:15px; color:#333; flex:1; }
   #ep-zone-name { font-size:12px; color:#888; }
-  #ep-charts-scroll { flex:1; overflow-y:auto; padding:10px 10px 20px; }
+  #ep-charts-scroll { flex:1; min-height:0; overflow-y:auto; padding:10px 10px 28px; }
   .ep-chart-block { background:white; border-radius:6px; padding:8px;
-                    box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:10px; }
+                    box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:10px; overflow:visible; }
+  .ep-chart-block .plotly-graph-div { width:100% !important; max-width:100% !important; }
   .ep-hint { font-size:11px; color:#AAA; text-align:center;
              padding:6px 0; border-top:1px solid #EEE; margin-top:4px; }
+  @media (max-width: 760px) {
+    html, body { overflow:auto; }
+    #ep-outer { flex-direction:column; height:auto; min-height:calc(100vh - var(--ep-top-offset)); }
+    #ep-map { flex:0 0 48vh; height:48vh; width:100vw; }
+    #ep-panel { flex:0 0 auto; width:100vw; height:auto; min-height:52vh; }
+    #ep-charts-scroll { max-height:none; overflow:visible; padding-bottom:96px; }
+  }
 </style>
 """
 
@@ -384,6 +403,11 @@ function epShowChart(nombre, wrapId) {{
   var el = document.getElementById(wrapId);
   if (!el) el = document.getElementById('{_id_wrap("VENEZUELA")}');
   if (el)  el.style.display = 'block';
+  if (window.Plotly && el) {{
+    el.querySelectorAll('.plotly-graph-div').forEach(function(g) {{
+      try {{ Plotly.Plots.resize(g); }} catch(e) {{}}
+    }});
+  }}
   var zn = document.getElementById('ep-zone-name');
   if (zn) zn.textContent = nombre;
 }}
@@ -471,8 +495,8 @@ window.addEventListener('load', function() {{
   try {{
     {gj_name}.eachLayer(function(layer) {{
       layer.on('click', function(e) {{
-        var nombre = e.target.feature.properties.shapeName || '';
-        var id     = normId(nombre);
+        var nombre = e.target.feature.properties.CHART_NAME || e.target.feature.properties.shapeName || '';
+        var id     = e.target.feature.properties.WRAP_ID || normId(nombre);
         epShowChart(nombre, id);
       }});
     }});

@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -68,8 +68,8 @@ async def index(request: Request):
                WHERE m.id_eleccion=?""", (eid,)
         ).fetchone()["c"]
     db.close()
-    return templates.TemplateResponse("index.html", {
-        "request": request, "eleccion": eleccion, "stats": stats
+    return templates.TemplateResponse(request=request, name="index.html", context={
+        "eleccion": eleccion, "stats": stats
     })
 
 
@@ -82,15 +82,15 @@ async def elecciones_list(request: Request, msg: str = "", cat: str = "success")
     db = get_db()
     rows = db.execute("SELECT * FROM elecciones ORDER BY fecha DESC").fetchall()
     db.close()
-    return templates.TemplateResponse("elecciones.html", {
-        "request": request, "elecciones": rows, "msg": msg, "cat": cat
+    return templates.TemplateResponse(request=request, name="elecciones.html", context={
+        "elecciones": rows, "msg": msg, "cat": cat
     })
 
 
 @app.get("/elecciones/nueva", response_class=HTMLResponse)
 async def eleccion_form(request: Request):
-    return templates.TemplateResponse("eleccion_form.html", {
-        "request": request, "eleccion": None
+    return templates.TemplateResponse(request=request, name="eleccion_form.html", context={
+        "eleccion": None
     })
 
 
@@ -101,8 +101,8 @@ async def eleccion_edit(request: Request, eid: int):
     db.close()
     if not row:
         raise HTTPException(404)
-    return templates.TemplateResponse("eleccion_form.html", {
-        "request": request, "eleccion": row
+    return templates.TemplateResponse(request=request, name="eleccion_form.html", context={
+        "eleccion": row
     })
 
 
@@ -174,8 +174,8 @@ async def candidatos_list(request: Request, msg: str = "", cat: str = "success")
             (eleccion["id"],)
         ).fetchall()
     db.close()
-    return templates.TemplateResponse("candidatos.html", {
-        "request": request, "candidatos": rows, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="candidatos.html", context={
+        "candidatos": rows, "eleccion": eleccion,
         "msg": msg, "cat": cat
     })
 
@@ -188,8 +188,8 @@ async def candidato_form(request: Request):
     db.close()
     if not eleccion:
         return RedirectResponse("/elecciones?msg=Primero+active+una+elección&cat=warning", status_code=303)
-    return templates.TemplateResponse("candidato_form.html", {
-        "request": request, "candidato": None, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="candidato_form.html", context={
+        "candidato": None, "eleccion": eleccion,
         "estados": estados
     })
 
@@ -204,8 +204,8 @@ async def candidato_edit(request: Request, cid: int):
     eleccion = db.execute("SELECT * FROM elecciones WHERE id=?", (row["id_eleccion"],)).fetchone()
     estados = db.execute("SELECT * FROM estados ORDER BY nombre").fetchall()
     db.close()
-    return templates.TemplateResponse("candidato_form.html", {
-        "request": request, "candidato": row, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="candidato_form.html", context={
+        "candidato": row, "eleccion": eleccion,
         "estados": estados
     })
 
@@ -370,8 +370,8 @@ async def ficha_tecnica(request: Request):
         error_muestral = 1.96 * math.sqrt(0.25 / n) * math.sqrt(1 - n / N) * 100
 
     db.close()
-    return templates.TemplateResponse("ficha.html", {
-        "request": request, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="ficha.html", context={
+        "eleccion": eleccion,
         "re": re, "re_estados": re_estados,
         "muestra": muestra, "muestra_estados": muestra_estados,
         "error_muestral": error_muestral
@@ -432,8 +432,8 @@ async def pesos_list(request: Request, estado: str = "", msg: str = "", cat: str
         rows = db.execute(query, params).fetchall()
 
     db.close()
-    return templates.TemplateResponse("pesos.html", {
-        "request": request, "eleccion": eleccion, "pesos": rows,
+    return templates.TemplateResponse(request=request, name="pesos.html", context={
+        "eleccion": eleccion, "pesos": rows,
         "estados": estados, "estado_sel": estado, "msg": msg, "cat": cat,
         "tiene_muestra": tiene_muestra
     })
@@ -519,8 +519,8 @@ async def peso_edit_form(request: Request, id_muestra: int):
     db.close()
     if not row:
         raise HTTPException(404)
-    return templates.TemplateResponse("peso_edit.html", {
-        "request": request, "centro": row
+    return templates.TemplateResponse(request=request, name="peso_edit.html", context={
+        "centro": row
     })
 
 
@@ -559,8 +559,8 @@ async def tm_index(request: Request, msg: str = "", cat: str = "success"):
            GROUP BY e.id ORDER BY e.nombre"""
     ).fetchall()
     db.close()
-    return templates.TemplateResponse("tm.html", {
-        "request": request, "stats": stats, "por_estado": por_estado,
+    return templates.TemplateResponse(request=request, name="tm.html", context={
+        "stats": stats, "por_estado": por_estado,
         "msg": msg, "cat": cat
     })
 
@@ -686,8 +686,8 @@ async def muestra_index(request: Request, msg: str = "", cat: str = "success"):
     ).fetchall()
 
     db.close()
-    return templates.TemplateResponse("muestra.html", {
-        "request": request, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="muestra.html", context={
+        "eleccion": eleccion,
         "muestra": muestra_actual, "pct_nac": pct_nac,
         "refs": refs, "msg": msg, "cat": cat
     })
@@ -721,8 +721,8 @@ async def muestra_generar(
     )
 
     db.close()
-    return templates.TemplateResponse("muestra_generar.html", {
-        "request": request, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="muestra_generar.html", context={
+        "eleccion": eleccion,
         "candidatos": candidatos, "nac": nac,
         "centros_por_unidad": centros_por_unidad,
         "candidatos_por_unidad": candidatos_por_unidad,
@@ -796,7 +796,7 @@ def _datos_ventaja_por_estado(db) -> dict:
             nombre = nombre.replace("NVA. ESPARTA", "Nueva Esparta")
             if nombre not in ("Distrito Capital", "La Guaira", "Delta Amacuro", "Nueva Esparta"):
                 nombre = nombre.title()
-            datos[nombre] = ventaja
+            datos[_norm_estado(r["nombre"])] = ventaja
     return datos
 
 
@@ -827,7 +827,68 @@ def _datos_ventaja_muestra(db, id_eleccion: int) -> dict:
             nombre = nombre.replace("NVA. ESPARTA", "Nueva Esparta")
             if nombre not in ("Distrito Capital", "La Guaira", "Delta Amacuro", "Nueva Esparta"):
                 nombre = nombre.title()
-            datos[nombre] = ventaja
+            datos[_norm_estado(r["nombre"])] = ventaja
+    return datos
+
+
+def _norm_municipio(nombre: str) -> str:
+    """Normaliza nombres CNE de municipio para cruzarlos con ADM2."""
+    nombre = (nombre or "").strip()
+    for pref in ("MP. ", "CM. ", "MCPIO. ", "MUNICIPIO "):
+        if nombre.upper().startswith(pref):
+            nombre = nombre[len(pref):]
+            break
+    especiales = {
+        "BLVNO LIBERTADOR": "Libertador",
+        "LIBERTADOR": "Libertador",
+    }
+    return especiales.get(nombre.upper(), nombre.title())
+
+
+def _datos_ventaja_por_municipio(db) -> dict:
+    """Extrae ventaja gobierno-oposicion por municipio."""
+    rows = db.execute("""
+        SELECT e.nombre AS estado, mu.nombre AS municipio,
+               SUM(rh.votos_gobierno) AS gob,
+               SUM(rh.votos_oposicion) AS opo,
+               SUM(rh.votos_validos) AS val
+        FROM resultados_historicos rh
+        JOIN centros c ON rh.codigo_centro = c.codigo_cne
+        JOIN estados e ON c.id_estado = e.id
+        JOIN municipios mu ON c.id_municipio = mu.id
+        WHERE c.activo = 1
+        GROUP BY e.id, mu.id
+    """).fetchall()
+    datos = {}
+    for r in rows:
+        if r["val"] and r["val"] > 0:
+            pct_gob = 100 * r["gob"] / r["val"]
+            pct_opo = 100 * r["opo"] / r["val"]
+            datos[(_norm_estado(r["estado"]), _norm_municipio(r["municipio"]))] = round(pct_gob - pct_opo, 1)
+    return datos
+
+
+def _datos_ventaja_muestra_municipio(db, id_eleccion: int) -> dict:
+    """Extrae ventaja de centros en muestra por municipio."""
+    rows = db.execute("""
+        SELECT e.nombre AS estado, mu.nombre AS municipio,
+               SUM(rh.votos_gobierno) AS gob,
+               SUM(rh.votos_oposicion) AS opo,
+               SUM(rh.votos_validos) AS val
+        FROM muestra m
+        JOIN centros c ON m.codigo_centro = c.codigo_cne
+        JOIN estados e ON c.id_estado = e.id
+        JOIN municipios mu ON c.id_municipio = mu.id
+        LEFT JOIN resultados_historicos rh ON rh.codigo_centro = m.codigo_centro
+        WHERE m.id_eleccion = ? AND m.activo = 1
+        GROUP BY e.id, mu.id
+    """, (id_eleccion,)).fetchall()
+    datos = {}
+    for r in rows:
+        if r["val"] and r["val"] > 0:
+            pct_gob = 100 * r["gob"] / r["val"]
+            pct_opo = 100 * r["opo"] / r["val"]
+            datos[(_norm_estado(r["estado"]), _norm_municipio(r["municipio"]))] = round(pct_gob - pct_opo, 1)
     return datos
 
 
@@ -848,12 +909,17 @@ def _tendencia_simulada(datos_ventaja: dict, n_puntos: int = 15) -> dict:
     else:
         final_gob, final_opo = 50, 50
 
-    for nombre in ["VENEZUELA"] + [n.upper() for n in datos_ventaja.keys()]:
+    etiquetas = {
+        (f"{k[0]} - {k[1]}" if isinstance(k, tuple) else str(k)): v
+        for k, v in datos_ventaja.items()
+    }
+
+    for nombre in ["VENEZUELA"] + [n.upper() for n in etiquetas.keys()]:
         if nombre == "VENEZUELA":
             tgt_gob, tgt_opo = final_gob, final_opo
         else:
-            orig = next((k for k in datos_ventaja if k.upper() == nombre), None)
-            v = datos_ventaja.get(orig, 0) if orig else 0
+            orig = next((k for k in etiquetas if k.upper() == nombre), None)
+            v = etiquetas.get(orig, 0) if orig else 0
             tgt_gob = 50 + v / 2
             tgt_opo = 50 - v / 2
 
@@ -911,8 +977,8 @@ async def visualizacion_index(request: Request, msg: str = "", cat: str = "succe
     ).fetchall()
 
     db.close()
-    return templates.TemplateResponse("visualizacion.html", {
-        "request": request, "eleccion": eleccion,
+    return templates.TemplateResponse(request=request, name="visualizacion.html", context={
+        "eleccion": eleccion,
         "tiene_resultados": tiene_resultados,
         "tiene_muestra": tiene_muestra,
         "heatmap_existe": heatmap_existe,
@@ -936,7 +1002,12 @@ async def visualizacion_generar(
     candidatos_dict = _nombres_candidatos(db, eid)
 
     # Obtener datos de ventaja
-    if fuente == "muestra" and eid:
+    if nivel == "municipio":
+        if fuente == "muestra" and eid:
+            datos_ventaja = _datos_ventaja_muestra_municipio(db, eid)
+        else:
+            datos_ventaja = _datos_ventaja_por_municipio(db)
+    elif fuente == "muestra" and eid:
         datos_ventaja = _datos_ventaja_muestra(db, eid)
     else:
         datos_ventaja = _datos_ventaja_por_estado(db)
@@ -1156,8 +1227,199 @@ def _html_sin_datos(motivo: str, refresh: int) -> str:
 
     meta = f'<meta http-equiv="refresh" content="{refresh}">'
     html = base_html.replace("</head>", f"{meta}</head>", 1)
-    html = re.sub(r"(<body[^>]*>)", r"\1" + overlay, html, count=1)
+    html = re.sub(r"(<body[^>]*>)", r"\1" + overlay + _analista_live_panel(), html, count=1)
     return html
+
+
+def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
+    """Codex: resume el live dashboard en datos cerrados para el analista sin tokens."""
+    if not eleccion:
+        return {
+            "ok": False,
+            "motivo": "No hay eleccion activa",
+            "total_votos": 0,
+        }
+
+    eid = eleccion["id"]
+    datos_ventaja, datos_tendencia, total_votos = _datos_vivos(db, eid)
+    muestra_total = db.execute(
+        "SELECT COUNT(*) c FROM muestra WHERE id_eleccion=? AND activo=1",
+        (eid,),
+    ).fetchone()["c"]
+    centros_reportando = db.execute("""
+        SELECT COUNT(DISTINCT v.codigo_centro) c
+        FROM votos v
+        JOIN muestra m ON m.codigo_centro = v.codigo_centro
+        WHERE m.id_eleccion = ? AND v.valido = 1
+    """, (eid,)).fetchone()["c"]
+
+    puntos_nac = datos_tendencia.get("VENEZUELA") or []
+    ventajas_nacionales = [
+        round(float(p["gob"]) - float(p["opo"]), 1)
+        for p in puntos_nac
+    ]
+    ventaja_actual = ventajas_nacionales[-1] if ventajas_nacionales else None
+    hora_actual = puntos_nac[-1]["hora"] if puntos_nac else None
+
+    if ventaja_actual is None:
+        candidato_arriba = None
+        candidato_abajo = None
+    elif ventaja_actual >= 0:
+        candidato_arriba = candidatos_dict.get("gobierno", "Gobierno")
+        candidato_abajo = candidatos_dict.get("oposicion", "Oposicion")
+    else:
+        candidato_arriba = candidatos_dict.get("oposicion", "Oposicion")
+        candidato_abajo = candidatos_dict.get("gobierno", "Gobierno")
+
+    return {
+        "ok": True,
+        "eleccion": eleccion["nombre"],
+        "hora_actual": hora_actual,
+        "total_votos": total_votos,
+        "centros_reportando": centros_reportando,
+        "centros_muestra_total": muestra_total,
+        "cobertura_pct": round(100 * centros_reportando / muestra_total, 1) if muestra_total else 0,
+        "ventaja_actual": ventaja_actual,
+        "ventajas_nacionales": ventajas_nacionales,
+        "candidato_arriba": candidato_arriba,
+        "candidato_abajo": candidato_abajo,
+        "ventajas_por_estado": datos_ventaja,
+    }
+
+
+@app.get("/api/analista/contexto")
+async def analista_contexto():
+    db = get_db()
+    try:
+        eleccion = db.execute(
+            "SELECT * FROM elecciones WHERE activa = 1 LIMIT 1"
+        ).fetchone()
+        candidatos_dict = _nombres_candidatos(db, eleccion["id"]) if eleccion else {}
+        return JSONResponse(_contexto_analista(db, eleccion, candidatos_dict))
+    finally:
+        db.close()
+
+
+@app.post("/api/analista/preguntar")
+async def analista_preguntar(request: Request):
+    payload = await request.json()
+    pregunta = (payload.get("pregunta") or "").strip()
+    db = get_db()
+    try:
+        eleccion = db.execute(
+            "SELECT * FROM elecciones WHERE activa = 1 LIMIT 1"
+        ).fetchone()
+        candidatos_dict = _nombres_candidatos(db, eleccion["id"]) if eleccion else {}
+        contexto = _contexto_analista(db, eleccion, candidatos_dict)
+
+        sys.path.insert(0, str(BASE_DIR))
+        import analista_ia
+        return JSONResponse(analista_ia.analizar_contexto(contexto, pregunta))
+    finally:
+        db.close()
+
+
+def _analista_live_panel() -> str:
+    """Codex: panel persistente; localStorage evita perder el chat con refresh cada 5s."""
+    return """
+<!-- Codex: AI electoral analyst panel, deterministic and refresh-safe. -->
+<style>
+  #ai-analyst {
+    position: fixed; right: 16px; bottom: 16px; z-index: 100000;
+    width: min(390px, calc(100vw - 32px)); background: #fff; color: #1f2933;
+    border: 1px solid rgba(0,0,0,.18); border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.28); font-family: Arial, sans-serif;
+  }
+  #ai-analyst header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 11px; background: #1a3a5c; color: #fff;
+    border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 700;
+  }
+  #ai-analyst-log { max-height: 270px; overflow-y: auto; padding: 10px; font-size: 12px; }
+  .ai-msg { margin-bottom: 8px; line-height: 1.35; }
+  .ai-q { color: #1a3a5c; font-weight: 700; }
+  .ai-a { background: #f4f7fb; border-left: 3px solid #1a3a5c; padding: 8px; border-radius: 4px; }
+  #ai-analyst form { display: flex; gap: 6px; padding: 9px; border-top: 1px solid #e5e7eb; }
+  #ai-analyst input { flex: 1; min-width: 0; padding: 7px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 12px; }
+  #ai-analyst button { border: 0; border-radius: 5px; padding: 7px 9px; background: #1a3a5c; color: #fff; font-size: 12px; cursor: pointer; }
+  #ai-analyst-clear { background: transparent !important; padding: 0 !important; color: #dbeafe !important; }
+</style>
+<section id="ai-analyst" aria-label="Analista electoral">
+  <header>
+    <span>AI Electoral Analyst</span>
+    <button id="ai-analyst-clear" type="button">limpiar</button>
+  </header>
+  <div id="ai-analyst-log"></div>
+  <form id="ai-analyst-form">
+    <input id="ai-analyst-input" autocomplete="off" placeholder="Pregunta por la tendencia actual">
+    <button type="submit">Analizar</button>
+  </form>
+</section>
+<script>
+(function() {
+  var key = 'exitpoll.aiAnalyst.history';
+  var draftKey = 'exitpoll.aiAnalyst.draft';
+  var log = document.getElementById('ai-analyst-log');
+  var input = document.getElementById('ai-analyst-input');
+  var form = document.getElementById('ai-analyst-form');
+  var clear = document.getElementById('ai-analyst-clear');
+
+  function history() {
+    try { return JSON.parse(localStorage.getItem(key) || '[]'); }
+    catch(e) { return []; }
+  }
+  function save(items) { localStorage.setItem(key, JSON.stringify(items.slice(-8))); }
+  function render() {
+    var items = history();
+    if (!items.length) {
+      log.innerHTML = '<div class="ai-msg ai-a">Pregunta por ventaja, estabilidad o suficiencia de datos. No declaro ganadores.</div>';
+      return;
+    }
+    log.innerHTML = items.map(function(item) {
+      return '<div class="ai-msg"><div class="ai-q">' + escapeHtml(item.q) + '</div>' +
+             '<div class="ai-a">' + escapeHtml(item.a) + '</div></div>';
+    }).join('');
+    log.scrollTop = log.scrollHeight;
+  }
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function(c) {
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var q = (input.value || '').trim();
+    if (!q) return;
+    input.value = '';
+    localStorage.removeItem(draftKey);
+    fetch('/api/analista/preguntar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({pregunta: q})
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      var items = history();
+      items.push({q: q, a: data.resumen || 'No hay lectura disponible.'});
+      save(items);
+      render();
+    }).catch(function() {
+      var items = history();
+      items.push({q: q, a: 'No pude consultar el analista en este momento.'});
+      save(items);
+      render();
+    });
+  });
+  input.value = localStorage.getItem(draftKey) || '';
+  input.addEventListener('input', function() { localStorage.setItem(draftKey, input.value || ''); });
+  clear.addEventListener('click', function() {
+    localStorage.removeItem(key);
+    localStorage.removeItem(draftKey);
+    input.value = '';
+    render();
+  });
+  render();
+})();
+</script>
+"""
 
 
 @app.get("/live", response_class=HTMLResponse)
@@ -1215,6 +1477,7 @@ async def live_dashboard(refresh: int = 5):
     meta = f'<meta http-equiv="refresh" content="{refresh}">'
 
     barra = (
+        f'<style>:root{{--ep-top-offset:28px;}}</style>'
         f'<div style="position:fixed;top:0;left:0;right:0;z-index:99999;'
         f'background:#1B5E20;color:white;font-family:sans-serif;font-size:12px;'
         f'padding:5px 16px;display:flex;justify-content:space-between;align-items:center;'
@@ -1223,11 +1486,10 @@ async def live_dashboard(refresh: int = 5):
         f'&nbsp;&#x2502;&nbsp; {total_votos:,} votos procesados</span>'
         f'<span style="opacity:.7">&#x21BB;&nbsp;cada {refresh}s</span>'
         f'</div>'
-        f'<div style="height:28px"></div>'
     )
 
     html = html.replace("</head>", f"{meta}</head>", 1)
-    html = re.sub(r"(<body[^>]*>)", r"\1" + barra, html, count=1)
+    html = re.sub(r"(<body[^>]*>)", r"\1" + barra + _analista_live_panel(), html, count=1)
 
     return HTMLResponse(html)
 

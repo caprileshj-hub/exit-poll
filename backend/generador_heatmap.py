@@ -33,8 +33,15 @@ from folium.features import DivIcon
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
 
-GEOJSON_ADM1 = os.path.join(BASE_DIR, 'geoBoundaries-VEN-ADM1_simplified.geojson')
+GEOJSON_ADM1_STATIC = os.path.join(BASE_DIR, 'static', 'geoBoundaries-VEN-ADM1_simplified.geojson')
+GEOJSON_ADM1_BASE = os.path.join(BASE_DIR, 'geoBoundaries-VEN-ADM1_simplified.geojson')
+GEOJSON_ADM1_REPO = os.path.join(ROOT_DIR, 'geoBoundaries-VEN-ADM1_simplified.geojson')
+GEOJSON_ADM1 = next(
+    (path for path in (GEOJSON_ADM1_STATIC, GEOJSON_ADM1_BASE, GEOJSON_ADM1_REPO) if os.path.exists(path)),
+    GEOJSON_ADM1_REPO,
+)
 GEOJSON_ADM2 = os.path.join(BASE_DIR, 'geoBoundaries-VEN-ADM2_simplified.geojson')
 LOOKUP_ADM2  = os.path.join(BASE_DIR, '_adm2_lookup.json')
 
