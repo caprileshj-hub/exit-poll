@@ -419,3 +419,4 @@ El pip install en startup tarda demasiado (pandas, plotly, etc.) → supera el t
 - Se genero `backend_deploy.zip` con `git archive HEAD:backend`, manteniendo el contenido de `backend/` en la raiz del paquete.
 - El primer arranque fallo por `startup.sh` con CRLF en Azure (`$'\r': command not found`).
 - Se agrego `backend/startup.py` para usar `python /home/site/wwwroot/startup.py` como startup command y evitar dependencia de line endings shell.
+- Correccion posterior: `/live` fallaba con datos reales por `NameError: gj_name is not defined` en `generador_dashboard.py`; se paso `gj_name` a `_ensamblar_html` y se valido generando un dashboard con datos simulados.

@@ -354,7 +354,7 @@ _LAYOUT_CSS = """
 </style>
 """
 
-def _ensamblar_html(map_html, charts_panel_html, click_js, titulo, cand_gob, cand_opo):
+def _ensamblar_html(map_html, charts_panel_html, click_js, titulo, cand_gob, cand_opo, gj_name):
     """
     Inyecta panel de gráficos y JS de interacción en el HTML de Folium.
 
@@ -592,7 +592,7 @@ window.addEventListener('load', function() {{
     os.unlink(tmp)
 
     # --- Ensamblar ---
-    final_html = _ensamblar_html(map_html, panel_html, click_js, titulo, cand_gob, cand_opo)
+    final_html = _ensamblar_html(map_html, panel_html, click_js, titulo, cand_gob, cand_opo, gj_name)
 
     with open(ruta_salida, 'w', encoding='utf-8') as f:
         f.write(final_html)
