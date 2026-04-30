@@ -197,16 +197,11 @@ def _analizar_candidato(bando: str, contexto: dict[str, Any]) -> dict[str, Any]:
     if ventaja_nac is None:
         pct_nac = None
     else:
-        puntos_nac = contexto.get("ventajas_nacionales") or []
-        ultimo = puntos_nac[-1] if puntos_nac else None
-        # Reconstruir % propio desde los últimos datos de tendencia
-        tendencias_por_estado = contexto.get("tendencias_por_estado") or {}
-        puntos_ve = tendencias_por_estado.get("VENEZUELA") or []
-        if puntos_ve:
-            ultimo_ve = puntos_ve[-1]
-            pct_nac = float(ultimo_ve["gob"]) if es_gobierno else float(ultimo_ve["opo"])
+        # ventaja = gob% - opo%, y gob% + opo% ≈ 100%
+        if es_gobierno:
+            pct_nac = round((100 + float(ventaja_nac)) / 2, 1)
         else:
-            pct_nac = None
+            pct_nac = round((100 - float(ventaja_nac)) / 2, 1)
 
     # Conteo de estados ganados/perdidos
     ganados, perdidos = [], []
