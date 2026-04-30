@@ -59,6 +59,9 @@
                 <a class="btn btn-sm btn-outline-danger" href="/live">
                     <i class="bi bi-broadcast me-1"></i>Live
                 </a>
+                <a class="btn btn-sm btn-outline-primary {% if active_page == 'config' %}active{% endif %}" href="/config">
+                    <i class="bi bi-cpu me-1"></i>IA
+                </a>
             </div>
         </div>
 
@@ -103,6 +106,11 @@
                 <li class="nav-item mt-2 pt-2" style="border-top: 1px solid #dee2e6;">
                     <a class="nav-link {% if active_page == 'visualizacion' %}active{% endif %}" href="/visualizacion">
                         <i class="bi bi-map me-2"></i>Visualizaci&#243;n
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'config' %}active{% endif %}" href="/config">
+                        <i class="bi bi-cpu me-2"></i>Config IA
                     </a>
                 </li>
             </ul>

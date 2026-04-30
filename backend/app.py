@@ -9,6 +9,8 @@ import os
 import random
 import re
 import sys
+import json
+import asyncio
 import sqlite3
 import shutil
 import tempfile
@@ -19,7 +21,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -39,6 +41,48 @@ def get_db() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+AI_PROVIDER_DEFAULTS = {
+    "openai": {"label": "OpenAI", "model": "gpt-4o-mini"},
+    "groq": {"label": "Groq", "model": "llama-3.1-8b-instant"},
+    "anthropic": {"label": "Anthropic", "model": "claude-haiku-4-5-20251001"},
+    "gemini": {"label": "Gemini", "model": "gemini-2.5-flash"},
+}
+
+
+def ensure_config_table(db: sqlite3.Connection) -> None:
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS config (
+            provider      TEXT PRIMARY KEY,
+            api_key       TEXT,
+            model         TEXT NOT NULL,
+            temperature   REAL NOT NULL DEFAULT 0.3,
+            max_tokens    INTEGER NOT NULL DEFAULT 300,
+            active        INTEGER NOT NULL DEFAULT 0,
+            updated_at    TEXT DEFAULT (datetime('now')),
+            CHECK(provider IN ('openai','groq','anthropic','gemini')),
+            CHECK(active IN (0,1))
+        )
+    """)
+    active_count = db.execute("SELECT COUNT(*) c FROM config WHERE active=1").fetchone()["c"]
+    for provider, defaults in AI_PROVIDER_DEFAULTS.items():
+        db.execute("""
+            INSERT OR IGNORE INTO config (provider, model, temperature, max_tokens, active)
+            VALUES (?, ?, 0.3, 300, ?)
+        """, (provider, defaults["model"], 1 if provider == "openai" and active_count == 0 else 0))
+    db.commit()
+
+
+def get_ai_config(db: sqlite3.Connection, provider: str | None = None) -> sqlite3.Row:
+    ensure_config_table(db)
+    if provider:
+        row = db.execute("SELECT * FROM config WHERE provider=?", (provider,)).fetchone()
+    else:
+        row = db.execute("SELECT * FROM config WHERE active=1 LIMIT 1").fetchone()
+    if not row:
+        row = db.execute("SELECT * FROM config WHERE provider='openai'").fetchone()
+    return row
 
 
 def flash(request: Request, msg: str, cat: str = "success"):
@@ -1194,8 +1238,46 @@ def _datos_vivos(db, id_eleccion: int) -> tuple:
     return datos_ventaja, datos_tendencia, total
 
 
+def _dashboard_stream_payload(db: sqlite3.Connection) -> dict:
+    eleccion = db.execute(
+        "SELECT * FROM elecciones WHERE activa = 1 LIMIT 1"
+    ).fetchone()
+    if not eleccion:
+        return {
+            "ok": False,
+            "reason": "No hay eleccion activa",
+            "geo": {},
+            "series": {},
+            "total_votos": 0,
+        }
+
+    datos_ventaja, datos_tendencia, total_votos = _datos_vivos(db, eleccion["id"])
+    return {
+        "ok": True,
+        "eleccion": eleccion["nombre"],
+        "geo": datos_ventaja,
+        "series": datos_tendencia,
+        "total_votos": total_votos,
+    }
+
+
+@app.get("/stream/dashboard")
+async def stream_dashboard():
+    async def events():
+        while True:
+            db = get_db()
+            try:
+                payload = _dashboard_stream_payload(db)
+            finally:
+                db.close()
+            yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(60)
+
+    return StreamingResponse(events(), media_type="text/event-stream")
+
+
 def _html_sin_datos(motivo: str, refresh: int) -> str:
-    """Página con mapa base en gris y mensaje de espera. Auto-refresca."""
+    """Página con mapa base en gris y mensaje de espera."""
     try:
         sys.path.insert(0, str(BASE_DIR))
         import generador_heatmap
@@ -1221,12 +1303,11 @@ def _html_sin_datos(motivo: str, refresh: int) -> str:
   <div style="font-size:36px;margin-bottom:14px;">&#x1F4E1;</div>
   <div style="font-weight:bold;margin-bottom:10px;line-height:1.4">{motivo}</div>
   <div style="font-size:12px;opacity:.65;margin-top:6px;">
-    Actualizando cada {refresh}s&nbsp;&nbsp;&#x21BB;
+    Esperando datos en vivo por SSE
   </div>
 </div>"""
 
-    meta = f'<meta http-equiv="refresh" content="{refresh}">'
-    html = base_html.replace("</head>", f"{meta}</head>", 1)
+    html = base_html
     html = re.sub(r"(<body[^>]*>)", r"\1" + overlay + _analista_live_panel(), html, count=1)
     return html
 
@@ -1291,6 +1372,210 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
     }
 
 
+def get_contexto_centro(centro_id: str | None = None) -> dict:
+    db = get_db()
+    try:
+        eleccion = db.execute(
+            "SELECT * FROM elecciones WHERE activa = 1 LIMIT 1"
+        ).fetchone()
+        if not eleccion:
+            return {"ok": False, "motivo": "No hay eleccion activa"}
+
+        eid = eleccion["id"]
+        params: list = [eid]
+        filtro_centro = ""
+        if centro_id:
+            filtro_centro = " AND v.codigo_centro = ?"
+            params.append(centro_id)
+
+        conteos = db.execute(f"""
+            SELECT ca.id, ca.nombre, ca.bando, COUNT(v.id) votos
+            FROM candidatos ca
+            LEFT JOIN votos v
+              ON v.id_candidato = ca.id
+             AND v.valido = 1
+             AND v.codigo_centro IN (
+                SELECT codigo_centro FROM muestra WHERE id_eleccion = ?
+             )
+             {filtro_centro}
+            WHERE ca.id_eleccion = ?
+            GROUP BY ca.id
+            ORDER BY ca.orden
+        """, [eid, *([centro_id] if centro_id else []), eid]).fetchall()
+
+        trend_params: list = [eid]
+        filtro_turno = ""
+        if centro_id:
+            filtro_turno = " AND v.codigo_centro = ?"
+            trend_params.append(centro_id)
+        tendencias = db.execute(f"""
+            SELECT v.turno, ca.nombre, ca.bando, COUNT(*) votos
+            FROM votos v
+            JOIN candidatos ca ON ca.id = v.id_candidato
+            JOIN muestra m ON m.codigo_centro = v.codigo_centro
+            WHERE m.id_eleccion = ? AND v.valido = 1 {filtro_turno}
+              AND v.turno IN (
+                SELECT turno FROM votos
+                WHERE valido = 1
+                GROUP BY turno
+                ORDER BY turno DESC
+                LIMIT 3
+              )
+            GROUP BY v.turno, ca.id
+            ORDER BY v.turno DESC, ca.orden
+        """, trend_params).fetchall()
+
+        historico = None
+        if centro_id:
+            muestra = db.execute("""
+                SELECT tipo_centro FROM muestra
+                WHERE id_eleccion=? AND codigo_centro=?
+                LIMIT 1
+            """, (eid, centro_id)).fetchone()
+            hist = db.execute("""
+                SELECT eleccion_ref, pct_gobierno, pct_oposicion
+                FROM resultados_historicos
+                WHERE codigo_centro=?
+                ORDER BY eleccion_ref DESC
+                LIMIT 3
+            """, (centro_id,)).fetchall()
+            clasificacion = muestra["tipo_centro"] if muestra else None
+            if not clasificacion and hist:
+                diffs = [abs((r["pct_gobierno"] or 0) - (r["pct_oposicion"] or 0)) for r in hist]
+                avg_diff = sum(diffs) / len(diffs)
+                clasificacion = "swing" if avg_diff < 6 else "bastion"
+            historico = {
+                "clasificacion": clasificacion,
+                "referencias": [dict(r) for r in hist],
+            }
+
+        return {
+            "ok": True,
+            "eleccion": eleccion["nombre"],
+            "centro_id": centro_id,
+            "conteos_por_candidato": [dict(r) for r in conteos],
+            "ultimos_3_turnos": [dict(r) for r in tendencias],
+            "historico_centro": historico,
+        }
+    finally:
+        db.close()
+
+
+@app.post("/chat")
+async def chat(request: Request):
+    payload = await request.json()
+    question = (payload.get("question") or payload.get("pregunta") or "").strip()
+    centro_id = payload.get("centro_id") or payload.get("codigo_centro")
+    if not question:
+        raise HTTPException(400, "Pregunta vacia")
+
+    db = get_db()
+    try:
+        cfg_row = get_ai_config(db)
+        provider = cfg_row["provider"]
+        cfg = dict(cfg_row)
+    finally:
+        db.close()
+
+    context = get_contexto_centro(centro_id)
+    sys.path.insert(0, str(BASE_DIR))
+    import agent
+
+    def stream():
+        try:
+            yield from agent.ask_agent(question, context, provider, cfg)
+        except Exception as exc:
+            yield f"\n[error] {exc}"
+
+    return StreamingResponse(stream(), media_type="text/plain; charset=utf-8")
+
+
+@app.get("/config", response_class=HTMLResponse)
+async def config_page(request: Request, msg: str = "", cat: str = "success"):
+    db = get_db()
+    try:
+        ensure_config_table(db)
+        rows = db.execute("SELECT * FROM config ORDER BY provider").fetchall()
+        active = get_ai_config(db)
+    finally:
+        db.close()
+
+    configs = {r["provider"]: dict(r) for r in rows}
+    return templates.TemplateResponse(request=request, name="config.html", context={
+        "providers": AI_PROVIDER_DEFAULTS,
+        "configs": configs,
+        "active_provider": active["provider"] if active else "openai",
+        "msg": msg,
+        "cat": cat,
+    })
+
+
+@app.post("/config/guardar")
+async def config_save(
+    provider: str = Form(...),
+    api_key: str = Form(""),
+    model: str = Form(...),
+    temperature: float = Form(0.3),
+    max_tokens: int = Form(300),
+):
+    if provider not in AI_PROVIDER_DEFAULTS:
+        raise HTTPException(400, "Proveedor no soportado")
+
+    db = get_db()
+    try:
+        ensure_config_table(db)
+        current = db.execute("SELECT api_key FROM config WHERE provider=?", (provider,)).fetchone()
+        saved_key = api_key.strip() or (current["api_key"] if current else None)
+        db.execute("UPDATE config SET active=0")
+        db.execute("""
+            INSERT INTO config (provider, api_key, model, temperature, max_tokens, active, updated_at)
+            VALUES (?, ?, ?, ?, ?, 1, datetime('now'))
+            ON CONFLICT(provider) DO UPDATE SET
+                api_key=excluded.api_key,
+                model=excluded.model,
+                temperature=excluded.temperature,
+                max_tokens=excluded.max_tokens,
+                active=1,
+                updated_at=datetime('now')
+        """, (provider, saved_key, model.strip(), temperature, max_tokens))
+        db.commit()
+    finally:
+        db.close()
+    return RedirectResponse("/config?msg=Configuracion+guardada&cat=success", status_code=303)
+
+
+@app.post("/config/test")
+async def config_test(request: Request):
+    db = get_db()
+    try:
+        cfg_row = get_ai_config(db)
+        provider = cfg_row["provider"]
+        cfg = dict(cfg_row)
+    finally:
+        db.close()
+
+    sys.path.insert(0, str(BASE_DIR))
+    import agent
+
+    context = {
+        "ok": True,
+        "conteos_por_candidato": [],
+        "ultimos_3_turnos": [],
+        "historico_centro": None,
+        "nota": "Prueba fija de conexion sin datos electorales reales.",
+    }
+    try:
+        text = "".join(agent.ask_agent(
+            "Responde solo si recibiste esta prueba de conexion.",
+            context,
+            provider,
+            cfg,
+        ))
+        return JSONResponse({"ok": True, "provider": provider, "raw": text})
+    except Exception as exc:
+        return JSONResponse({"ok": False, "provider": provider, "raw": str(exc)}, status_code=502)
+
+
 @app.get("/api/analista/contexto")
 async def analista_contexto():
     db = get_db()
@@ -1324,7 +1609,7 @@ async def analista_preguntar(request: Request):
 
 
 def _analista_live_panel() -> str:
-    """Codex: panel persistente; localStorage evita perder el chat con refresh cada 5s."""
+    """Codex: panel persistente y aislado de las actualizaciones SSE."""
     return """
 <!-- Codex: AI electoral analyst panel, deterministic and refresh-safe. -->
 <style>
@@ -1431,7 +1716,7 @@ async def live_dashboard(refresh: int = 5):
     """
     Dashboard en tiempo real.
     Abrir en el browser y correr simulador_showcase.py en otra terminal.
-    El mapa y las tendencias se actualizan solos cada `refresh` segundos.
+    El mapa y las tendencias se actualizan por SSE sin recargar la pagina.
     """
     db = get_db()
     try:
@@ -1477,9 +1762,7 @@ async def live_dashboard(refresh: int = 5):
         if os.path.exists(tmp):
             os.unlink(tmp)
 
-    # ── Inyectar meta-refresh y barra de estado ───────────────────
-    meta = f'<meta http-equiv="refresh" content="{refresh}">'
-
+    # ── Inyectar barra de estado ───────────────────
     barra = (
         f'<style>:root{{--ep-top-offset:28px;}}</style>'
         f'<div style="position:fixed;top:0;left:0;right:0;z-index:99999;'
@@ -1487,12 +1770,11 @@ async def live_dashboard(refresh: int = 5):
         f'padding:5px 16px;display:flex;justify-content:space-between;align-items:center;'
         f'box-shadow:0 2px 6px rgba(0,0,0,.35);">'
         f'<span>&#x1F534;&nbsp; EN VIVO &nbsp;&#x2502;&nbsp; {eleccion["nombre"]}'
-        f'&nbsp;&#x2502;&nbsp; {total_votos:,} votos procesados</span>'
-        f'<span style="opacity:.7">&#x21BB;&nbsp;cada {refresh}s</span>'
+        f'&nbsp;&#x2502;&nbsp; <span id="ep-live-total">{total_votos:,} votos procesados</span></span>'
+        f'<span style="opacity:.7">SSE&nbsp;cada 60s</span>'
         f'</div>'
     )
 
-    html = html.replace("</head>", f"{meta}</head>", 1)
     html = re.sub(r"(<body[^>]*>)", r"\1" + barra + _analista_live_panel(), html, count=1)
 
     return HTMLResponse(html)

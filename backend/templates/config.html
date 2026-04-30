@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% set active_page = "config" %}
+{% block title %}Config IA{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-cpu me-2"></i>Configuracion IA</h2>
+
+{% if msg %}
+<div class="alert alert-{{ cat }} alert-dismissible fade show">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="rounded-circle bg-success d-inline-block" style="width: 10px; height: 10px;"></span>
+                    <span class="fw-semibold">Proveedor activo:</span>
+                    <span class="badge bg-success">{{ providers[active_provider].label }}</span>
+                </div>
+
+                <form method="post" action="/config/guardar">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Proveedor</label>
+                        <select id="providerSelect" name="provider" class="form-select">
+                            {% for key, provider in providers.items() %}
+                            <option value="{{ key }}" {% if key == active_provider %}selected{% endif %}>
+                                {{ provider.label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">API key</label>
+                        <input name="api_key" type="password" class="form-control" autocomplete="off"
+                               placeholder="Usar variable de entorno o reemplazar clave guardada">
+                        <div class="form-text">Se guarda en SQLite solo si completas este campo.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Modelo</label>
+                        <input id="modelInput" name="model" class="form-control" value="{{ configs[active_provider].model }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Temperatura <span id="temperatureValue">{{ configs[active_provider].temperature }}</span>
+                        </label>
+                        <input id="temperatureInput" name="temperature" type="range" class="form-range"
+                               min="0" max="1" step="0.1" value="{{ configs[active_provider].temperature }}">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Max tokens</label>
+                        <input id="maxTokensInput" name="max_tokens" type="number" min="1" max="2000"
+                               class="form-control" value="{{ configs[active_provider].max_tokens }}">
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>Guardar
+                        </button>
+                        <button id="testConnection" type="button" class="btn btn-outline-success">
+                            <i class="bi bi-plug me-1"></i>Test connection
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Respuesta cruda</div>
+            <div class="card-body">
+                <pre id="testOutput" class="bg-light border rounded p-3 mb-0" style="min-height: 260px; white-space: pre-wrap;">Sin prueba ejecutada.</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const configs = {{ configs|tojson }};
+const providerSelect = document.getElementById('providerSelect');
+const modelInput = document.getElementById('modelInput');
+const temperatureInput = document.getElementById('temperatureInput');
+const temperatureValue = document.getElementById('temperatureValue');
+const maxTokensInput = document.getElementById('maxTokensInput');
+const testOutput = document.getElementById('testOutput');
+
+providerSelect.addEventListener('change', function() {
+  const cfg = configs[providerSelect.value] || {};
+  modelInput.value = cfg.model || '';
+  temperatureInput.value = cfg.temperature ?? 0.3;
+  temperatureValue.textContent = temperatureInput.value;
+  maxTokensInput.value = cfg.max_tokens || 300;
+});
+temperatureInput.addEventListener('input', function() {
+  temperatureValue.textContent = temperatureInput.value;
+});
+document.getElementById('testConnection').addEventListener('click', function() {
+  testOutput.textContent = 'Probando...';
+  fetch('/config/test', {method: 'POST'})
+    .then(function(r) { return r.json(); })
+    .then(function(data) { testOutput.textContent = JSON.stringify(data, null, 2); })
+    .catch(function(err) { testOutput.textContent = String(err); });
+});
+</script>
+{% endblock %}

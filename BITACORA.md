@@ -380,3 +380,36 @@ El pip install en startup tarda demasiado (pandas, plotly, etc.) → supera el t
 ### Archivos modificados en esta sesión
 - `backend/startup.sh` — versión actual usa pip install condicional
 - `backend_deploy.zip` — último rebuild sin antenv ni __pycache__
+---
+
+## 2026-04-30 - SSE Live Dashboard y agente IA multi-proveedor
+
+### Fase 1: Live dashboard sin recarga completa
+- Se reemplazo el refresco completo de `/live` por SSE en `GET /stream/dashboard`.
+- El stream entrega `geo` y `series` cada 60 segundos usando los mismos datos vivos que alimentan heatmap y tendencias.
+- `generador_dashboard.py` ahora expone `updateHeatmap(data.geo)` y `updateCharts(data.series)` para actualizar Leaflet/Plotly sin reconstruir la pagina.
+- El panel del chatbot (`#ai-analyst`) queda fuera del ciclo SSE y no se toca durante las actualizaciones.
+- Se removio el meta refresh de `/live` y de la pantalla sin datos.
+
+### Fase 2: Capa de proveedores IA
+- Se creo `backend/agent.py` con `AI_PROVIDERS`.
+- Proveedores soportados: OpenAI (`gpt-4o-mini`), Groq (`llama-3.1-8b-instant`), Anthropic (`claude-haiku-4-5-20251001`) y Gemini (`gemini-2.5-flash`).
+- OpenAI, Groq y Gemini usan el SDK `openai`; Anthropic usa SDK separado.
+- Se agrego `POST /chat` con respuesta streaming.
+- `get_contexto_centro(centro_id)` inyecta conteos por candidato, ultimos 3 turnos e historial/clasificacion del centro cuando esta disponible.
+
+### Fase 3: Prompt electoral
+- Se incorporo el system prompt exacto del analista electoral.
+- El agente queda limitado a datos del exit poll y formato obligatorio: `TENDENCIA`, `ANOMALIA`, `PROYECCION`.
+
+### Fase 4: Configuracion IA
+- Se agrego tabla `config` a SQLite (`schema.sql` + migracion en `init_db.py`).
+- Se creo `/config` con selector de proveedor, API key enmascarada, modelo editable, temperatura, `max_tokens`, indicador activo y `Test connection`.
+- Se agregaron `openai` y `anthropic` a requirements.
+
+### Validacion
+- `py_compile` OK para `backend/app.py`, `backend/agent.py`, `backend/generador_dashboard.py`, `backend/init_db.py`.
+- Import FastAPI OK; rutas presentes: `/live`, `/stream/dashboard`, `/chat`, `/config`.
+- `GET /config` con `TestClient` devuelve 200.
+- Tabla `config` creada con OpenAI activo por defecto y Groq/Anthropic/Gemini inicializados.
+- Busqueda confirmo que no quedan `meta refresh` ni `setInterval` para el live dashboard.

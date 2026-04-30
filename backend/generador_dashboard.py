@@ -416,6 +416,84 @@ function epShowChart(nombre, wrapId) {{
 // Click en GeoJSON → enganchado con window.onload
 // para garantizar que Leaflet ya terminó de inicializarse
 // -------------------------------------------------------
+// -------------------------------------------------------
+// Actualizacion en vivo por SSE. No toca #ai-analyst.
+// -------------------------------------------------------
+function epNorm(s) {{
+  return String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')
+    .trim().toUpperCase();
+}}
+function epChartId(nombre) {{
+  return 'pchart-' + epNorm(nombre).replace(/\\s+/g, '_').replace(/\\./g, '');
+}}
+function epColor(ventaja) {{
+  if (ventaja === null || ventaja === undefined || isNaN(Number(ventaja))) return '#CCCCCC';
+  var v = Math.max(-30, Math.min(30, Number(ventaja)));
+  if (v < -3) return '#1565C0';
+  if (v < 0) return '#5E92C8';
+  if (v <= 3) return '#FFFFFF';
+  if (v <= 15) return '#E07070';
+  return '#B71C1C';
+}}
+window.updateHeatmap = function(geo) {{
+  geo = geo || {{}};
+  try {{
+    {gj_name}.eachLayer(function(layer) {{
+      if (!layer.feature || !layer.feature.properties) return;
+      var props = layer.feature.properties;
+      var nombre = props.CHART_NAME || props.shapeName || '';
+      var key = epNorm(nombre);
+      var ventaja = geo[nombre];
+      if (ventaja === undefined) ventaja = geo[key];
+      if (ventaja === undefined) ventaja = geo[nombre.toUpperCase()];
+      var tieneDato = ventaja !== undefined && ventaja !== null;
+      props.VENTAJA = tieneDato ? Number(ventaja) : 0;
+      props.TIENE_DATO = tieneDato;
+      if (layer.setStyle) {{
+        layer.setStyle({{
+          fillColor: tieneDato ? epColor(ventaja) : '#CCCCCC',
+          fillOpacity: tieneDato ? 0.82 : 0.3
+        }});
+      }}
+    }});
+  }} catch(err) {{
+    console.warn('[exit-poll] updateHeatmap:', err);
+  }}
+}};
+window.updateCharts = function(series) {{
+  series = series || {{}};
+  Object.keys(series).forEach(function(nombre) {{
+    var puntos = series[nombre] || [];
+    var chart = document.getElementById(epChartId(nombre));
+    if (!chart || !window.Plotly || !puntos.length) return;
+    var horas = puntos.map(function(p) {{ return p.hora; }});
+    var gob = puntos.map(function(p) {{ return p.gob; }});
+    var opo = puntos.map(function(p) {{ return p.opo; }});
+    try {{
+      Plotly.restyle(chart, {{x: [horas], y: [gob]}}, [2]);
+      Plotly.restyle(chart, {{x: [horas], y: [opo]}}, [3]);
+    }} catch(err) {{
+      console.warn('[exit-poll] updateCharts:', err);
+    }}
+  }});
+}};
+if (window.EventSource) {{
+  var epDashboardStream = new EventSource('/stream/dashboard');
+  epDashboardStream.onmessage = function(event) {{
+    try {{
+      var data = JSON.parse(event.data || '{{}}');
+      updateHeatmap(data.geo);
+      updateCharts(data.series);
+      var liveTotal = document.getElementById('ep-live-total');
+      if (liveTotal && data.total_votos !== undefined) {{
+        liveTotal.textContent = Number(data.total_votos || 0).toLocaleString() + ' votos procesados';
+      }}
+    }} catch(err) {{
+      console.warn('[exit-poll] SSE:', err);
+    }}
+  }};
+}}
+
 {click_js}
 </script>
 """

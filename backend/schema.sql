@@ -244,6 +244,23 @@ CREATE TABLE IF NOT EXISTS resultados_historicos (
 CREATE INDEX IF NOT EXISTS idx_rh_centro ON resultados_historicos(codigo_centro);
 CREATE INDEX IF NOT EXISTS idx_rh_eleccion ON resultados_historicos(eleccion_ref);
 
+-- =============================================================
+-- BLOQUE 7C: CONFIGURACION DE IA
+-- Proveedores remotos ligeros; sin modelos locales.
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS config (
+    provider      TEXT PRIMARY KEY,
+    api_key       TEXT,
+    model         TEXT NOT NULL,
+    temperature   REAL NOT NULL DEFAULT 0.3,
+    max_tokens    INTEGER NOT NULL DEFAULT 300,
+    active        INTEGER NOT NULL DEFAULT 0,
+    updated_at    TEXT DEFAULT (datetime('now')),
+    CHECK(provider IN ('openai','groq','anthropic','gemini')),
+    CHECK(active IN (0,1))
+);
+
 
 -- =============================================================
 -- BLOQUE 8: CLIENTES Y ACCESOS

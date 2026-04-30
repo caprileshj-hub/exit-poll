@@ -37,6 +37,20 @@ def migrar(conn: sqlite3.Connection):
         conn.execute('ALTER TABLE municipios ADD COLUMN es_excepcion INTEGER DEFAULT 0')
         conn.commit()
         print('[~] Migración: municipios.es_excepcion añadida')
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS config (
+            provider      TEXT PRIMARY KEY,
+            api_key       TEXT,
+            model         TEXT NOT NULL,
+            temperature   REAL NOT NULL DEFAULT 0.3,
+            max_tokens    INTEGER NOT NULL DEFAULT 300,
+            active        INTEGER NOT NULL DEFAULT 0,
+            updated_at    TEXT DEFAULT (datetime('now')),
+            CHECK(provider IN ('openai','groq','anthropic','gemini')),
+            CHECK(active IN (0,1))
+        )
+    """)
+    conn.commit()
 
 
 def verificar_tablas(conn: sqlite3.Connection):
