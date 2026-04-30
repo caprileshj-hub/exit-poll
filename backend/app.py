@@ -1128,7 +1128,7 @@ def _norm_estado(nombre: str) -> str:
 
 def _datos_vivos(db, id_eleccion: int) -> tuple:
     """
-    Lee votos reales de la BD y devuelve
+    Lee opiniones reales de la BD y devuelve
     (datos_ventaja, datos_tendencia, total_votos).
 
     datos_ventaja  : {nombre_estado: ventaja_float}   — gobierno - oposición en %
@@ -1249,6 +1249,7 @@ def _dashboard_stream_payload(db: sqlite3.Connection) -> dict:
             "geo": {},
             "series": {},
             "total_votos": 0,
+            "total_opiniones": 0,
         }
 
     datos_ventaja, datos_tendencia, total_votos = _datos_vivos(db, eleccion["id"])
@@ -1258,6 +1259,7 @@ def _dashboard_stream_payload(db: sqlite3.Connection) -> dict:
         "geo": datos_ventaja,
         "series": datos_tendencia,
         "total_votos": total_votos,
+        "total_opiniones": total_votos,
     }
 
 
@@ -1319,6 +1321,7 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
             "ok": False,
             "motivo": "No hay eleccion activa",
             "total_votos": 0,
+            "total_opiniones": 0,
         }
 
     eid = eleccion["id"]
@@ -1359,6 +1362,7 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
         "eleccion": eleccion["nombre"],
         "hora_actual": hora_actual,
         "total_votos": total_votos,
+        "total_opiniones": total_votos,
         "centros_reportando": centros_reportando,
         "centros_muestra_total": muestra_total,
         "cobertura_pct": round(100 * centros_reportando / muestra_total, 1) if muestra_total else 0,
@@ -1389,7 +1393,7 @@ def get_contexto_centro(centro_id: str | None = None) -> dict:
             params.append(centro_id)
 
         conteos = db.execute(f"""
-            SELECT ca.id, ca.nombre, ca.bando, COUNT(v.id) votos
+            SELECT ca.id, ca.nombre, ca.bando, COUNT(v.id) opiniones
             FROM candidatos ca
             LEFT JOIN votos v
               ON v.id_candidato = ca.id
@@ -1409,7 +1413,7 @@ def get_contexto_centro(centro_id: str | None = None) -> dict:
             filtro_turno = " AND v.codigo_centro = ?"
             trend_params.append(centro_id)
         tendencias = db.execute(f"""
-            SELECT v.turno, ca.nombre, ca.bando, COUNT(*) votos
+            SELECT v.turno, ca.nombre, ca.bando, COUNT(*) opiniones
             FROM votos v
             JOIN candidatos ca ON ca.id = v.id_candidato
             JOIN muestra m ON m.codigo_centro = v.codigo_centro
@@ -1449,13 +1453,21 @@ def get_contexto_centro(centro_id: str | None = None) -> dict:
                 "referencias": [dict(r) for r in hist],
             }
 
+        conteos_list = [dict(r) for r in conteos]
+        tendencias_list = [dict(r) for r in tendencias]
+        total_opiniones = sum(int(r["opiniones"] or 0) for r in conteos_list)
+        datos_suficientes = total_opiniones >= 100 and len({r["turno"] for r in tendencias_list}) >= 3
+
         return {
             "ok": True,
             "eleccion": eleccion["nombre"],
             "centro_id": centro_id,
-            "conteos_por_candidato": [dict(r) for r in conteos],
-            "ultimos_3_turnos": [dict(r) for r in tendencias],
+            "conteos_de_opiniones_por_candidato": conteos_list,
+            "ultimos_3_turnos": tendencias_list,
             "historico_centro": historico,
+            "total_opiniones": total_opiniones,
+            "datos_suficientes": datos_suficientes,
+            "motivo_insuficiencia": None if datos_suficientes else "No hay suficientes opiniones y cortes comparables para analizar este ambito.",
         }
     finally:
         db.close()
@@ -1478,6 +1490,11 @@ async def chat(request: Request):
         db.close()
 
     context = get_contexto_centro(centro_id)
+    if not context.get("datos_suficientes"):
+        return StreamingResponse(
+            iter(["Esa información no está en los datos del exit poll."]),
+            media_type="text/plain; charset=utf-8",
+        )
     sys.path.insert(0, str(BASE_DIR))
     import agent
 
@@ -1559,10 +1576,11 @@ async def config_test(request: Request):
 
     context = {
         "ok": True,
-        "conteos_por_candidato": [],
+        "conteos_de_opiniones_por_candidato": [],
         "ultimos_3_turnos": [],
         "historico_centro": None,
         "nota": "Prueba fija de conexion sin datos electorales reales.",
+        "datos_suficientes": True,
     }
     try:
         text = "".join(agent.ask_agent(
@@ -1770,7 +1788,7 @@ async def live_dashboard(refresh: int = 5):
         f'padding:5px 16px;display:flex;justify-content:space-between;align-items:center;'
         f'box-shadow:0 2px 6px rgba(0,0,0,.35);">'
         f'<span>&#x1F534;&nbsp; EN VIVO &nbsp;&#x2502;&nbsp; {eleccion["nombre"]}'
-        f'&nbsp;&#x2502;&nbsp; <span id="ep-live-total">{total_votos:,} votos procesados</span></span>'
+        f'&nbsp;&#x2502;&nbsp; <span id="ep-live-total">{total_votos:,} opiniones procesadas</span></span>'
         f'<span style="opacity:.7">SSE&nbsp;cada 60s</span>'
         f'</div>'
     )
@@ -1889,7 +1907,7 @@ async def test_demo():
         _insertar_votos(db, eleccion, centros, cands, pct, turnos)
         db.commit()
         total = db.execute("SELECT COUNT(*) FROM votos").fetchone()[0]
-        return JSONResponse({"ok": True, "mensaje": f"Dataset completo cargado: {total:,} votos en {len(turnos)} turnos."})
+        return JSONResponse({"ok": True, "mensaje": f"Dataset completo cargado: {total:,} opiniones en {len(turnos)} turnos."})
     except Exception as e:
         db.rollback()
         return JSONResponse({"ok": False, "mensaje": str(e)}, status_code=500)
@@ -1920,7 +1938,7 @@ async def test_entrada():
         _insertar_votos(db, eleccion, centros_activos, cands, pct, turnos)
         db.commit()
         total = db.execute("SELECT COUNT(*) FROM votos").fetchone()[0]
-        return JSONResponse({"ok": True, "mensaje": f"Entrada parcial cargada: {total:,} votos — {len(centros_activos)}/{len(centros)} centros, primeros 6 turnos."})
+        return JSONResponse({"ok": True, "mensaje": f"Entrada parcial cargada: {total:,} opiniones - {len(centros_activos)}/{len(centros)} centros, primeros 6 turnos."})
     except Exception as e:
         db.rollback()
         return JSONResponse({"ok": False, "mensaje": str(e)}, status_code=500)
@@ -1930,7 +1948,7 @@ async def test_entrada():
 
 @app.post("/test/reset")
 async def test_reset():
-    """Elimina todos los votos y sms_raw de la elección activa."""
+    """Elimina todas las opiniones y sms_raw de la elección activa."""
     db = get_db()
     try:
         db.execute("DELETE FROM votos")

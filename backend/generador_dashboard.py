@@ -485,8 +485,8 @@ if (window.EventSource) {{
       updateHeatmap(data.geo);
       updateCharts(data.series);
       var liveTotal = document.getElementById('ep-live-total');
-      if (liveTotal && data.total_votos !== undefined) {{
-        liveTotal.textContent = Number(data.total_votos || 0).toLocaleString() + ' votos procesados';
+      if (liveTotal && (data.total_opiniones !== undefined || data.total_votos !== undefined)) {{
+        liveTotal.textContent = Number(data.total_opiniones || data.total_votos || 0).toLocaleString() + ' opiniones procesadas';
       }}
     }} catch(err) {{
       console.warn('[exit-poll] SSE:', err);

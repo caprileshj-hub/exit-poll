@@ -420,3 +420,8 @@ El pip install en startup tarda demasiado (pandas, plotly, etc.) → supera el t
 - El primer arranque fallo por `startup.sh` con CRLF en Azure (`$'\r': command not found`).
 - Se agrego `backend/startup.py` para usar `python /home/site/wwwroot/startup.py` como startup command y evitar dependencia de line endings shell.
 - Correccion posterior: `/live` fallaba con datos reales por `NameError: gj_name is not defined` en `generador_dashboard.py`; se paso `gj_name` a `_ensamblar_html` y se valido generando un dashboard con datos simulados.
+
+### Ajuste agente 2026-04-30
+- El agente ya no analiza ambitos con datos insuficientes; devuelve exactamente `Esa información no está en los datos del exit poll.`.
+- `/chat` aplica el guardrail en backend antes de llamar al proveedor IA.
+- Se reemplazo la terminologia publica de "votos" por "opiniones" en contexto, live dashboard, SSE y respuestas del analista.

@@ -11,6 +11,8 @@ import math
 import unicodedata
 from typing import Any
 
+SIN_DATOS = "Esa información no está en los datos del exit poll."
+
 
 # ── Utilidades ────────────────────────────────────────────────────────────────
 
@@ -134,11 +136,8 @@ def _analizar_estado(nombre_estado: str, contexto: dict[str, Any]) -> dict[str, 
     gob = candidatos.get("gobierno", "Gobierno")
     opo = candidatos.get("oposicion", "Oposición")
 
-    if ventaja is None:
-        resumen = (
-            f"No hay datos de {nombre_estado} reportados hasta {hora}. "
-            "Ese estado aún no tiene centros de muestra con votos válidos procesados."
-        )
+    if ventaja is None or n_puntos < 3:
+        resumen = SIN_DATOS
         estado_lec = "sin_datos"
     else:
         arriba = gob if ventaja >= 0 else opo
@@ -193,6 +192,18 @@ def _analizar_candidato(bando: str, contexto: dict[str, Any]) -> dict[str, Any]:
     nombre = candidatos.get(bando, bando)
     es_gobierno = bando == "gobierno"
 
+    if total_votos < 100 or cobertura < 15:
+        return {
+            "estado": "insuficiente",
+            "ambito": nombre,
+            "resumen": SIN_DATOS,
+            "metricas": {
+                "total_opiniones": total_votos,
+                "cobertura_pct": round(cobertura, 1),
+            },
+            "advertencias": [],
+        }
+
     # Ventaja positiva = gobierno gana; negativa = oposición gana
     if ventaja_nac is None:
         pct_nac = None
@@ -233,7 +244,7 @@ def _analizar_candidato(bando: str, contexto: dict[str, Any]) -> dict[str, Any]:
     resumen = (
         f"Hasta {hora}, {nombre} registra {pct_txt}. "
         f"{estados_txt} "
-        f"Cobertura de muestra: {_fmt_pct(cobertura)} con {total_votos:,} votos válidos procesados. "
+        f"Cobertura de muestra: {_fmt_pct(cobertura)} con {total_votos:,} opiniones validas procesadas. "
         "Esta lectura describe la tendencia observada, no el resultado final."
     )
 
@@ -275,18 +286,8 @@ def _analizar_nacional(contexto: dict[str, Any], pregunta: str) -> dict[str, Any
         "Lectura basada únicamente en datos recibidos hasta el corte actual.",
     ]
 
-    if total_votos == 0:
-        resumen = (
-            "Todavía no hay votos válidos procesados. Con cero datos no es posible "
-            "interpretar ventaja, tendencia ni estabilidad estadística."
-        )
-    elif lectura["estado"] == "insuficiente":
-        resumen = (
-            f"Con los datos recibidos hasta {hora}, la muestra aún es insuficiente "
-            f"para interpretar una tendencia. Hay {total_votos:,} votos válidos y "
-            f"una cobertura aproximada de {_fmt_pct(cobertura)} de los centros de muestra. "
-            "Conviene esperar más centros reportando antes de hablar de ventaja consolidada."
-        )
+    if total_votos == 0 or lectura["estado"] == "insuficiente":
+        resumen = SIN_DATOS
     elif lectura["estado"] == "competitivo":
         resumen = (
             f"Con los datos recibidos hasta {hora}, {candidato_arriba} aparece con una "
@@ -320,7 +321,7 @@ def _analizar_nacional(contexto: dict[str, Any], pregunta: str) -> dict[str, Any
         "ambito": "nacional",
         "resumen": resumen,
         "metricas": {
-            "total_votos": total_votos,
+            "total_opiniones": total_votos,
             "cobertura_pct": round(cobertura, 1),
             "ventaja_actual": ventaja,
             "margen_error_aprox": margen,
