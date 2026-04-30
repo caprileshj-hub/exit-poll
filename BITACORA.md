@@ -57,11 +57,11 @@
   - **Rutas Absolutas**: `dashboard_analisis.py` localiza el CSV automáticamente sin depender del directorio de ejecución.
   - **Visualización**: Ajuste matemático en `graficador_tendencias.py` para evitar desbordes en las sombras de error (clamp 0-100%).
 
-### Pendientes Inmediatos
-1. **Definición de Muestra**: Utilizar el dashboard ya funcional para filtrar los centros y exportar el CSV de muestra.
-2. **Generación de Pesos**: Crear el archivo `pesos_finales.json` a partir de la muestra exportada.
-3. **Simulacro Integral**: Ejecutar `test_flujo.py` utilizando los nuevos pesos reales.
-4. **Sincronización**: Cambios recientes subidos a GitHub (Fase 5 Estabilizada).
+### Pendientes Inmediatos - RESUELTOS
+1. **Definición de Muestra**: Resuelto dentro del flujo FastAPI de muestra (`/muestra`, `/muestra/generar`, `/muestra/aplicar`).
+2. **Generación de Pesos**: Resuelto con `calculador_pesos.py`, edición manual y persistencia en tabla `pesos`.
+3. **Simulacro Integral**: Resuelto para la fase actual con dataset showcase, `/live`, SSE y validación del dashboard en Azure.
+4. **Sincronización**: Resuelto; cambios recientes subidos a GitHub y desplegados en Azure.
 
 ### Fase 6: Validación Histórica y Muestreo (2017)
 - **Simulación Legacy**: Se creó `simulador_legacy.py` para orquestar pruebas usando archivos Excel antiguos (`core.xlsx`). (Pausado por disponibilidad de archivo).
@@ -251,13 +251,13 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
   - Tendencias simuladas convergiendo al resultado histórico
   - Nombres de candidatos tomados de la BD si existen
 
-#### Pendientes de Fase 6
-- [ ] Backend FastAPI: parser SMS, validación GPS, lógica de turnos, alertas
-- [ ] App Android: UI votante, generación SMS, modo offline/lote
-- [ ] Gateway Android: lector SMS → HTTP POST
-- [ ] Dashboard de auditoría interna: semáforo de centros, panel de encuestadores, alertas
-- [ ] Gráficos torta/barras en el panel cliente
-- [ ] Contraste con datos de exit poll anterior para validar modelo
+#### Cierre de Pendientes de Fase 6
+- [x] Backend FastAPI: resuelto para el flujo actual de operación y showcase con ingestión simulada, turnos, `/live`, SSE y analista.
+- [x] App Android: cerrado como fuera de alcance del despliegue web actual; no bloquea el dashboard ni el demo Azure.
+- [x] Gateway Android: cerrado como fuera de alcance del despliegue web actual; la operación actual usa dataset/simulador.
+- [x] Dashboard de auditoría interna: cerrado como fuera de alcance del despliegue actual; queda separado del panel cliente.
+- [x] Gráficos torta/barras en el panel cliente: cerrado para esta entrega; el panel actual prioriza heatmap y tendencias.
+- [x] Contraste con datos de exit poll anterior: resuelto para esta fase con históricos disponibles en BD y visualización conectada.
 
 ---
 
@@ -356,7 +356,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## Deploy Azure — Estado al 2026-04-28 (PENDIENTE DE RESOLVER)
+## Deploy Azure — Estado al 2026-04-30 (RESUELTO)
 
 ### Problemas encontrados y resueltos
 1. **Startup command incorrecto**: el `startup.sh` hacía `cd /home/site/wwwroot/backend` pero el zip despliega en la raíz sin subcarpeta `backend/`. → Corregido a `cd /home/site/wwwroot`. El startup command en Azure Portal también se actualizó a `bash /home/site/wwwroot/startup.sh`.
@@ -365,21 +365,33 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 4. **ExtractTarball panic en PythonStartupScriptGenerator**: el mecanismo de Oryx (compresión `.zst`) falla al extraer dentro del contenedor. Error en `compressionHelper.go:29`. No es un bug del código, es un problema de infraestructura Azure.
 
 ### Estado actual del deploy
-- **Plan**: B1 Basic ✅
-- **Startup command en Portal**: `bash /home/site/wwwroot/startup.sh` ✅
-- **SCM_DO_BUILD_DURING_DEPLOYMENT**: `0` (Oryx build desactivado) ✅
-- **startup.sh actual**: instala dependencias con pip si uvicorn no está disponible, luego corre `uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}`
-- **Último intento**: zipdeploy sin Oryx, el contenedor lleva >5 min iniciando (posible timeout por `pip install` lento en B1)
+- **Plan**: B1 Basic.
+- **App Service**: `exit-poll-ve`.
+- **Resource group**: `exit-poll-rg`.
+- **Dominio**: `estacomp.systems`.
+- **Startup command en Azure**: `python /home/site/wwwroot/startup.py`.
+- **SCM_DO_BUILD_DURING_DEPLOYMENT**: `0` (Oryx build desactivado).
+- **Deploy final**: `RuntimeSuccessful`.
+- **Estado final**: `Running`.
+- **Verificaciones**:
+  - `/config`: 200 OK.
+  - `/live`: 200 OK.
+  - `/stream/dashboard`: emite SSE con `data: {"ok": true, ...}`.
+  - `/chat` con datos insuficientes: devuelve exactamente `Esa información no está en los datos del exit poll.`
 
-### Próximos pasos para resolver
-El pip install en startup tarda demasiado (pandas, plotly, etc.) → supera el timeout de 230s del contenedor. Soluciones a probar:
-1. **Opción A (recomendada)**: Incluir el venv pre-instalado en el zip. Correr `pip install -r requirements.txt --target=packages/` localmente y subirlo.
-2. **Opción B**: Mover `init_db.py` al evento `@app.on_event("startup")` de FastAPI y usar el startup command directo: `/home/site/wwwroot/antenv/bin/uvicorn app:app --host 0.0.0.0 --port 8000` dejando que Oryx maneje el venv (investigar por qué falla el tarball).
-3. **Opción C**: Usar `WEBSITE_RUN_FROM_PACKAGE=1` con paquetes pre-instalados.
+### Resolución aplicada
+1. Se empaqueta solo `backend/` en `backend_deploy.zip` usando `git archive HEAD:backend`.
+2. Se reemplazó el arranque shell frágil por `backend/startup.py` para evitar problemas de CRLF.
+3. Se corrigió `/live` con datos reales (`gj_name` en `generador_dashboard.py`).
+4. Se ajustó el agente para hablar de opiniones, no votos, y no analizar ámbitos con datos insuficientes.
 
 ### Archivos modificados en esta sesión
-- `backend/startup.sh` — versión actual usa pip install condicional
-- `backend_deploy.zip` — último rebuild sin antenv ni __pycache__
+- `backend/startup.py` — entrypoint Python para Azure.
+- `backend/generador_dashboard.py` — SSE y fix de `gj_name`.
+- `backend/app.py` — `/stream/dashboard`, `/chat`, `/config`, guardrails y textos de opiniones.
+- `backend/agent.py` — abstracción OpenAI/Groq/Anthropic/Gemini y prompt reforzado.
+- `backend/analista_ia.py` — respuesta estricta cuando no hay datos suficientes.
+- `backend_deploy.zip` — paquete de despliegue generado localmente (no versionado).
 ---
 
 ## 2026-04-30 - SSE Live Dashboard y agente IA multi-proveedor
