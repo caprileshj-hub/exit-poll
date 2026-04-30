@@ -1,6 +1,6 @@
 # Exit Poll Venezuela
 
-Automated electoral survey platform for Venezuelan elections. Replaces a manual workflow (paper forms → phone calls → Access database → Excel processing) with an end-to-end automated system built around SMS-based data collection — the only reliable channel in Venezuela's low-connectivity field conditions.
+End-to-end exit poll platform for Venezuelan elections. Replaces a manual workflow (paper forms → phone calls → Access database → Excel) with an automated system built around SMS-based data collection — the only reliable channel in Venezuela's low-connectivity field conditions. Results flow from the field into a weighted, real-time heatmap and trend dashboard. A deterministic AI analyst embedded in the live view reads incoming data and provides plain-language interpretations of the national trend, individual states, and each candidate's position — with explicit guardrails against premature winner declarations.
 
 ---
 
