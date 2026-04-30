@@ -413,3 +413,9 @@ El pip install en startup tarda demasiado (pandas, plotly, etc.) → supera el t
 - `GET /config` con `TestClient` devuelve 200.
 - Tabla `config` creada con OpenAI activo por defecto y Groq/Anthropic/Gemini inicializados.
 - Busqueda confirmo que no quedan `meta refresh` ni `setInterval` para el live dashboard.
+
+### Deploy 2026-04-30
+- `az webapp deploy --src-path . --type zip` no fue aceptado por esta version de Azure CLI porque `.` no es archivo zip.
+- Se genero `backend_deploy.zip` con `git archive HEAD:backend`, manteniendo el contenido de `backend/` en la raiz del paquete.
+- El primer arranque fallo por `startup.sh` con CRLF en Azure (`$'\r': command not found`).
+- Se agrego `backend/startup.py` para usar `python /home/site/wwwroot/startup.py` como startup command y evitar dependencia de line endings shell.
