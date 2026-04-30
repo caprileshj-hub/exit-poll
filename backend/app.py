@@ -1271,6 +1271,8 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
         candidato_arriba = candidatos_dict.get("oposicion", "Oposicion")
         candidato_abajo = candidatos_dict.get("gobierno", "Gobierno")
 
+    tendencias_por_estado = {k: v for k, v in datos_tendencia.items() if k != "VENEZUELA"}
+
     return {
         "ok": True,
         "eleccion": eleccion["nombre"],
@@ -1284,6 +1286,8 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
         "candidato_arriba": candidato_arriba,
         "candidato_abajo": candidato_abajo,
         "ventajas_por_estado": datos_ventaja,
+        "tendencias_por_estado": tendencias_por_estado,
+        "candidatos": candidatos_dict,
     }
 
 
