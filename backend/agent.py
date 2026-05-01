@@ -165,13 +165,16 @@ def ask_structured(
     if cfg.get("base_url"):
         kwargs["base_url"] = cfg["base_url"]
     client = OpenAI(**kwargs)
-    response = client.chat.completions.create(
-        model=cfg["model"],
-        messages=[
+    request = {
+        "model": cfg["model"],
+        "messages": [
             {"role": "system", "content": system_prompt.strip()},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=cfg["temperature"],
-        max_tokens=cfg["max_tokens"],
-    )
+        "temperature": cfg["temperature"],
+        "max_tokens": cfg["max_tokens"],
+    }
+    if provider == "openai":
+        request["response_format"] = {"type": "json_object"}
+    response = client.chat.completions.create(**request)
     return response.choices[0].message.content or ""

@@ -843,7 +843,7 @@ def _extract_json_object(text: str) -> dict[str, Any]:
     return json.loads(clean)
 
 
-def _chunk_text(text: str, chunk_size: int = 45000) -> list[str]:
+def _chunk_text(text: str, chunk_size: int = 15000) -> list[str]:
     text = text or ""
     if len(text) <= chunk_size:
         return [text]
@@ -1156,7 +1156,7 @@ async def tm_ai_extract(request: Request, archivo: UploadFile | None = File(None
         cfg_row = get_ai_config(db)
         provider = cfg_row["provider"]
         cfg = dict(cfg_row)
-        cfg["max_tokens"] = max(int(cfg.get("max_tokens") or 300), 4000)
+        cfg["max_tokens"] = max(int(cfg.get("max_tokens") or 300), 12000)
     finally:
         db.close()
 
