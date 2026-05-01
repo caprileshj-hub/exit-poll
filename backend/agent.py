@@ -131,3 +131,45 @@ def ask_agent(
         yield from _ask_anthropic(question, context, cfg)
     else:
         yield from _ask_openai_compatible(question, context, cfg)
+
+
+def ask_structured(
+    system_prompt: str,
+    user_prompt: str,
+    provider: str,
+    config: dict[str, Any] | None = None,
+) -> str:
+    """Single-shot text completion through the configured provider."""
+    cfg = _provider_config(provider, config)
+    if cfg["client"] == "anthropic":
+        from anthropic import Anthropic
+
+        client = Anthropic(api_key=cfg["api_key"])
+        message = client.messages.create(
+            model=cfg["model"],
+            max_tokens=cfg["max_tokens"],
+            temperature=cfg["temperature"],
+            system=system_prompt.strip(),
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+        return "".join(
+            block.text for block in message.content
+            if getattr(block, "type", None) == "text"
+        )
+
+    from openai import OpenAI
+
+    kwargs = {"api_key": cfg["api_key"]}
+    if cfg.get("base_url"):
+        kwargs["base_url"] = cfg["base_url"]
+    client = OpenAI(**kwargs)
+    response = client.chat.completions.create(
+        model=cfg["model"],
+        messages=[
+            {"role": "system", "content": system_prompt.strip()},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=cfg["temperature"],
+        max_tokens=cfg["max_tokens"],
+    )
+    return response.choices[0].message.content or ""

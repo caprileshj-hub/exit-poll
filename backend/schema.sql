@@ -78,6 +78,32 @@ CREATE TABLE IF NOT EXISTS centros (
 CREATE INDEX IF NOT EXISTS idx_centros_estado ON centros(id_estado);
 CREATE INDEX IF NOT EXISTS idx_centros_municipio ON centros(id_municipio);
 
+CREATE TABLE IF NOT EXISTS election_centers (
+    eleccion_id     INTEGER NOT NULL REFERENCES elecciones(id),
+    centro_id       TEXT NOT NULL REFERENCES centros(codigo_cne),
+    eligible        INTEGER NOT NULL DEFAULT 1,
+    source_file     TEXT,
+    campos_extra    TEXT,
+    created_at      TEXT DEFAULT (datetime('now')),
+    updated_at      TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY(eleccion_id, centro_id),
+    CHECK(eligible IN (0,1))
+);
+
+CREATE INDEX IF NOT EXISTS idx_ec_eleccion ON election_centers(eleccion_id);
+CREATE INDEX IF NOT EXISTS idx_ec_centro ON election_centers(centro_id);
+
+CREATE TABLE IF NOT EXISTS tm_ingestion_logs (
+    id                  INTEGER PRIMARY KEY,
+    eleccion_id          INTEGER NOT NULL REFERENCES elecciones(id),
+    source_files         TEXT NOT NULL,
+    detected_columns     TEXT,
+    field_notes          TEXT,
+    match_stats          TEXT,
+    user                 TEXT,
+    created_at           TEXT DEFAULT (datetime('now'))
+);
+
 
 -- =============================================================
 -- BLOQUE 3: ELECCIONES Y CANDIDATOS

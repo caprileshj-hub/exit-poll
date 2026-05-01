@@ -51,6 +51,7 @@ def resultado_nacional(conn: sqlite3.Connection, eleccion_ref: str) -> dict:
 
 def generar_candidatos(
     conn: sqlite3.Connection,
+    id_eleccion: Optional[int] = None,
     eleccion_ref: str = "2024-presidencial",
     candidatos_por_unidad: int = 5,
     umbral_pct: float = 10.0,
@@ -65,11 +66,34 @@ def generar_candidatos(
 
     pct_nac_opo = nac["pct_oposicion"]
 
+    eligible_filter = ""
+    params_extra = {}
+    if id_eleccion:
+        has_ec = conn.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='election_centers'"
+        ).fetchone()[0]
+        if has_ec:
+            eligible_count = conn.execute(
+                "SELECT COUNT(*) FROM election_centers WHERE eleccion_id=? AND eligible=1",
+                (id_eleccion,),
+            ).fetchone()[0]
+            if eligible_count:
+                eligible_filter = """
+                    AND EXISTS (
+                        SELECT 1 FROM election_centers ec
+                        WHERE ec.eleccion_id = :id_eleccion
+                          AND ec.centro_id = c.codigo_cne
+                          AND ec.eligible = 1
+                    )
+                """
+                params_extra["id_eleccion"] = id_eleccion
+
     # Traer todos los centros activos con sus resultados
-    query = BASE_QUERY_CANDIDATOS + " ORDER BY c.num_electores DESC"
+    query = BASE_QUERY_CANDIDATOS + eligible_filter + " ORDER BY c.num_electores DESC"
     rows = conn.execute(query, {
         "pct_nac_opo": pct_nac_opo,
         "eleccion_ref": eleccion_ref,
+        **params_extra,
     }).fetchall()
 
     # Agrupar por unidad geográfica

@@ -481,3 +481,108 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - Import de `backend.app` -> OK.
 - `GET /config` -> 200.
 - `GET /candidatos/nuevo` -> 200.
+
+---
+
+## 2026-05-01 - Ingestion AI multi-formato para Tabla de Mesa
+
+### Objetivo
+- Extender `/tm` con un flujo AI capaz de recibir tablas CNE con formatos variables sin reemplazar el cargador diferencial existente.
+- Mantener `centros` como registro historico permanente: no se eliminan centros y GPS/riesgo no se sobreescriben desde tablamesa.
+
+### Modelo de elegibilidad por eleccion
+- Se agrego `election_centers`:
+  - `eleccion_id`
+  - `centro_id` -> `centros.codigo_cne`
+  - `eligible`
+  - `source_file`
+  - `campos_extra` como JSON serializado en texto para SQLite
+  - timestamps
+- Se agrego `tm_ingestion_logs` para auditoria:
+  - archivos procesados
+  - columnas detectadas
+  - notas de mapeo
+  - estadisticas de match
+  - usuario/timestamp
+- `init_db.py` aplica las tablas nuevas como migracion incremental.
+
+### Flujo UI en `/tm`
+- Se conserva el formulario legacy `/tm/cargar` para Excel/CSV estandar.
+- Se agrego una tarjeta nueva de "Carga AI multi-formato":
+  - eleccion destino obligatoria
+  - multiples archivos `.pdf`, `.xlsx`, `.xls`, `.xlsm`, `.csv`, `.docx`, `.txt`
+  - toggle de simulacion activado por defecto
+  - progreso por archivo
+  - preview con `MATCHED`, `NEW`, `AMBIGUOUS`, `CONFLICT`, `EXTRACTION_ERROR`
+  - resolucion manual basica con selector de candidatos para AMBIGUOUS/CONFLICT
+  - confirmacion bloqueada si quedan conflictos sin resolver
+- Extraccion cliente:
+  - SheetJS para Excel
+  - mammoth.js para DOCX
+  - pdfjs para PDF
+  - FileReader/texto directo para CSV/TXT
+- Si falla la extraccion cliente, `/api/tm/ai-extract` acepta el binario como fallback.
+
+### AI y chunking
+- Se extendio `backend/agent.py` con `ask_structured()`, que usa la configuracion ya existente de `/config`.
+- No se agrego API key ni proveedor nuevo.
+- El prompt instruye al AI a descubrir columnas por contenido y valores, no por estructura fija.
+- La respuesta esperada es JSON puro con:
+  - `detected_columns`
+  - `field_notes`
+  - `centros`
+  - `match_hints`
+- Chunking inicial:
+  - 45.000 caracteres por chunk.
+  - procesamiento secuencial para respetar rate limits de proveedores configurados.
+  - retry exponencial hasta 3 intentos por chunk.
+- Si no se extraen filas, el endpoint devuelve una muestra de texto crudo para depuracion.
+
+### Matching
+- Se agrego `/api/tm/fuzzy-match`.
+- Estrategia:
+  - exact match por `codigo_centro` contra `centros.codigo_cne`
+  - fuzzy match por `nombre_centro + municipio + parroquia`
+  - normalizacion: mayusculas, sin acentos, espacios colapsados, expansion inicial de abreviaturas CNE (`U.E.`, `E.B.`, `MP.`, `PQ.`, `EDO.`)
+- Libreria inicial:
+  - `difflib.SequenceMatcher`, por estar en stdlib y evitar dependencias de compilacion en Azure.
+  - Candidato futuro: RapidFuzz si se necesita rendimiento/calidad superior con miles de filas.
+- Thresholds iniciales:
+  - `MATCHED`: fuzzy >= 0.88
+  - `AMBIGUOUS`: 0.72 a 0.879
+  - `NEW`: < 0.72
+  - `CONFLICT`: exact match y fuzzy >= 0.84 apuntan a centros distintos.
+
+### Confirmacion de carga
+- Se agrego `/api/tm/confirm`.
+- En `centros`:
+  - actualiza `num_mesas` si viene en archivo
+  - actualiza `num_electores` si viene en archivo
+  - completa `direccion` solo si estaba vacia
+  - nunca toca `lat`, `lon`, `riesgo` ni `radio_m`
+- En `election_centers`:
+  - inserta/actualiza elegibilidad por `eleccion_id + centro_id`
+  - guarda `source_file`
+  - guarda `campos_extra`
+- En simulacion (`dry_run`) no escribe en BD.
+
+### Muestra
+- `selector_muestra.generar_candidatos()` ahora acepta `id_eleccion`.
+- Si existen filas elegibles en `election_centers` para la eleccion, la muestra se genera solo desde ese universo.
+- Si no existen filas en `election_centers`, conserva el comportamiento anterior usando `centros.activo=1`.
+
+### Dependencias agregadas
+- `pdfplumber` para fallback PDF server-side.
+- `python-docx` para fallback DOCX server-side.
+
+### Validacion
+- `backend.app` importa correctamente.
+- `pytest -q` -> 1 passed.
+- `schema.sql` ejecuta completo sobre SQLite en memoria.
+- `GET /tm` -> 200 y renderiza la UI AI.
+- `POST /api/tm/fuzzy-match` con centro sintetico -> 200.
+
+### Pendientes tecnicos
+- La resolucion manual es funcional pero basica; para cargas grandes conviene una vista dedicada con busqueda por fila y candidatos.
+- El AI extraction endpoint no se probo con proveedor real en esta sesion para evitar consumo/API errors; queda cubierto por contrato de prompt y fallback de errores.
+- Para volumen alto, evaluar RapidFuzz y procesamiento asincrono con cola/progreso SSE.

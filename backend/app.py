@@ -17,8 +17,12 @@ import tempfile
 import uuid
 import io
 import traceback
+import difflib
+import time
+import unicodedata
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
@@ -71,6 +75,37 @@ def ensure_config_table(db: sqlite3.Connection) -> None:
             INSERT OR IGNORE INTO config (provider, model, temperature, max_tokens, active)
             VALUES (?, ?, 0.3, 300, ?)
         """, (provider, defaults["model"], 1 if provider == "openai" and active_count == 0 else 0))
+    db.commit()
+
+
+def ensure_tm_ai_tables(db: sqlite3.Connection) -> None:
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS election_centers (
+            eleccion_id     INTEGER NOT NULL REFERENCES elecciones(id),
+            centro_id       TEXT NOT NULL REFERENCES centros(codigo_cne),
+            eligible        INTEGER NOT NULL DEFAULT 1,
+            source_file     TEXT,
+            campos_extra    TEXT,
+            created_at      TEXT DEFAULT (datetime('now')),
+            updated_at      TEXT DEFAULT (datetime('now')),
+            PRIMARY KEY(eleccion_id, centro_id),
+            CHECK(eligible IN (0,1))
+        )
+    """)
+    db.execute("CREATE INDEX IF NOT EXISTS idx_ec_eleccion ON election_centers(eleccion_id)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_ec_centro ON election_centers(centro_id)")
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS tm_ingestion_logs (
+            id                  INTEGER PRIMARY KEY,
+            eleccion_id          INTEGER NOT NULL REFERENCES elecciones(id),
+            source_files         TEXT NOT NULL,
+            detected_columns     TEXT,
+            field_notes          TEXT,
+            match_stats          TEXT,
+            user                 TEXT,
+            created_at           TEXT DEFAULT (datetime('now'))
+        )
+    """)
     db.commit()
 
 
@@ -657,6 +692,7 @@ async def peso_edit_form(request: Request, id_muestra: int):
 @app.get("/tm", response_class=HTMLResponse)
 async def tm_index(request: Request, msg: str = "", cat: str = "success"):
     db = get_db()
+    ensure_tm_ai_tables(db)
     stats = {}
     stats["centros_activos"] = db.execute(
         "SELECT COUNT(*) c FROM centros WHERE activo=1"
@@ -673,6 +709,7 @@ async def tm_index(request: Request, msg: str = "", cat: str = "success"):
     stats["estados"] = db.execute("SELECT COUNT(*) c FROM estados").fetchone()["c"]
     stats["municipios"] = db.execute("SELECT COUNT(*) c FROM municipios").fetchone()["c"]
     stats["parroquias"] = db.execute("SELECT COUNT(*) c FROM parroquias").fetchone()["c"]
+    elecciones = db.execute("SELECT id, nombre, tipo, fecha, activa FROM elecciones ORDER BY activa DESC, fecha DESC").fetchall()
 
     # Resumen por estado
     por_estado = db.execute(
@@ -687,6 +724,7 @@ async def tm_index(request: Request, msg: str = "", cat: str = "success"):
     db.close()
     return templates.TemplateResponse(request=request, name="tm.html", context={
         "stats": stats, "por_estado": por_estado,
+        "elecciones": elecciones,
         "msg": msg, "cat": cat
     })
 
@@ -768,6 +806,463 @@ async def tm_upload(
         )
 
 
+TM_AI_SYSTEM_PROMPT = """
+This is a Venezuelan CNE electoral registry file (tabla de mesa). Column names and available fields vary by election year and event type. Identify all columns present, inspect the actual values to understand what each column represents, map them to the target schema by meaning rather than by name, and extract every data row.
+
+Do not assume a fixed column structure. Infer fields from headers and values. Pay special attention to columns whose values look like center identifiers even if the header says something else. For example, a column named "CODIGO COMUNA CNE" with values like COM_130101001 may be serving as the center identifier for this election; preserve it in campos_extra and note the ambiguity.
+
+Target internal schema keys for each row:
+- estado
+- municipio
+- parroquia
+- nombre_centro
+- codigo_centro
+- num_mesas
+- num_electores
+- direccion
+- campos_extra
+
+Rules:
+- Use null for internal schema fields not present.
+- Put every source column that does not map to the target schema into campos_extra under its original column name.
+- Skip title rows, repeated headers, page numbers, totals, footers, and artifacts.
+- Handle encoding artifacts, uppercase text, accents, and abbreviations such as U.E., E.B., MP., PQ.
+- Return ONLY a JSON object, with no preamble and no markdown fences.
+- The JSON object must have exactly these top-level keys: detected_columns, field_notes, centros, match_hints.
+"""
+
+
+def _extract_json_object(text: str) -> dict[str, Any]:
+    clean = (text or "").strip()
+    clean = re.sub(r"^```(?:json)?\s*", "", clean, flags=re.I)
+    clean = re.sub(r"\s*```$", "", clean)
+    start = clean.find("{")
+    end = clean.rfind("}")
+    if start >= 0 and end > start:
+        clean = clean[start:end + 1]
+    return json.loads(clean)
+
+
+def _chunk_text(text: str, chunk_size: int = 45000) -> list[str]:
+    text = text or ""
+    if len(text) <= chunk_size:
+        return [text]
+    chunks, pos = [], 0
+    while pos < len(text):
+        end = min(len(text), pos + chunk_size)
+        cut = text.rfind("\n", pos, end)
+        if cut <= pos + 1000:
+            cut = end
+        chunks.append(text[pos:cut])
+        pos = cut
+    return chunks
+
+
+def _read_upload_text(path: Path, ext: str) -> str:
+    if ext in (".txt", ".csv"):
+        for enc in ("utf-8-sig", "utf-8", "latin-1"):
+            try:
+                return path.read_text(encoding=enc)
+            except UnicodeDecodeError:
+                continue
+        return path.read_text(errors="ignore")
+    if ext in (".xlsx", ".xlsm", ".xls"):
+        from openpyxl import load_workbook
+
+        wb = load_workbook(path, read_only=True, data_only=True)
+        lines = []
+        for ws in wb.worksheets:
+            lines.append(f"### SHEET: {ws.title}")
+            for row in ws.iter_rows(values_only=True):
+                values = ["" if v is None else str(v) for v in row]
+                if any(v.strip() for v in values):
+                    lines.append("\t".join(values))
+        return "\n".join(lines)
+    if ext == ".docx":
+        try:
+            import docx
+        except ImportError as exc:
+            raise HTTPException(500, "Falta dependencia python-docx para leer DOCX") from exc
+        doc = docx.Document(str(path))
+        lines = [p.text for p in doc.paragraphs if p.text.strip()]
+        for table in doc.tables:
+            for row in table.rows:
+                lines.append("\t".join(cell.text.strip() for cell in row.cells))
+        return "\n".join(lines)
+    if ext == ".pdf":
+        try:
+            import pdfplumber
+        except ImportError as exc:
+            raise HTTPException(500, "Falta dependencia pdfplumber para leer PDF") from exc
+        lines = []
+        with pdfplumber.open(str(path)) as pdf:
+            for i, page in enumerate(pdf.pages, 1):
+                lines.append(f"### PAGE {i}")
+                lines.append(page.extract_text() or "")
+        return "\n".join(lines)
+    raise HTTPException(400, "Formato no soportado")
+
+
+def _normalize_match_text(value: Any) -> str:
+    text = "" if value is None else str(value)
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    text = text.upper()
+    replacements = {
+        "U.E.": "UNIDAD EDUCATIVA",
+        "UE ": "UNIDAD EDUCATIVA ",
+        "E.B.": "ESCUELA BASICA",
+        "EB ": "ESCUELA BASICA ",
+        "MP.": "MUNICIPIO",
+        "MCPIO.": "MUNICIPIO",
+        "PQ.": "PARROQUIA",
+        "PQA.": "PARROQUIA",
+        "EDO.": "ESTADO",
+        "DTTO.": "DISTRITO",
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    text = re.sub(r"[^A-Z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _center_match_blob(row: sqlite3.Row) -> str:
+    return _normalize_match_text(f"{row['nombre']} {row['municipio'] or ''} {row['parroquia'] or ''}")
+
+
+def _source_match_blob(centro: dict[str, Any]) -> str:
+    return _normalize_match_text(
+        f"{centro.get('nombre_centro') or ''} {centro.get('municipio') or ''} {centro.get('parroquia') or ''}"
+    )
+
+
+def _best_fuzzy_match(centro: dict[str, Any], registry: list[sqlite3.Row]) -> tuple[sqlite3.Row | None, float, list[dict]]:
+    source = _source_match_blob(centro)
+    if not source:
+        return None, 0.0, []
+    scored = []
+    for row in registry:
+        score = difflib.SequenceMatcher(None, source, _center_match_blob(row)).ratio()
+        scored.append((score, row))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    candidates = [
+        {
+            "codigo_centro": row["codigo_cne"],
+            "nombre": row["nombre"],
+            "municipio": row["municipio"],
+            "parroquia": row["parroquia"],
+            "confidence_score": round(score, 3),
+        }
+        for score, row in scored[:5]
+    ]
+    return (scored[0][1], round(scored[0][0], 3), candidates) if scored else (None, 0.0, [])
+
+
+def _registry_rows(db: sqlite3.Connection) -> list[sqlite3.Row]:
+    return db.execute("""
+        SELECT c.codigo_cne, c.nombre, c.direccion, c.num_mesas, c.num_electores,
+               e.nombre AS estado, mu.nombre AS municipio, p.nombre AS parroquia
+        FROM centros c
+        JOIN estados e ON e.id = c.id_estado
+        LEFT JOIN municipios mu ON mu.id = c.id_municipio
+        LEFT JOIN parroquias p ON p.id = c.id_parroquia
+    """).fetchall()
+
+
+def _match_centros(db: sqlite3.Connection, centros: list[dict], hints: Any | None = None) -> dict[str, Any]:
+    registry = _registry_rows(db)
+    by_code = {str(r["codigo_cne"]).strip(): r for r in registry}
+    rows = []
+    stats = {"MATCHED": 0, "NEW": 0, "AMBIGUOUS": 0, "CONFLICT": 0, "EXTRACTION_ERROR": 0}
+
+    for idx, centro in enumerate(centros):
+        if not isinstance(centro, dict) or not (centro.get("nombre_centro") or centro.get("codigo_centro")):
+            status = "EXTRACTION_ERROR"
+            rows.append({"row_index": idx, "match_status": status, "confidence_score": 0, "centro": centro, "candidates": []})
+            stats[status] += 1
+            continue
+
+        codigo = str(centro.get("codigo_centro") or "").strip()
+        exact = by_code.get(codigo)
+        fuzzy, score, candidates = _best_fuzzy_match(centro, registry)
+
+        if exact and fuzzy and exact["codigo_cne"] != fuzzy["codigo_cne"] and score >= 0.84:
+            status = "CONFLICT"
+            matched = None
+        elif exact:
+            status = "MATCHED"
+            matched = exact
+            score = 1.0
+        elif fuzzy and score >= 0.88:
+            status = "MATCHED"
+            matched = fuzzy
+        elif fuzzy and score >= 0.72:
+            status = "AMBIGUOUS"
+            matched = None
+        else:
+            status = "NEW"
+            matched = None
+
+        rows.append({
+            "row_index": idx,
+            "match_status": status,
+            "confidence_score": round(score, 3),
+            "centro": centro,
+            "matched_codigo_centro": matched["codigo_cne"] if matched else None,
+            "matched_nombre": matched["nombre"] if matched else None,
+            "candidates": candidates,
+            "match_hint": hints[idx] if isinstance(hints, list) and idx < len(hints) else None,
+        })
+        stats[status] += 1
+    return {"rows": rows, "stats": stats}
+
+
+def _obtener_o_crear_geo(db: sqlite3.Connection, estado: str | None, municipio: str | None, parroquia: str | None) -> tuple[int, int | None, int | None]:
+    estado_nom = _normalize_match_text(estado or "SIN ESTADO") or "SIN ESTADO"
+    row = db.execute("SELECT id FROM estados WHERE nombre=?", (estado_nom,)).fetchone()
+    if row:
+        id_estado = row["id"]
+    else:
+        code = f"AI{db.execute('SELECT COUNT(*) c FROM estados').fetchone()['c'] + 1:02d}"
+        db.execute("INSERT INTO estados (codigo_cne, nombre) VALUES (?, ?)", (code, estado_nom))
+        id_estado = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    id_municipio = None
+    mun_nom = _normalize_match_text(municipio or "")
+    if mun_nom:
+        row = db.execute("SELECT id FROM municipios WHERE id_estado=? AND nombre=?", (id_estado, mun_nom)).fetchone()
+        if row:
+            id_municipio = row["id"]
+        else:
+            code = f"AI{db.execute('SELECT COUNT(*) c FROM municipios WHERE id_estado=?', (id_estado,)).fetchone()['c'] + 1:02d}"
+            db.execute("INSERT INTO municipios (id_estado, codigo_cne, nombre) VALUES (?, ?, ?)", (id_estado, code, mun_nom))
+            id_municipio = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    id_parroquia = None
+    parr_nom = _normalize_match_text(parroquia or "")
+    if id_municipio and parr_nom:
+        row = db.execute("SELECT id FROM parroquias WHERE id_municipio=? AND nombre=?", (id_municipio, parr_nom)).fetchone()
+        if row:
+            id_parroquia = row["id"]
+        else:
+            code = f"AI{db.execute('SELECT COUNT(*) c FROM parroquias WHERE id_municipio=?', (id_municipio,)).fetchone()['c'] + 1:02d}"
+            db.execute("INSERT INTO parroquias (id_municipio, codigo_cne, nombre) VALUES (?, ?, ?)", (id_municipio, code, parr_nom))
+            id_parroquia = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return id_estado, id_municipio, id_parroquia
+
+
+def _to_int_or_none(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    match = re.search(r"\d+", str(value).replace(".", "").replace(",", ""))
+    return int(match.group(0)) if match else None
+
+
+def _upsert_ai_center(db: sqlite3.Connection, eleccion_id: int, item: dict[str, Any], source_file: str) -> str:
+    centro = item["centro"]
+    codigo = item.get("resolved_codigo_centro") or item.get("matched_codigo_centro") or centro.get("codigo_centro")
+    codigo = str(codigo or "").strip()
+    if not codigo:
+        codigo = f"AI_{eleccion_id}_{uuid.uuid4().hex[:12]}"
+
+    num_mesas = _to_int_or_none(centro.get("num_mesas"))
+    num_electores = _to_int_or_none(centro.get("num_electores"))
+    direccion = centro.get("direccion")
+    existing = db.execute("SELECT * FROM centros WHERE codigo_cne=?", (codigo,)).fetchone()
+
+    if existing:
+        db.execute("""
+            UPDATE centros SET
+                num_mesas = COALESCE(?, num_mesas),
+                num_electores = COALESCE(?, num_electores),
+                direccion = CASE
+                    WHEN (direccion IS NULL OR TRIM(direccion) = '') AND ? IS NOT NULL AND TRIM(?) != ''
+                    THEN ?
+                    ELSE direccion
+                END,
+                activo = 1
+            WHERE codigo_cne = ?
+        """, (num_mesas, num_electores, direccion, direccion or "", direccion, codigo))
+    else:
+        id_estado, id_municipio, id_parroquia = _obtener_o_crear_geo(
+            db, centro.get("estado"), centro.get("municipio"), centro.get("parroquia")
+        )
+        db.execute("""
+            INSERT INTO centros (
+                codigo_cne, nombre, direccion, id_parroquia, id_municipio, id_estado,
+                num_mesas, num_electores, activo
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+        """, (
+            codigo,
+            _normalize_match_text(centro.get("nombre_centro") or codigo),
+            direccion,
+            id_parroquia, id_municipio, id_estado,
+            num_mesas or 0, num_electores or 0,
+        ))
+
+    db.execute("""
+        INSERT INTO election_centers (eleccion_id, centro_id, eligible, source_file, campos_extra, updated_at)
+        VALUES (?, ?, 1, ?, ?, datetime('now'))
+        ON CONFLICT(eleccion_id, centro_id) DO UPDATE SET
+            eligible=excluded.eligible,
+            source_file=excluded.source_file,
+            campos_extra=excluded.campos_extra,
+            updated_at=datetime('now')
+    """, (
+        eleccion_id, codigo, source_file,
+        json.dumps(centro.get("campos_extra") or {}, ensure_ascii=False),
+    ))
+    return codigo
+
+
+@app.post("/api/tm/ai-extract")
+async def tm_ai_extract(request: Request, archivo: UploadFile | None = File(None)):
+    content_type = request.headers.get("content-type", "")
+    if "multipart/form-data" in content_type:
+        form = await request.form()
+        eleccion_id = int(form.get("eleccion_id") or 0)
+        source_file = str(form.get("source_file") or (archivo.filename if archivo else "archivo"))
+        text = str(form.get("text") or "")
+        if archivo and not text:
+            ext = Path(archivo.filename or "").suffix.lower()
+            if ext not in (".pdf", ".xlsx", ".xls", ".xlsm", ".csv", ".docx", ".txt"):
+                raise HTTPException(400, "Formato no soportado")
+            data = await archivo.read()
+            if len(data) > 50 * 1024 * 1024:
+                raise HTTPException(400, "Archivo mayor a 50MB")
+            tmp_path = UPLOAD_DIR / f"tm_ai_{uuid.uuid4().hex}{ext}"
+            tmp_path.write_bytes(data)
+            try:
+                text = _read_upload_text(tmp_path, ext)
+            finally:
+                tmp_path.unlink(missing_ok=True)
+    else:
+        payload = await request.json()
+        eleccion_id = int(payload.get("eleccion_id") or 0)
+        source_file = str(payload.get("source_file") or "texto")
+        text = str(payload.get("text") or "")
+
+    if not eleccion_id:
+        raise HTTPException(400, "eleccion_id requerido")
+    if not text.strip():
+        raise HTTPException(400, "No se pudo extraer texto del archivo")
+
+    chunks = _chunk_text(text)
+    merged = {"detected_columns": [], "field_notes": {}, "centros": [], "match_hints": []}
+    sys.path.insert(0, str(BASE_DIR))
+    import agent
+
+    db = get_db()
+    try:
+        cfg_row = get_ai_config(db)
+        provider = cfg_row["provider"]
+        cfg = dict(cfg_row)
+        cfg["max_tokens"] = max(int(cfg.get("max_tokens") or 300), 4000)
+    finally:
+        db.close()
+
+    for idx, chunk in enumerate(chunks, 1):
+        user_prompt = (
+            f"Source file: {source_file}\n"
+            f"Chunk {idx} of {len(chunks)}. Preserve source column names.\n\n"
+            f"RAW EXTRACTED TEXT:\n{chunk}"
+        )
+        last_error = None
+        for attempt in range(3):
+            try:
+                raw = agent.ask_structured(TM_AI_SYSTEM_PROMPT, user_prompt, provider, cfg)
+                parsed = _extract_json_object(raw)
+                merged["detected_columns"].extend(parsed.get("detected_columns") or [])
+                merged["field_notes"].update(parsed.get("field_notes") or {})
+                merged["centros"].extend(parsed.get("centros") or [])
+                merged["match_hints"].extend(parsed.get("match_hints") or [])
+                break
+            except Exception as exc:
+                last_error = exc
+                time.sleep(2 ** attempt)
+        else:
+            merged["field_notes"][f"chunk_{idx}_error"] = str(last_error)
+
+    merged["detected_columns"] = list(dict.fromkeys(str(c) for c in merged["detected_columns"]))
+    if not merged["centros"]:
+        return JSONResponse({
+            "ok": False,
+            "source_file": source_file,
+            "raw_text_sample": text[:2000],
+            **merged,
+        }, status_code=422)
+    return JSONResponse({"ok": True, "source_file": source_file, **merged})
+
+
+@app.post("/api/tm/fuzzy-match")
+async def tm_fuzzy_match(request: Request):
+    payload = await request.json()
+    centros = payload.get("centros") or []
+    hints = payload.get("match_hints") or []
+    db = get_db()
+    try:
+        ensure_tm_ai_tables(db)
+        result = _match_centros(db, centros, hints)
+        eleccion_id = int(payload.get("eleccion_id") or 0)
+        if eleccion_id:
+            total_registry = db.execute("SELECT COUNT(*) c FROM centros").fetchone()["c"]
+            linked = db.execute("SELECT COUNT(*) c FROM election_centers WHERE eleccion_id=?", (eleccion_id,)).fetchone()["c"]
+            result["registry_not_present_count"] = max(0, total_registry - linked - len(centros))
+        return JSONResponse(result)
+    finally:
+        db.close()
+
+
+@app.post("/api/tm/confirm")
+async def tm_confirm(request: Request):
+    payload = await request.json()
+    eleccion_id = int(payload.get("eleccion_id") or 0)
+    rows = payload.get("rows") or []
+    source_files = payload.get("source_files") or []
+    dry_run = bool(payload.get("dry_run"))
+    if not eleccion_id:
+        raise HTTPException(400, "eleccion_id requerido")
+
+    blockers = [r for r in rows if r.get("match_status") in ("AMBIGUOUS", "CONFLICT") and not r.get("resolved_codigo_centro")]
+    if blockers:
+        raise HTTPException(400, "Hay filas AMBIGUOUS/CONFLICT sin resolver")
+
+    db = get_db()
+    stats = {"MATCHED": 0, "NEW": 0, "AMBIGUOUS": 0, "CONFLICT": 0, "EXTRACTION_ERROR": 0, "written": 0}
+    detected_columns = payload.get("detected_columns") or []
+    field_notes = payload.get("field_notes") or {}
+    try:
+        ensure_tm_ai_tables(db)
+        for item in rows:
+            status = item.get("match_status") or "EXTRACTION_ERROR"
+            stats[status] = stats.get(status, 0) + 1
+            if status == "EXTRACTION_ERROR":
+                continue
+            if not dry_run:
+                _upsert_ai_center(db, eleccion_id, item, item.get("source_file") or ", ".join(source_files))
+            stats["written"] += 1
+
+        if not dry_run:
+            db.execute("""
+                INSERT INTO tm_ingestion_logs
+                    (eleccion_id, source_files, detected_columns, field_notes, match_stats, user)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                eleccion_id,
+                json.dumps(source_files, ensure_ascii=False),
+                json.dumps(detected_columns, ensure_ascii=False),
+                json.dumps(field_notes, ensure_ascii=False),
+                json.dumps(stats, ensure_ascii=False),
+                payload.get("user") or "local",
+            ))
+            db.commit()
+        return JSONResponse({"ok": True, "dry_run": dry_run, "stats": stats})
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
 # ══════════════════════════════════════════════════════════════════
 # MUESTRA — Selección de centros para el exit poll
 # ══════════════════════════════════════════════════════════════════
@@ -841,7 +1336,7 @@ async def muestra_generar(
 
     nac = selector_muestra.resultado_nacional(db, eleccion_ref)
     candidatos = selector_muestra.generar_candidatos(
-        db, eleccion_ref=eleccion_ref,
+        db, id_eleccion=eleccion["id"], eleccion_ref=eleccion_ref,
         candidatos_por_unidad=candidatos_por_unidad,
         umbral_pct=umbral_pct,
     )
