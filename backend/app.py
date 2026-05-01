@@ -951,13 +951,74 @@ def _source_match_blob(centro: dict[str, Any]) -> str:
     )
 
 
-def _best_fuzzy_match(centro: dict[str, Any], registry: list[sqlite3.Row]) -> tuple[sqlite3.Row | None, float, list[dict]]:
+GENERIC_MATCH_TOKENS = {
+    "CENTRO", "ELECTORAL", "UNIDAD", "EDUCATIVA", "ESCUELA", "BASICA",
+    "LICEO", "NACIONAL", "BOLIVARIANA", "GRUPO", "COLEGIO", "MUNICIPIO",
+    "PARROQUIA", "ESTADO",
+}
+
+
+def _match_tokens(text: str) -> set[str]:
+    return {
+        token for token in text.split()
+        if len(token) >= 3 and token not in GENERIC_MATCH_TOKENS
+    }
+
+
+def _registry_entry(row: sqlite3.Row) -> dict[str, Any]:
+    item = dict(row)
+    blob = _center_match_blob(row)
+    item["_match_blob"] = blob
+    item["_tokens"] = _match_tokens(blob)
+    item["_estado_norm"] = _normalize_match_text(row["estado"] or "")
+    item["_municipio_norm"] = _normalize_match_text(row["municipio"] or "")
+    item["_parroquia_norm"] = _normalize_match_text(row["parroquia"] or "")
+    return item
+
+
+def _candidate_registry(centro: dict[str, Any], registry: list[dict[str, Any]], source_tokens: set[str]) -> list[dict[str, Any]]:
+    estado = _normalize_match_text(centro.get("estado") or "")
+    municipio = _normalize_match_text(centro.get("municipio") or "")
+    parroquia = _normalize_match_text(centro.get("parroquia") or "")
+
+    pool = registry
+    if municipio:
+        by_municipio = [r for r in registry if r["_municipio_norm"] == municipio]
+        if by_municipio:
+            pool = by_municipio
+    elif estado:
+        by_estado = [r for r in registry if r["_estado_norm"] == estado]
+        if by_estado:
+            pool = by_estado
+
+    if parroquia:
+        by_parroquia = [r for r in pool if r["_parroquia_norm"] == parroquia]
+        if by_parroquia:
+            pool = by_parroquia
+
+    if not source_tokens:
+        return pool[:500]
+
+    scored = []
+    for row in pool:
+        overlap = len(source_tokens & row["_tokens"])
+        if overlap:
+            scored.append((overlap, row))
+    if scored:
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [row for _, row in scored[:500]]
+    return pool[:500]
+
+
+def _best_fuzzy_match(centro: dict[str, Any], registry: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, float, list[dict]]:
     source = _source_match_blob(centro)
     if not source:
         return None, 0.0, []
+    source_tokens = _match_tokens(source)
+    candidates_pool = _candidate_registry(centro, registry, source_tokens)
     scored = []
-    for row in registry:
-        score = difflib.SequenceMatcher(None, source, _center_match_blob(row)).ratio()
+    for row in candidates_pool:
+        score = difflib.SequenceMatcher(None, source, row["_match_blob"]).ratio()
         scored.append((score, row))
     scored.sort(key=lambda x: x[0], reverse=True)
     candidates = [
@@ -985,7 +1046,7 @@ def _registry_rows(db: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 def _match_centros(db: sqlite3.Connection, centros: list[dict], hints: Any | None = None) -> dict[str, Any]:
-    registry = _registry_rows(db)
+    registry = [_registry_entry(row) for row in _registry_rows(db)]
     by_code = {str(r["codigo_cne"]).strip(): r for r in registry}
     rows = []
     stats = {"MATCHED": 0, "NEW": 0, "AMBIGUOUS": 0, "CONFLICT": 0, "EXTRACTION_ERROR": 0}
@@ -999,24 +1060,28 @@ def _match_centros(db: sqlite3.Connection, centros: list[dict], hints: Any | Non
 
         codigo = str(centro.get("codigo_centro") or "").strip()
         exact = by_code.get(codigo)
-        fuzzy, score, candidates = _best_fuzzy_match(centro, registry)
-
-        if exact and fuzzy and exact["codigo_cne"] != fuzzy["codigo_cne"] and score >= 0.84:
-            status = "CONFLICT"
-            matched = None
-        elif exact:
+        if exact:
             status = "MATCHED"
             matched = exact
             score = 1.0
-        elif fuzzy and score >= 0.88:
-            status = "MATCHED"
-            matched = fuzzy
-        elif fuzzy and score >= 0.72:
-            status = "AMBIGUOUS"
-            matched = None
+            candidates = [{
+                "codigo_centro": exact["codigo_cne"],
+                "nombre": exact["nombre"],
+                "municipio": exact["municipio"],
+                "parroquia": exact["parroquia"],
+                "confidence_score": 1.0,
+            }]
         else:
-            status = "NEW"
-            matched = None
+            fuzzy, score, candidates = _best_fuzzy_match(centro, registry)
+            if fuzzy and score >= 0.88:
+                status = "MATCHED"
+                matched = fuzzy
+            elif fuzzy and score >= 0.72:
+                status = "AMBIGUOUS"
+                matched = None
+            else:
+                status = "NEW"
+                matched = None
 
         rows.append({
             "row_index": idx,
@@ -1030,6 +1095,23 @@ def _match_centros(db: sqlite3.Connection, centros: list[dict], hints: Any | Non
         })
         stats[status] += 1
     return {"rows": rows, "stats": stats}
+
+
+def _match_centros_request(centros: list[dict], hints: Any | None, eleccion_id: int) -> dict[str, Any]:
+    db = get_db()
+    try:
+        ensure_tm_ai_tables(db)
+        result = _match_centros(db, centros, hints)
+        if eleccion_id:
+            total_registry = db.execute("SELECT COUNT(*) c FROM centros").fetchone()["c"]
+            linked = db.execute(
+                "SELECT COUNT(*) c FROM election_centers WHERE eleccion_id = ?",
+                (eleccion_id,),
+            ).fetchone()["c"]
+            result["registry_not_present_count"] = max(0, total_registry - linked - len(centros))
+        return result
+    finally:
+        db.close()
 
 
 def _obtener_o_crear_geo(db: sqlite3.Connection, estado: str | None, municipio: str | None, parroquia: str | None) -> tuple[int, int | None, int | None]:
@@ -1220,18 +1302,9 @@ async def tm_fuzzy_match(request: Request):
     payload = await request.json()
     centros = payload.get("centros") or []
     hints = payload.get("match_hints") or []
-    db = get_db()
-    try:
-        ensure_tm_ai_tables(db)
-        result = _match_centros(db, centros, hints)
-        eleccion_id = int(payload.get("eleccion_id") or 0)
-        if eleccion_id:
-            total_registry = db.execute("SELECT COUNT(*) c FROM centros").fetchone()["c"]
-            linked = db.execute("SELECT COUNT(*) c FROM election_centers WHERE eleccion_id=?", (eleccion_id,)).fetchone()["c"]
-            result["registry_not_present_count"] = max(0, total_registry - linked - len(centros))
-        return JSONResponse(result)
-    finally:
-        db.close()
+    eleccion_id = int(payload.get("eleccion_id") or 0)
+    result = await asyncio.to_thread(_match_centros_request, centros, hints, eleccion_id)
+    return JSONResponse(result)
 
 
 @app.post("/api/tm/confirm")
