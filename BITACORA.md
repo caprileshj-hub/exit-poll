@@ -586,3 +586,108 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - La resolucion manual es funcional pero basica; para cargas grandes conviene una vista dedicada con busqueda por fila y candidatos.
 - El AI extraction endpoint no se probo con proveedor real en esta sesion para evitar consumo/API errors; queda cubierto por contrato de prompt y fallback de errores.
 - Para volumen alto, evaluar RapidFuzz y procesamiento asincrono con cola/progreso SSE.
+
+---
+
+## Sesion 2026-05-01 - Seguridad, Azure y carga AI TM
+
+### Seguridad y credenciales
+- Se atendio incidente de API key de OpenAI filtrada y deshabilitada por OpenAI.
+- Se limpio historial Git con `git-filter-repo`, removiendo `.env` de commits historicos y force-push de historia saneada.
+- Se endurecio `.gitignore` para secretos, bases locales y archivos de configuracion:
+  - `.env`
+  - `*.db`
+  - `*.sqlite`
+  - `*.sqlite3`
+  - `config.ini`
+  - `secrets.yaml`
+  - `__pycache__/`
+  - `*.pyc`
+- Se corrigio `/config` para no serializar `api_key` al navegador.
+- Se cambio el guardado de `/config/guardar` para que una clave vacia limpie SQLite y use variable de entorno.
+- Se documento y ajusto la prioridad real de carga de API key:
+  1. Azure App Settings / variable de entorno
+  2. Tabla `config` en SQLite
+- Se creo `SECURITY.md` como rastro de auditoria.
+
+### Azure App Service
+- Se confirmo y reforzo:
+  - HTTPS Only habilitado.
+  - TLS minimo 1.2.
+  - `OPENAI_API_KEY` configurada en Azure App Settings.
+- Se limpio la clave vieja almacenada en SQLite de produccion mediante `/config/guardar` con clave en blanco.
+- `/config/test` quedo funcionando contra OpenAI con:
+  - `ok=true`
+  - `provider=openai`
+- Se detecto que el startup de Azure no instalaba dependencias si `uvicorn` ya existia.
+- Se ajusto `startup.py` para instalar `requirements.txt` al arrancar, evitando faltantes como `openai`.
+
+### Auditoria de dependencias
+- `pip-audit -r requirements.txt`: sin vulnerabilidades conocidas.
+- `pip-audit -r backend/requirements.txt` encontro vulnerabilidades en `starlette==0.46.2`:
+  - `CVE-2025-54121`
+  - `CVE-2025-62727`
+- Se actualizo:
+  - `fastapi==0.136.1`
+  - `starlette==0.49.1`
+- Re-auditoria posterior: sin vulnerabilidades conocidas.
+
+### GitHub hardening pendiente de habilitacion manual
+- Revisado estado del repo:
+  - Dependabot alerts: desactivado.
+  - Dependabot security updates: desactivado.
+  - Secret scanning: desactivado a nivel repo.
+  - CodeQL/code scanning: sin analisis.
+  - Branch protection en `main`: no configurado.
+- Pendiente manual en GitHub UI:
+  - habilitar Secret scanning + Push protection
+  - habilitar Dependabot alerts
+  - habilitar Dependabot security updates
+  - configurar CodeQL en push a `main`
+  - proteger `main` con minimo 1 review antes de merge
+
+### Carga AI de Tabla Mesa
+- Prueba real con PDF pequeno confirmo que `/api/tm/ai-extract` llegaba al backend.
+- Error observado inicialmente:
+  - HTTP 422
+  - `chunk_1_error: Expecting ',' delimiter`
+- Diagnostico: la IA respondia JSON invalido o truncado para el chunk.
+- Fix aplicado:
+  - OpenAI usa `response_format={"type":"json_object"}` en `ask_structured()`.
+  - chunking bajo de 45.000 a 15.000 caracteres.
+  - `max_tokens` minimo para extraccion AI subio de 4.000 a 12.000.
+- Se detecto otro problema critico: la extraccion AI bloqueaba el unico worker/event loop y podia dejar todo el sitio sin responder.
+- Fix aplicado:
+  - lectura server-side pesada de archivos via `asyncio.to_thread`
+  - llamada bloqueante a OpenAI via `asyncio.to_thread`
+  - retries con `await asyncio.sleep()` en lugar de `time.sleep()`
+- Despues del fix anti-bloqueo, `/tm` volvio a responder en Azure.
+
+### Accesibilidad UI
+- Se corrigieron 5 labels sin asociacion en `backend/templates/tm.html`:
+  - Archivo TM
+  - Formato
+  - Hoja Excel
+  - Eleccion destino
+  - Archivos TM
+- Se agregaron pares `for`/`id` para eliminar warning del navegador.
+
+### Documentacion
+- Se agrego seccion `AI Development Collaboration` en `README.md`.
+- Se actualizo `SECURITY.md` con:
+  - resolucion de CVEs
+  - migracion de `OPENAI_API_KEY` a Azure App Settings
+  - confirmacion de `/config/test`
+
+### Estado para retomar
+- Sitio desplegado y respondiendo en Azure.
+- Reintentar carga AI con un PDF pequeno antes de volver a los 24 PDFs.
+- En DevTools > Network, vigilar `/api/tm/ai-extract`:
+  - `200`: extraccion AI OK
+  - `422`: copiar `chunk_1_error`
+  - `499/502/504`: timeout/corte de solicitud
+- Si el procesamiento de 24 PDFs sigue siendo pesado, siguiente paso tecnico recomendado:
+  - cola/background job por archivo
+  - tabla de progreso por lote
+  - polling o SSE para progreso `PDF n/24`
+  - confirmacion de escritura separada por lote
