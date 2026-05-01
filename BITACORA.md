@@ -691,3 +691,28 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
   - tabla de progreso por lote
   - polling o SSE para progreso `PDF n/24`
   - confirmacion de escritura separada por lote
+
+## 2026-05-01 - Correcciones criticas TM AI y simulador
+
+### Confirmacion AI de Tabla Mesa
+- `/api/tm/confirm` ahora ejecuta la confirmacion en una transaccion con `BEGIN IMMEDIATE`.
+- Antes de procesar el archivo confirmado:
+  - desactiva todos los centros con `UPDATE centros SET activo = 0`
+  - limpia elegibilidad previa para la eleccion activa en `election_centers`
+- Los centros extraidos por IA se reactivan con `activo = 1`.
+- `_upsert_ai_center` mantiene `COALESCE` para `num_mesas` y `num_electores`, y no sobrescribe `lat`, `lon` ni `riesgo`.
+
+### Robustez AI para PDFs pesados
+- Se dejo explicito el chunking maximo en 15.000 caracteres.
+- La lectura pesada de archivos sigue derivada a `asyncio.to_thread`.
+- Los reintentos de IA subieron a 5 intentos con backoff, jitter y soporte para `retry-after`.
+
+### Simulador showcase
+- `calcular_resultado_ponderado()` ahora devuelve resultados anidados en elecciones regionales y municipales:
+  - regional: `{id_estado: {id_candidato: porcentaje}}`
+  - municipal: `{id_municipio: {id_candidato: porcentaje}}`
+- El resumen final de consola imprime la tendencia desglosada por estado o municipio sin pisar resultados previos.
+
+### Validacion
+- `python -m py_compile backend\app.py backend\simulador_showcase.py`: OK.
+- `pytest -q`: 1 passed.

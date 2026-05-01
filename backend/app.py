@@ -54,6 +54,10 @@ AI_PROVIDER_DEFAULTS = {
     "gemini": {"label": "Gemini", "model": "gemini-2.5-flash"},
 }
 
+TM_AI_CHUNK_SIZE = 15000
+TM_AI_MAX_ATTEMPTS = 5
+TM_AI_RETRY_BASE_SECONDS = 2
+
 
 def ensure_config_table(db: sqlite3.Connection) -> None:
     db.execute("""
@@ -843,7 +847,7 @@ def _extract_json_object(text: str) -> dict[str, Any]:
     return json.loads(clean)
 
 
-def _chunk_text(text: str, chunk_size: int = 15000) -> list[str]:
+def _chunk_text(text: str, chunk_size: int = TM_AI_CHUNK_SIZE) -> list[str]:
     text = text or ""
     if len(text) <= chunk_size:
         return [text]
@@ -856,6 +860,18 @@ def _chunk_text(text: str, chunk_size: int = 15000) -> list[str]:
         chunks.append(text[pos:cut])
         pos = cut
     return chunks
+
+
+def _ai_retry_delay(attempt: int, exc: Exception) -> float:
+    retry_after = getattr(exc, "retry_after", None)
+    if retry_after is None and getattr(exc, "response", None) is not None:
+        headers = getattr(exc.response, "headers", {}) or {}
+        retry_after = headers.get("retry-after") or headers.get("Retry-After")
+    try:
+        delay = float(retry_after) if retry_after is not None else TM_AI_RETRY_BASE_SECONDS ** attempt
+    except (TypeError, ValueError):
+        delay = TM_AI_RETRY_BASE_SECONDS ** attempt
+    return min(delay, 30.0) + random.uniform(0.0, 0.75)
 
 
 def _read_upload_text(path: Path, ext: str) -> str:
@@ -1146,7 +1162,7 @@ async def tm_ai_extract(request: Request, archivo: UploadFile | None = File(None
     if not text.strip():
         raise HTTPException(400, "No se pudo extraer texto del archivo")
 
-    chunks = _chunk_text(text)
+    chunks = _chunk_text(text, TM_AI_CHUNK_SIZE)
     merged = {"detected_columns": [], "field_notes": {}, "centros": [], "match_hints": []}
     sys.path.insert(0, str(BASE_DIR))
     import agent
@@ -1167,7 +1183,7 @@ async def tm_ai_extract(request: Request, archivo: UploadFile | None = File(None
             f"RAW EXTRACTED TEXT:\n{chunk}"
         )
         last_error = None
-        for attempt in range(3):
+        for attempt in range(TM_AI_MAX_ATTEMPTS):
             try:
                 raw = await asyncio.to_thread(
                     agent.ask_structured,
@@ -1184,7 +1200,8 @@ async def tm_ai_extract(request: Request, archivo: UploadFile | None = File(None
                 break
             except Exception as exc:
                 last_error = exc
-                await asyncio.sleep(2 ** attempt)
+                if attempt < TM_AI_MAX_ATTEMPTS - 1:
+                    await asyncio.sleep(_ai_retry_delay(attempt, exc))
         else:
             merged["field_notes"][f"chunk_{idx}_error"] = str(last_error)
 
@@ -1238,6 +1255,14 @@ async def tm_confirm(request: Request):
     field_notes = payload.get("field_notes") or {}
     try:
         ensure_tm_ai_tables(db)
+        if not dry_run:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("UPDATE centros SET activo = 0")
+            db.execute(
+                "UPDATE election_centers SET eligible = 0, updated_at = datetime('now') WHERE eleccion_id = ?",
+                (eleccion_id,),
+            )
+
         for item in rows:
             status = item.get("match_status") or "EXTRACTION_ERROR"
             stats[status] = stats.get(status, 0) + 1

@@ -76,10 +76,12 @@ def cargar_muestra(conn, id_eleccion: int) -> list[dict]:
             c.id_parroquia,
             c.lat,
             c.lon,
-            e.nombre        AS estado_nombre
+            e.nombre        AS estado_nombre,
+            mu.nombre       AS municipio_nombre
         FROM muestra m
         JOIN centros  c ON c.codigo_cne  = m.codigo_centro
         JOIN estados  e ON e.id          = c.id_estado
+        LEFT JOIN municipios mu ON mu.id  = c.id_municipio
         LEFT JOIN pesos p ON p.id_muestra = m.id
         WHERE m.id_eleccion = ? AND m.activo = 1 AND c.activo = 1
     ''', (id_eleccion,)).fetchall()
@@ -260,12 +262,12 @@ def insertar_voto_bd(conn, codigo_centro: str, id_candidato: int,
 
 def calcular_resultado_ponderado(conn, id_eleccion: int, tipo: str,
                                   centros: list[dict],
-                                  candidatos: list[dict]) -> dict[int, float]:
+                                  candidatos: list[dict]) -> dict[int, float] | dict[int, dict[int, float]]:
     """
-    Devuelve {id_candidato: pct} según el tipo de elección:
-      nacional/asamblea → pct nacional  (peso_estado × peso_nacion)
-      regional          → pct por estado (peso_municipio × universo_municipio/estado)
-      municipal         → pct por municipio (peso_parroquia × universo_parroquia/municipio)
+    Devuelve el resultado según el tipo de elección:
+      nacional/asamblea → {id_candidato: pct}
+      regional          → {id_estado: {id_candidato: pct}}
+      municipal         → {id_municipio: {id_candidato: pct}}
     """
     rows = conn.execute('''
         SELECT v.codigo_centro, v.id_candidato, COUNT(*) AS n
@@ -335,10 +337,13 @@ def calcular_resultado_ponderado(conn, id_eleccion: int, tipo: str,
         for id_estado, por_cand in por_estado_r.items():
             total_e = sum(por_cand.values())
             if total_e > 0:
-                for id_cand, val in por_cand.items():
-                    resultado[id_cand] = val / total_e * 100
-        total_r = sum(resultado.values())
-        return dict(resultado) if total_r > 0 else _fallback_conteos(votos_centro)
+                resultado[id_estado] = {
+                    id_cand: val / total_e * 100
+                    for id_cand, val in por_cand.items()
+                }
+        return dict(resultado) if resultado else _fallback_conteos_por_ambito(
+            votos_centro, peso_map, 'id_estado'
+        )
 
     elif tipo == 'municipal':
         # Primer nivel: peso_parroquia → resultado por parroquia
@@ -367,10 +372,13 @@ def calcular_resultado_ponderado(conn, id_eleccion: int, tipo: str,
         for id_muni, por_cand in por_muni_m.items():
             total_m = sum(por_cand.values())
             if total_m > 0:
-                for id_cand, val in por_cand.items():
-                    resultado[id_cand] = val / total_m * 100
-        total_m2 = sum(resultado.values())
-        return dict(resultado) if total_m2 > 0 else _fallback_conteos(votos_centro)
+                resultado[id_muni] = {
+                    id_cand: val / total_m * 100
+                    for id_cand, val in por_cand.items()
+                }
+        return dict(resultado) if resultado else _fallback_conteos_por_ambito(
+            votos_centro, peso_map, 'id_municipio'
+        )
 
     # nacional/asamblea: normalizar a 100
     total = sum(resultado.values())
@@ -386,6 +394,48 @@ def _fallback_conteos(votos_centro: dict) -> dict[int, float]:
             conteos[id_cand] += n
     total_v = sum(conteos.values())
     return {k: v / total_v * 100 for k, v in conteos.items()} if total_v else {}
+
+
+def _fallback_conteos_por_ambito(votos_centro: dict, peso_map: dict, scope_field: str) -> dict[int, dict[int, float]]:
+    conteos_scope: dict[int, dict[int, int]] = defaultdict(lambda: defaultdict(int))
+    for codigo, vc in votos_centro.items():
+        centro = peso_map.get(codigo)
+        scope_id = centro.get(scope_field) if centro else None
+        if scope_id is None:
+            continue
+        for id_cand, n in vc.items():
+            conteos_scope[scope_id][id_cand] += n
+
+    resultado_scope: dict[int, dict[int, float]] = {}
+    for scope_id, conteos in conteos_scope.items():
+        total_v = sum(conteos.values())
+        if total_v:
+            resultado_scope[scope_id] = {
+                id_cand: n / total_v * 100
+                for id_cand, n in conteos.items()
+            }
+    return resultado_scope
+
+
+def _resultado_es_anidado(resultado: dict) -> bool:
+    return any(isinstance(v, dict) for v in resultado.values())
+
+
+def _print_resultado_plano(resultado: dict[int, float], candidatos: list[dict], indent: str = '  ') -> None:
+    for cand in candidatos:
+        pct = resultado.get(cand['id'], 0.0)
+        bar = '█' * int(pct / 2)
+        print(f'{indent}{cand["nombre"]:<30}  {pct:4.1f}%  {bar}')
+
+
+def _print_resultado_anidado(resultado: dict[int, dict[int, float]],
+                             candidatos: list[dict],
+                             labels: dict[int, str],
+                             fallback_prefix: str) -> None:
+    for scope_id in sorted(resultado):
+        label = labels.get(scope_id) or f'{fallback_prefix} {scope_id}'
+        print(f'  {label}:')
+        _print_resultado_plano(resultado[scope_id], candidatos, indent='    ')
 
 
 # ──────────────────────────────────────────────
@@ -577,10 +627,25 @@ def main():
         print(f'\n  Resultado ponderado ({_formula}):')
         resultado = calcular_resultado_ponderado(conn, eleccion['id'], eleccion['tipo'], centros, candidatos)
         if resultado:
-            for cand in candidatos:
-                pct = resultado.get(cand['id'], 0.0)
-                bar = '█' * int(pct / 2)
-                print(f'  {cand["nombre"]:<30}  {pct:4.1f}%  {bar}')
+            if _resultado_es_anidado(resultado):
+                if eleccion['tipo'] == 'regional':
+                    labels = {
+                        c['id_estado']: c.get('estado_nombre') or f'Estado {c["id_estado"]}'
+                        for c in centros
+                    }
+                    _print_resultado_anidado(resultado, candidatos, labels, 'Estado')
+                else:
+                    labels = {
+                        c['id_municipio']: c.get('municipio_nombre') or f'Municipio {c["id_municipio"]}'
+                        for c in centros
+                        if c.get('id_municipio') is not None
+                    }
+                    _print_resultado_anidado(resultado, candidatos, labels, 'Municipio')
+            else:
+                for cand in candidatos:
+                    pct = resultado.get(cand['id'], 0.0)
+                    bar = '█' * int(pct / 2)
+                    print(f'  {cand["nombre"]:<30}  {pct:4.1f}%  {bar}')
         else:
             print('  [sin pesos calculados — se muestran conteos directos]')
 
