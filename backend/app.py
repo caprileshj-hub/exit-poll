@@ -834,6 +834,7 @@ Rules:
 - Put every source column that does not map to the target schema into campos_extra under its original column name.
 - Skip title rows, repeated headers, page numbers, totals, footers, and artifacts.
 - Handle encoding artifacts, uppercase text, accents, and abbreviations such as U.E., E.B., MP., PQ.
+- Treat VARGAS and LA GUAIRA as the same state name when either appears.
 - Return ONLY a JSON object, with no preamble and no markdown fences.
 - The JSON object must have exactly these top-level keys: detected_columns, field_notes, centros, match_hints.
 """
@@ -954,6 +955,13 @@ def _source_match_blob(centro: dict[str, Any]) -> str:
     )
 
 
+def _canonical_estado_name(value: Any) -> str:
+    name = _normalize_match_text(value or "")
+    if name in {"VARGAS", "ESTADO VARGAS", "LA GUAIRA", "ESTADO LA GUAIRA"}:
+        return "LA GUAIRA"
+    return name
+
+
 def _normalize_center_code(value: Any) -> str:
     raw = str(value or "").strip()
     if not raw:
@@ -1015,14 +1023,14 @@ def _registry_entry(row: sqlite3.Row) -> dict[str, Any]:
     item["_codigo_prefix_6"] = item["_codigo_norm"][:6]
     item["_match_blob"] = blob
     item["_tokens"] = _match_tokens(blob)
-    item["_estado_norm"] = _normalize_match_text(row["estado"] or "")
+    item["_estado_norm"] = _canonical_estado_name(row["estado"] or "")
     item["_municipio_norm"] = _normalize_match_text(row["municipio"] or "")
     item["_parroquia_norm"] = _normalize_match_text(row["parroquia"] or "")
     return item
 
 
 def _candidate_registry(centro: dict[str, Any], registry: list[dict[str, Any]], source_tokens: set[str]) -> list[dict[str, Any]]:
-    estado = _normalize_match_text(centro.get("estado") or "")
+    estado = _canonical_estado_name(centro.get("estado") or "")
     municipio = _normalize_match_text(centro.get("municipio") or "")
     parroquia = _normalize_match_text(centro.get("parroquia") or "")
     code_prefix = _geo_code_prefix(centro)
@@ -1167,8 +1175,10 @@ def _match_centros_request(centros: list[dict], hints: Any | None, eleccion_id: 
 
 
 def _obtener_o_crear_geo(db: sqlite3.Connection, estado: str | None, municipio: str | None, parroquia: str | None) -> tuple[int, int | None, int | None]:
-    estado_nom = _normalize_match_text(estado or "SIN ESTADO") or "SIN ESTADO"
+    estado_nom = _canonical_estado_name(estado or "SIN ESTADO") or "SIN ESTADO"
     row = db.execute("SELECT id FROM estados WHERE nombre=?", (estado_nom,)).fetchone()
+    if not row and estado_nom == "LA GUAIRA":
+        row = db.execute("SELECT id FROM estados WHERE nombre IN ('VARGAS', 'ESTADO VARGAS')").fetchone()
     if row:
         id_estado = row["id"]
     else:

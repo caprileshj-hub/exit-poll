@@ -59,6 +59,13 @@ def _normalize_match_text(value: Any) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _canonical_estado_name(value: Any) -> str:
+    name = _normalize_match_text(value or "")
+    if name in {"VARGAS", "ESTADO VARGAS", "LA GUAIRA", "ESTADO LA GUAIRA"}:
+        return "LA GUAIRA"
+    return name
+
+
 def _to_int_or_none(value: Any) -> int | None:
     if value in (None, ""):
         return None
@@ -97,8 +104,10 @@ def _obtener_o_crear_geo(
     municipio: str | None,
     parroquia: str | None,
 ) -> tuple[int, int | None, int | None]:
-    estado_nom = _normalize_match_text(estado or "SIN ESTADO") or "SIN ESTADO"
+    estado_nom = _canonical_estado_name(estado or "SIN ESTADO") or "SIN ESTADO"
     row = conn.execute("SELECT id FROM estados WHERE nombre = ?", (estado_nom,)).fetchone()
+    if not row and estado_nom == "LA GUAIRA":
+        row = conn.execute("SELECT id FROM estados WHERE nombre IN ('VARGAS', 'ESTADO VARGAS')").fetchone()
     if row:
         id_estado = row["id"]
     else:
