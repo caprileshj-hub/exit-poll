@@ -1132,7 +1132,7 @@ async def tm_ai_extract(request: Request, archivo: UploadFile | None = File(None
             tmp_path = UPLOAD_DIR / f"tm_ai_{uuid.uuid4().hex}{ext}"
             tmp_path.write_bytes(data)
             try:
-                text = _read_upload_text(tmp_path, ext)
+                text = await asyncio.to_thread(_read_upload_text, tmp_path, ext)
             finally:
                 tmp_path.unlink(missing_ok=True)
     else:
@@ -1169,7 +1169,13 @@ async def tm_ai_extract(request: Request, archivo: UploadFile | None = File(None
         last_error = None
         for attempt in range(3):
             try:
-                raw = agent.ask_structured(TM_AI_SYSTEM_PROMPT, user_prompt, provider, cfg)
+                raw = await asyncio.to_thread(
+                    agent.ask_structured,
+                    TM_AI_SYSTEM_PROMPT,
+                    user_prompt,
+                    provider,
+                    cfg,
+                )
                 parsed = _extract_json_object(raw)
                 merged["detected_columns"].extend(parsed.get("detected_columns") or [])
                 merged["field_notes"].update(parsed.get("field_notes") or {})
@@ -1178,7 +1184,7 @@ async def tm_ai_extract(request: Request, archivo: UploadFile | None = File(None
                 break
             except Exception as exc:
                 last_error = exc
-                time.sleep(2 ** attempt)
+                await asyncio.sleep(2 ** attempt)
         else:
             merged["field_notes"][f"chunk_{idx}_error"] = str(last_error)
 
