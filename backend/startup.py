@@ -1,5 +1,4 @@
 import os
-import shutil
 import sqlite3
 import subprocess
 import sys
@@ -25,8 +24,7 @@ def table_count(db_path: Path, table: str) -> int:
 def main() -> None:
     os.chdir(ROOT)
 
-    if shutil.which("uvicorn") is None:
-        run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "-q"])
+    run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "-q"])
 
     db_path = ROOT / "exitpoll.db"
     if not db_path.exists():
