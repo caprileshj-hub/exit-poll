@@ -2148,7 +2148,11 @@ async def config_page(request: Request, msg: str = "", cat: str = "success"):
     finally:
         db.close()
 
-    configs = {r["provider"]: dict(r) for r in rows}
+    configs = {}
+    for r in rows:
+        item = dict(r)
+        item.pop("api_key", None)
+        configs[r["provider"]] = item
     return templates.TemplateResponse(request=request, name="config.html", context={
         "providers": AI_PROVIDER_DEFAULTS,
         "configs": configs,
@@ -2172,8 +2176,7 @@ async def config_save(
     db = get_db()
     try:
         ensure_config_table(db)
-        current = db.execute("SELECT api_key FROM config WHERE provider=?", (provider,)).fetchone()
-        saved_key = api_key.strip() or (current["api_key"] if current else None)
+        saved_key = api_key.strip() or None
         db.execute("UPDATE config SET active=0")
         db.execute("""
             INSERT INTO config (provider, api_key, model, temperature, max_tokens, active, updated_at)

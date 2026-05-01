@@ -4,6 +4,11 @@ __pycache__/
 .venv/
 venv/
 
+# Secrets and local config
+.env
+config.ini
+secrets.yaml
+
 # Archivos generados por el sistema (Output)
 graficos/
 graficos_test/
@@ -13,6 +18,9 @@ graficos_test/
 /exit poll/
 
 # BD y archivos generados
+*.db
+*.sqlite
+*.sqlite3
 backend/exitpoll.db
 backend/.env
 backend/static/viz/
