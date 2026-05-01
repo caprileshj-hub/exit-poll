@@ -224,4 +224,19 @@ See [BITACORA.md](./BITACORA.md) for the full development history across all pha
 
 ---
 
+## AI Development Collaboration
+
+This project was developed with the assistance of multiple AI agents
+working in complementary roles:
+
+- **GitHub Copilot** — code completion and security audit across the codebase and Azure configuration
+- **OpenAI Codex** — autonomous implementation, git history rewriting, dependency auditing, and Azure deployment
+- **Google Gemini** — architecture review and public vulnerability surface analysis
+- **Anthropic Claude** — technical decision-making, prompt engineering, and multi-agent orchestration strategy
+
+Each agent contributed distinct capabilities, reflecting a real-world
+multi-agent development workflow where no single model handled everything.
+
+---
+
 *Solo project. Active development since 2024. Built as part of independent consulting work in electoral technology.*
