@@ -73,22 +73,22 @@
         <form method="post" action="/tm/cargar" enctype="multipart/form-data">
             <div class="row g-3 align-items-end">
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">Archivo TM</label>
-                    <input type="file" name="archivo" class="form-control"
+                    <label for="tmArchivo" class="form-label fw-semibold">Archivo TM</label>
+                    <input id="tmArchivo" type="file" name="archivo" class="form-control"
                            accept=".xlsx,.xls,.xlsm,.csv" required>
                     <small class="text-muted">Excel (.xlsx) o CSV estándar</small>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label fw-semibold">Formato</label>
-                    <select name="formato" class="form-select">
+                    <label for="tmFormato" class="form-label fw-semibold">Formato</label>
+                    <select id="tmFormato" name="formato" class="form-select">
                         <option value="auto">Auto-detectar</option>
                         <option value="2015">TM 2015 (AN)</option>
                         <option value="2018">TM 2018 (Pres)</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label fw-semibold">Hoja Excel</label>
-                    <input type="text" name="hoja" class="form-control" placeholder="(auto)">
+                    <label for="tmHoja" class="form-label fw-semibold">Hoja Excel</label>
+                    <input id="tmHoja" type="text" name="hoja" class="form-control" placeholder="(auto)">
                     <small class="text-muted">Dejar vacío = auto</small>
                 </div>
                 <div class="col-md-2">
@@ -129,7 +129,7 @@
     <div class="card-body">
         <div class="row g-3 align-items-end">
             <div class="col-md-4">
-                <label class="form-label fw-semibold">Eleccion destino</label>
+                <label for="aiEleccion" class="form-label fw-semibold">Eleccion destino</label>
                 <select id="aiEleccion" class="form-select" required>
                     <option value="">Seleccione...</option>
                     {% for e in elecciones %}
@@ -140,7 +140,7 @@
                 </select>
             </div>
             <div class="col-md-5">
-                <label class="form-label fw-semibold">Archivos TM</label>
+                <label for="aiFiles" class="form-label fw-semibold">Archivos TM</label>
                 <input id="aiFiles" type="file" class="form-control" multiple
                        accept=".pdf,.xlsx,.xls,.xlsm,.csv,.docx,.txt">
                 <small class="text-muted">Preferencia: extraer texto en el navegador y enviar texto, no binarios.</small>
