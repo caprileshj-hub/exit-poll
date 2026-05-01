@@ -15,6 +15,7 @@ Azure resource group: `exit-poll-rg`
 - `.gitignore` did not cover all local secret/config/database patterns requested for this project.
 - The `/config` page serialized provider configuration into browser JavaScript, including the `api_key` column if a key was stored in SQLite.
 - Azure App Service application settings did not contain `OPENAI_API_KEY` at audit time.
+- Azure production SQLite configuration still contained an old OpenAI API key value, causing `/config/test` to prefer the stored value over the environment fallback.
 - Azure App Service SCM/Kudu access restrictions allow public access.
 - GitHub repository hardening checks showed:
   - Dependabot alerts: disabled.
@@ -49,7 +50,12 @@ Azure resource group: `exit-poll-rg`
 - Updated backend dependency pins:
   - `fastapi==0.136.1`
   - `starlette==0.49.1`
+- Resolved `CVE-2025-54121` and `CVE-2025-62727` by upgrading `starlette` to `0.49.1`.
+- Set `OPENAI_API_KEY` in Azure App Service application settings on 2026-05-01.
+- Cleared the stored SQLite API key through `/config/guardar` on 2026-05-01 so the application uses Azure App Settings.
+- Updated Azure startup behavior so `requirements.txt` is installed reliably before launching the app.
 - Re-ran `pip-audit -r backend/requirements.txt`; result: no known vulnerabilities found.
+- Confirmed `/config/test` returned HTTP 200 with `{"ok": true, "provider": "openai"}` after the Azure key migration.
 
 ## Current Security Posture
 
@@ -60,11 +66,10 @@ Azure resource group: `exit-poll-rg`
 - Root `requirements.txt` audit result: no known vulnerabilities found.
 - Backend `requirements.txt` audit result after remediation: no known vulnerabilities found.
 - Azure App Service currently enforces HTTPS and TLS 1.2.
-- Azure app settings were listed with secret-like values masked; `OPENAI_API_KEY` was not present at audit time.
+- Azure app settings were listed with secret-like values masked; `OPENAI_API_KEY` is present in Azure App Settings as of 2026-05-01.
 
 ## Accepted Risk And Follow-Up
 
-- `OPENAI_API_KEY` still needs to be generated and set in Azure App Service application settings. This is accepted temporarily because the compromised key was already disabled by OpenAI and no replacement key was available during this audit.
 - SCM/Kudu public access remains an accepted temporary risk. Restricting it without a deployment allowlist can break the current GitHub Actions deployment path that uses the Azure publish profile. Recommended follow-up: restrict SCM/Kudu to a known administrative IP range or move deployment to an identity-based workflow that supports tighter SCM restrictions.
 - GitHub repository security settings require manual enablement in GitHub settings, per audit instruction:
   - Enable Dependabot alerts.
