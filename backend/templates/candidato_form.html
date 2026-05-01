@@ -76,7 +76,7 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Tipo</label>
-                    <select name="tipo" class="form-select">
+                    <select name="tipo" class="form-select" id="tipoCandidato">
                         {% for t in ['unico','nominal','lista','indigena'] %}
                         <option value="{{ t }}" {{ 'selected' if candidato and candidato['tipo']==t }}>
                             {{ t|capitalize }}
@@ -91,6 +91,66 @@
                     <label class="form-label fw-semibold">Orden en pantalla</label>
                     <input type="number" name="orden" class="form-control" min="1"
                            value="{{ candidato['orden'] if candidato else 1 }}">
+                </div>
+            </div>
+
+            <div class="row mb-3" id="ambitoEstado">
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Estado</label>
+                    <select name="id_estado" class="form-select">
+                        <option value="0">No aplica</option>
+                        {% for estado in estados %}
+                        <option value="{{ estado['id'] }}" {{ 'selected' if candidato and candidato['id_estado']==estado['id'] }}>
+                            {{ estado['nombre'] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Requerido para regionales y lista por estado.</small>
+                </div>
+            </div>
+
+            <div class="row mb-3" id="ambitoMunicipio">
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Municipio</label>
+                    <select name="id_municipio" class="form-select">
+                        <option value="0">No aplica</option>
+                        {% for municipio in municipios %}
+                        <option value="{{ municipio['id'] }}" {{ 'selected' if candidato and candidato['id_municipio']==municipio['id'] }}>
+                            {{ municipio['estado_nombre'] }} - {{ municipio['nombre'] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Requerido para candidatos municipales.</small>
+                </div>
+            </div>
+
+            <div class="row mb-3" id="ambitoCircuito">
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Circuito</label>
+                    <select name="id_circuito" class="form-select">
+                        <option value="0">No aplica</option>
+                        {% for circuito in circuitos %}
+                        <option value="{{ circuito['id'] }}" {{ 'selected' if candidato and candidato['id_circuito']==circuito['id'] }}>
+                            {{ circuito['estado_nombre'] }} - Circuito {{ circuito['numero'] }}{% if circuito['nombre'] %} ({{ circuito['nombre'] }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Requerido para candidatos nominales de asamblea.</small>
+                </div>
+            </div>
+
+            <div class="row mb-3" id="ambitoIndigena">
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Circunscripcion indigena</label>
+                    <select name="id_circ_indigena" class="form-select">
+                        <option value="0">No aplica</option>
+                        {% for circ in circ_indigenas %}
+                        <option value="{{ circ['id'] }}" {{ 'selected' if candidato and candidato['id_circ_indigena']==circ['id'] }}>
+                            {{ circ['nombre'] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Solo aplica para candidatos indigenas.</small>
                 </div>
             </div>
 
@@ -120,5 +180,23 @@ document.getElementById('inputFoto').addEventListener('change', function(e) {
     };
     reader.readAsDataURL(file);
 });
+
+const tipoCandidato = document.getElementById('tipoCandidato');
+const tipoEleccion = '{{ eleccion["tipo"] }}';
+const ambitos = {
+    estado: document.getElementById('ambitoEstado'),
+    municipio: document.getElementById('ambitoMunicipio'),
+    circuito: document.getElementById('ambitoCircuito'),
+    indigena: document.getElementById('ambitoIndigena')
+};
+function syncAmbitos() {
+    const tipo = tipoCandidato.value;
+    ambitos.estado.style.display = (tipo === 'lista' || (tipo === 'unico' && tipoEleccion === 'regional')) ? '' : 'none';
+    ambitos.municipio.style.display = (tipo === 'unico' && tipoEleccion === 'municipal') ? '' : 'none';
+    ambitos.circuito.style.display = tipo === 'nominal' ? '' : 'none';
+    ambitos.indigena.style.display = tipo === 'indigena' ? '' : 'none';
+}
+tipoCandidato.addEventListener('change', syncAmbitos);
+syncAmbitos();
 </script>
 {% endblock %}

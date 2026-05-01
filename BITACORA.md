@@ -437,3 +437,47 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - El agente ya no analiza ambitos con datos insuficientes; devuelve exactamente `Esa información no está en los datos del exit poll.`.
 - `/chat` aplica el guardrail en backend antes de llamar al proveedor IA.
 - Se reemplazo la terminologia publica de "votos" por "opiniones" en contexto, live dashboard, SSE y respuestas del analista.
+
+---
+
+## 2026-05-01 - Candidatos por ambito, guardrails de suficiencia y test de flujo
+
+### Entorno local Python
+- Se confirmo que el downgrade a Python 3.12 dejo instalado `C:\Users\capri\AppData\Local\Programs\Python\Python312\python.exe`.
+- El entorno `D:\Test\.venv` se reconstruyo con Python 3.12.0.
+- Se reinstalaron dependencias desde `requirements.txt`, `backend/requirements.txt` y `pytest`.
+- Nota operativa: algunos comandos dentro del sandbox pueden seguir sin resolver rutas bajo `C:\Users\capri\AppData\Local\Programs`, pero fuera del sandbox el venv funciona correctamente.
+
+### Formulario de candidatos
+- Se extendio `backend/templates/candidato_form.html` para capturar ambito electoral:
+  - Estado para candidatos `lista` y candidatos `unico` en elecciones regionales.
+  - Municipio para candidatos `unico` en elecciones municipales.
+  - Circuito para candidatos `nominal`.
+  - Circunscripcion indigena para candidatos `indigena`.
+- Se actualizo `backend/app.py` para cargar estados, municipios, circuitos y circunscripciones indigenas en los formularios.
+- El endpoint `/candidatos/guardar` ahora persiste `id_estado`, `id_municipio`, `id_circuito` e `id_circ_indigena`, limpiando los campos que no aplican segun tipo de candidato y tipo de eleccion.
+
+### Guardrails del analista IA
+- La frase obligatoria para datos insuficientes cambio a:
+  - `datos insuficientes para establecer tendencias`
+- `backend/agent.py`, `/chat` y `backend/analista_ia.py` usan la misma frase exacta.
+- `_contexto_analista()` ahora incluye reglas de suficiencia por tipo de eleccion:
+  - Nacional: 100 opiniones, 15% de cobertura, 3 cortes.
+  - Regional: 60 opiniones, 10% de cobertura, 3 cortes.
+  - Municipal: 30 opiniones, 10% de cobertura, 3 cortes.
+  - Asamblea: 60 opiniones, 10% de cobertura, 3 cortes.
+- El contexto tambien incluye suficiencia por estado para bloquear analisis estadales prematuros.
+
+### Test de flujo electoral
+- `test_flujo.py` dejo de probar el core legado aislado y ahora simula una eleccion nacional sobre una base SQLite temporal.
+- El test crea eleccion, candidatos, centros, muestra, encuestadores, SMS crudos y opiniones validas por turnos.
+- Verifica que con 2 cortes y 80 opiniones el analista responda exactamente `datos insuficientes para establecer tendencias`.
+- Verifica que al tercer corte y 120 opiniones el analista ya produzca una lectura de tendencia.
+
+### Validacion
+- `D:\Test\.venv\Scripts\python.exe --version` -> Python 3.12.0.
+- `pytest -q` -> 1 passed.
+- `pytest -q test_flujo.py` -> 1 passed.
+- Import de `backend.app` -> OK.
+- `GET /config` -> 200.
+- `GET /candidatos/nuevo` -> 200.

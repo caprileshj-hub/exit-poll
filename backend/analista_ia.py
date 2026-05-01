@@ -11,7 +11,7 @@ import math
 import unicodedata
 from typing import Any
 
-SIN_DATOS = "Esa información no está en los datos del exit poll."
+SIN_DATOS = "datos insuficientes para establecer tendencias"
 
 
 # ── Utilidades ────────────────────────────────────────────────────────────────
@@ -88,11 +88,15 @@ def clasificar_contexto(contexto: dict[str, Any]) -> dict[str, Any]:
     cobertura = float(contexto.get("cobertura_pct") or 0)
     ventaja = contexto.get("ventaja_actual")
     ventajas = [float(v) for v in contexto.get("ventajas_nacionales") or []]
+    suficiencia = contexto.get("suficiencia") or {}
+    minimo_opiniones = int(suficiencia.get("minimo_opiniones") or 100)
+    minimo_cobertura = float(suficiencia.get("minimo_cobertura_pct") or 15)
+    minimo_cortes = int(suficiencia.get("minimo_cortes") or 3)
 
     margen = _margen_error_aprox(total_votos)
     variacion = _variacion_reciente(ventajas)
 
-    if ventaja is None or total_votos < 100 or cobertura < 15:
+    if ventaja is None or total_votos < minimo_opiniones or cobertura < minimo_cobertura or len(ventajas) < minimo_cortes:
         estado = "insuficiente"
     elif margen is not None and abs(float(ventaja)) <= margen:
         estado = "competitivo"
@@ -123,6 +127,7 @@ def clasificar_contexto(contexto: dict[str, Any]) -> dict[str, Any]:
 def _analizar_estado(nombre_estado: str, contexto: dict[str, Any]) -> dict[str, Any]:
     ventajas_por_estado = contexto.get("ventajas_por_estado") or {}
     tendencias_por_estado = contexto.get("tendencias_por_estado") or {}
+    suficiencia_estados = (contexto.get("suficiencia") or {}).get("estados") or {}
     candidatos = contexto.get("candidatos") or {}
     hora = contexto.get("hora_actual") or "este corte"
 
@@ -136,7 +141,8 @@ def _analizar_estado(nombre_estado: str, contexto: dict[str, Any]) -> dict[str, 
     gob = candidatos.get("gobierno", "Gobierno")
     opo = candidatos.get("oposicion", "Oposición")
 
-    if ventaja is None or n_puntos < 3:
+    estado_suf = suficiencia_estados.get(nombre_estado) or {}
+    if ventaja is None or n_puntos < 3 or not estado_suf.get("datos_suficientes", False):
         resumen = SIN_DATOS
         estado_lec = "sin_datos"
     else:
@@ -187,12 +193,15 @@ def _analizar_candidato(bando: str, contexto: dict[str, Any]) -> dict[str, Any]:
     ventaja_nac = contexto.get("ventaja_actual")
     total_votos = int(contexto.get("total_votos") or 0)
     cobertura = float(contexto.get("cobertura_pct") or 0)
+    suficiencia = contexto.get("suficiencia") or {}
+    minimo_opiniones = int(suficiencia.get("minimo_opiniones") or 100)
+    minimo_cobertura = float(suficiencia.get("minimo_cobertura_pct") or 15)
     hora = contexto.get("hora_actual") or "este corte"
 
     nombre = candidatos.get(bando, bando)
     es_gobierno = bando == "gobierno"
 
-    if total_votos < 100 or cobertura < 15:
+    if total_votos < minimo_opiniones or cobertura < minimo_cobertura or not suficiencia.get("datos_suficientes", False):
         return {
             "estado": "insuficiente",
             "ambito": nombre,
@@ -310,7 +319,7 @@ def _analizar_nacional(contexto: dict[str, Any], pregunta: str) -> dict[str, Any
             f"{_fmt_pct(cobertura)}. La ventaja existe, pero todavía debe monitorearse en cortes posteriores."
         )
 
-    if any(p in pregunta_l for p in ("gana", "ganar", "ganador", "perdio", "perder")):
+    if resumen != SIN_DATOS and any(p in pregunta_l for p in ("gana", "ganar", "ganador", "perdio", "perder")):
         resumen += (
             " En particular, ante preguntas sobre quién gana, este analista solo puede "
             "hablar de ventaja observada o tendencia; no declara ganadores."

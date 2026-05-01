@@ -229,12 +229,28 @@ async def candidato_form(request: Request):
     db = get_db()
     eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
     estados = db.execute("SELECT * FROM estados ORDER BY nombre").fetchall()
+    municipios = db.execute(
+        """SELECT mu.*, e.nombre AS estado_nombre
+           FROM municipios mu
+           JOIN estados e ON e.id = mu.id_estado
+           ORDER BY e.nombre, mu.nombre"""
+    ).fetchall()
+    circuitos = db.execute(
+        """SELECT ci.*, e.nombre AS estado_nombre
+           FROM circuitos ci
+           JOIN estados e ON e.id = ci.id_estado
+           ORDER BY e.nombre, ci.numero"""
+    ).fetchall()
+    circ_indigenas = db.execute("SELECT * FROM circunscripciones_indigenas ORDER BY nombre").fetchall()
     db.close()
     if not eleccion:
         return RedirectResponse("/elecciones?msg=Primero+active+una+elección&cat=warning", status_code=303)
     return templates.TemplateResponse(request=request, name="candidato_form.html", context={
         "candidato": None, "eleccion": eleccion,
-        "estados": estados
+        "estados": estados,
+        "municipios": municipios,
+        "circuitos": circuitos,
+        "circ_indigenas": circ_indigenas,
     })
 
 
@@ -247,10 +263,26 @@ async def candidato_edit(request: Request, cid: int):
         raise HTTPException(404)
     eleccion = db.execute("SELECT * FROM elecciones WHERE id=?", (row["id_eleccion"],)).fetchone()
     estados = db.execute("SELECT * FROM estados ORDER BY nombre").fetchall()
+    municipios = db.execute(
+        """SELECT mu.*, e.nombre AS estado_nombre
+           FROM municipios mu
+           JOIN estados e ON e.id = mu.id_estado
+           ORDER BY e.nombre, mu.nombre"""
+    ).fetchall()
+    circuitos = db.execute(
+        """SELECT ci.*, e.nombre AS estado_nombre
+           FROM circuitos ci
+           JOIN estados e ON e.id = ci.id_estado
+           ORDER BY e.nombre, ci.numero"""
+    ).fetchall()
+    circ_indigenas = db.execute("SELECT * FROM circunscripciones_indigenas ORDER BY nombre").fetchall()
     db.close()
     return templates.TemplateResponse(request=request, name="candidato_form.html", context={
         "candidato": row, "eleccion": eleccion,
-        "estados": estados
+        "estados": estados,
+        "municipios": municipios,
+        "circuitos": circuitos,
+        "circ_indigenas": circ_indigenas,
     })
 
 
@@ -263,9 +295,39 @@ async def candidato_save(
     partido: str = Form(""),
     bando: str = Form("otro"),
     tipo: str = Form("unico"),
+    id_estado: int = Form(0),
+    id_municipio: int = Form(0),
+    id_circuito: int = Form(0),
+    id_circ_indigena: int = Form(0),
     orden: int = Form(1),
     foto: UploadFile = File(None),
 ):
+    id_estado_db = id_estado or None
+    id_municipio_db = id_municipio or None
+    id_circuito_db = id_circuito or None
+    id_circ_indigena_db = id_circ_indigena or None
+    db_meta = get_db()
+    try:
+        eleccion_meta = db_meta.execute(
+            "SELECT tipo FROM elecciones WHERE id=?", (id_eleccion,)
+        ).fetchone()
+        tipo_eleccion = eleccion_meta["tipo"] if eleccion_meta else "nacional"
+    finally:
+        db_meta.close()
+
+    if tipo == "unico" and tipo_eleccion == "regional":
+        id_municipio_db = id_circuito_db = id_circ_indigena_db = None
+    elif tipo == "unico" and tipo_eleccion == "municipal":
+        id_estado_db = id_circuito_db = id_circ_indigena_db = None
+    elif tipo == "unico":
+        id_estado_db = id_municipio_db = id_circuito_db = id_circ_indigena_db = None
+    elif tipo == "lista":
+        id_municipio_db = id_circuito_db = id_circ_indigena_db = None
+    elif tipo == "nominal":
+        id_municipio_db = id_circ_indigena_db = None
+    elif tipo == "indigena":
+        id_estado_db = id_municipio_db = id_circuito_db = None
+
     foto_url = None
     if foto and foto.filename:
         ext = Path(foto.filename).suffix.lower()
@@ -284,22 +346,42 @@ async def candidato_save(
         if foto_url:
             db.execute(
                 """UPDATE candidatos
-                   SET nombre=?, partido=?, bando=?, tipo=?, orden=?, foto_url=?
+                   SET nombre=?, partido=?, bando=?, tipo=?,
+                       id_estado=?, id_municipio=?, id_circuito=?, id_circ_indigena=?,
+                       orden=?, foto_url=?
                    WHERE id=?""",
-                (nombre, partido, bando, tipo, orden, foto_url, cid),
+                (
+                    nombre, partido, bando, tipo,
+                    id_estado_db, id_municipio_db, id_circuito_db, id_circ_indigena_db,
+                    orden, foto_url, cid,
+                ),
             )
         else:
             db.execute(
                 """UPDATE candidatos
-                   SET nombre=?, partido=?, bando=?, tipo=?, orden=?
+                   SET nombre=?, partido=?, bando=?, tipo=?,
+                       id_estado=?, id_municipio=?, id_circuito=?, id_circ_indigena=?,
+                       orden=?
                    WHERE id=?""",
-                (nombre, partido, bando, tipo, orden, cid),
+                (
+                    nombre, partido, bando, tipo,
+                    id_estado_db, id_municipio_db, id_circuito_db, id_circ_indigena_db,
+                    orden, cid,
+                ),
             )
     else:
         db.execute(
-            """INSERT INTO candidatos (id_eleccion, nombre, partido, bando, tipo, orden, foto_url)
-               VALUES (?,?,?,?,?,?,?)""",
-            (id_eleccion, nombre, partido, bando, tipo, orden, foto_url),
+            """INSERT INTO candidatos (
+                   id_eleccion, nombre, partido, bando, tipo,
+                   id_estado, id_municipio, id_circuito, id_circ_indigena,
+                   orden, foto_url
+               )
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                id_eleccion, nombre, partido, bando, tipo,
+                id_estado_db, id_municipio_db, id_circuito_db, id_circ_indigena_db,
+                orden, foto_url,
+            ),
         )
     db.commit()
     db.close()
@@ -1325,6 +1407,7 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
         }
 
     eid = eleccion["id"]
+    tipo_eleccion = eleccion["tipo"]
     datos_ventaja, datos_tendencia, total_votos = _datos_vivos(db, eid)
     muestra_total = db.execute(
         "SELECT COUNT(*) c FROM muestra WHERE id_eleccion=? AND activo=1",
@@ -1356,10 +1439,57 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
         candidato_abajo = candidatos_dict.get("gobierno", "Gobierno")
 
     tendencias_por_estado = {k: v for k, v in datos_tendencia.items() if k != "VENEZUELA"}
+    cortes_nacionales = len(puntos_nac)
+    reglas = {
+        "nacional": {"minimo_opiniones": 100, "minimo_cobertura_pct": 15, "minimo_cortes": 3},
+        "regional": {"minimo_opiniones": 60, "minimo_cobertura_pct": 10, "minimo_cortes": 3},
+        "municipal": {"minimo_opiniones": 30, "minimo_cobertura_pct": 10, "minimo_cortes": 3},
+        "asamblea": {"minimo_opiniones": 60, "minimo_cobertura_pct": 10, "minimo_cortes": 3},
+    }
+    regla = reglas.get(tipo_eleccion, reglas["nacional"])
+    estados_suf = {}
+    rows_estado_suf = db.execute("""
+        SELECT
+            est.nombre AS estado,
+            COUNT(v.id) AS opiniones,
+            COUNT(DISTINCT v.codigo_centro) AS centros_reportando,
+            COUNT(DISTINCT m.codigo_centro) AS centros_muestra,
+            COUNT(DISTINCT v.turno) AS cortes
+        FROM muestra m
+        JOIN centros c ON c.codigo_cne = m.codigo_centro
+        JOIN estados est ON est.id = c.id_estado
+        LEFT JOIN votos v
+          ON v.codigo_centro = m.codigo_centro
+         AND v.valido = 1
+        WHERE m.id_eleccion = ? AND m.activo = 1
+        GROUP BY est.id
+    """, (eid,)).fetchall()
+    for r in rows_estado_suf:
+        nombre = _norm_estado(r["estado"])
+        centros_estado = int(r["centros_muestra"] or 0)
+        cobertura_estado = round(100 * int(r["centros_reportando"] or 0) / centros_estado, 1) if centros_estado else 0
+        opiniones_estado = int(r["opiniones"] or 0)
+        cortes_estado = int(r["cortes"] or 0)
+        estados_suf[nombre] = {
+            "opiniones": opiniones_estado,
+            "cobertura_pct": cobertura_estado,
+            "cortes": cortes_estado,
+            "datos_suficientes": (
+                opiniones_estado >= regla["minimo_opiniones"]
+                and cobertura_estado >= regla["minimo_cobertura_pct"]
+                and cortes_estado >= regla["minimo_cortes"]
+            ),
+        }
+    datos_suficientes = (
+        total_votos >= regla["minimo_opiniones"]
+        and (round(100 * centros_reportando / muestra_total, 1) if muestra_total else 0) >= regla["minimo_cobertura_pct"]
+        and cortes_nacionales >= regla["minimo_cortes"]
+    )
 
     return {
         "ok": True,
         "eleccion": eleccion["nombre"],
+        "tipo_eleccion": tipo_eleccion,
         "hora_actual": hora_actual,
         "total_votos": total_votos,
         "total_opiniones": total_votos,
@@ -1373,6 +1503,12 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
         "ventajas_por_estado": datos_ventaja,
         "tendencias_por_estado": tendencias_por_estado,
         "candidatos": candidatos_dict,
+        "suficiencia": {
+            **regla,
+            "cortes": cortes_nacionales,
+            "datos_suficientes": datos_suficientes,
+            "estados": estados_suf,
+        },
     }
 
 
@@ -1492,7 +1628,7 @@ async def chat(request: Request):
     context = get_contexto_centro(centro_id)
     if not context.get("datos_suficientes"):
         return StreamingResponse(
-            iter(["Esa información no está en los datos del exit poll."]),
+            iter(["datos insuficientes para establecer tendencias"]),
             media_type="text/plain; charset=utf-8",
         )
     sys.path.insert(0, str(BASE_DIR))

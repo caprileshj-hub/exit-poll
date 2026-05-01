@@ -19,7 +19,7 @@ ANOMALÍA: [algo estadísticamente inusual, o "ninguna detectada"]
 PROYECCIÓN: [dirección probable al cierre basada en la tendencia actual]
 
 Si la pregunta no puede responderse con los datos disponibles, responde 
-exactamente: "Esa información no está en los datos del exit poll."
+exactamente: "datos insuficientes para establecer tendencias"
 No especules. No uses conocimiento externo. Temperatura mental: mínima.
 """
 
