@@ -817,8 +817,11 @@ Do not assume a fixed column structure. Infer fields from headers and values. Pa
 
 Target internal schema keys for each row:
 - estado
+- cod_estado
 - municipio
+- cod_municipio
 - parroquia
+- cod_parroquia
 - nombre_centro
 - codigo_centro
 - num_mesas
@@ -951,6 +954,44 @@ def _source_match_blob(centro: dict[str, Any]) -> str:
     )
 
 
+def _normalize_center_code(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    first_part = raw.split(".", 1)[0].strip()
+    if first_part.isdigit() and len(first_part) >= 6:
+        return first_part
+    digits = re.sub(r"\D+", "", raw)
+    return digits or raw.upper()
+
+
+def _digits_code(value: Any) -> str:
+    return re.sub(r"\D+", "", str(value or ""))
+
+
+def _geo_code_prefix(centro: dict[str, Any]) -> str:
+    estado = _digits_code(centro.get("cod_estado"))
+    municipio = _digits_code(centro.get("cod_municipio"))
+    parroquia = _digits_code(centro.get("cod_parroquia"))
+    if estado:
+        prefix = estado.zfill(2)[-2:]
+        if municipio:
+            prefix += municipio.zfill(2)[-2:]
+        if parroquia:
+            prefix += parroquia.zfill(2)[-2:]
+        return prefix
+
+    codigo = _normalize_center_code(centro.get("codigo_centro") or centro.get("codigo_cne"))
+    if codigo.isdigit():
+        if len(codigo) >= 6:
+            return codigo[:6]
+        if len(codigo) >= 4:
+            return codigo[:4]
+        if len(codigo) >= 2:
+            return codigo[:2]
+    return ""
+
+
 GENERIC_MATCH_TOKENS = {
     "CENTRO", "ELECTORAL", "UNIDAD", "EDUCATIVA", "ESCUELA", "BASICA",
     "LICEO", "NACIONAL", "BOLIVARIANA", "GRUPO", "COLEGIO", "MUNICIPIO",
@@ -968,6 +1009,10 @@ def _match_tokens(text: str) -> set[str]:
 def _registry_entry(row: sqlite3.Row) -> dict[str, Any]:
     item = dict(row)
     blob = _center_match_blob(row)
+    item["_codigo_norm"] = _normalize_center_code(row["codigo_cne"])
+    item["_codigo_prefix_2"] = item["_codigo_norm"][:2]
+    item["_codigo_prefix_4"] = item["_codigo_norm"][:4]
+    item["_codigo_prefix_6"] = item["_codigo_norm"][:6]
     item["_match_blob"] = blob
     item["_tokens"] = _match_tokens(blob)
     item["_estado_norm"] = _normalize_match_text(row["estado"] or "")
@@ -980,16 +1025,23 @@ def _candidate_registry(centro: dict[str, Any], registry: list[dict[str, Any]], 
     estado = _normalize_match_text(centro.get("estado") or "")
     municipio = _normalize_match_text(centro.get("municipio") or "")
     parroquia = _normalize_match_text(centro.get("parroquia") or "")
+    code_prefix = _geo_code_prefix(centro)
 
     pool = registry
+    if code_prefix:
+        prefix_key = f"_codigo_prefix_{len(code_prefix)}"
+        by_code = [r for r in registry if r.get(prefix_key) == code_prefix]
+        if by_code:
+            pool = by_code
+
     if municipio:
         by_municipio = [r for r in registry if r["_municipio_norm"] == municipio]
         if by_municipio:
-            pool = by_municipio
+            pool = [r for r in pool if r in by_municipio] or by_municipio
     elif estado:
         by_estado = [r for r in registry if r["_estado_norm"] == estado]
         if by_estado:
-            pool = by_estado
+            pool = [r for r in pool if r in by_estado] or by_estado
 
     if parroquia:
         by_parroquia = [r for r in pool if r["_parroquia_norm"] == parroquia]
@@ -1047,7 +1099,7 @@ def _registry_rows(db: sqlite3.Connection) -> list[sqlite3.Row]:
 
 def _match_centros(db: sqlite3.Connection, centros: list[dict], hints: Any | None = None) -> dict[str, Any]:
     registry = [_registry_entry(row) for row in _registry_rows(db)]
-    by_code = {str(r["codigo_cne"]).strip(): r for r in registry}
+    by_code = {r["_codigo_norm"]: r for r in registry if r["_codigo_norm"]}
     rows = []
     stats = {"MATCHED": 0, "NEW": 0, "AMBIGUOUS": 0, "CONFLICT": 0, "EXTRACTION_ERROR": 0}
 
@@ -1058,7 +1110,7 @@ def _match_centros(db: sqlite3.Connection, centros: list[dict], hints: Any | Non
             stats[status] += 1
             continue
 
-        codigo = str(centro.get("codigo_centro") or "").strip()
+        codigo = _normalize_center_code(centro.get("codigo_centro") or centro.get("codigo_cne"))
         exact = by_code.get(codigo)
         if exact:
             status = "MATCHED"
