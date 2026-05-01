@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from typing import Any, Iterator
 
@@ -59,8 +60,8 @@ def _provider_config(provider: str, overrides: dict[str, Any] | None = None) -> 
     cfg["model"] = cfg.get("model") or AI_PROVIDERS[provider]["model"]
     cfg["temperature"] = float(cfg.get("temperature", 0.3))
     cfg["max_tokens"] = int(cfg.get("max_tokens", 300))
-    # API key priority: 1) Azure App Settings (env var), 2) SQLite config table
-    # To reset to env var, clear the SQLite field via /config/guardar with blank key
+    # API key priority: 1) Azure App Settings/env var, 2) SQLite config table.
+    # This avoids keeping production tied to an old key saved in SQLite.
     cfg["api_key"] = os.getenv(cfg["env_key"]) or cfg.get("api_key")
     if not cfg["api_key"]:
         raise RuntimeError(f"Falta API key para {provider}. Configure {cfg['env_key']} o la tabla config.")
@@ -178,3 +179,13 @@ def ask_structured(
         request["response_format"] = {"type": "json_object"}
     response = client.chat.completions.create(**request)
     return response.choices[0].message.content or ""
+
+
+async def ask_structured_async(
+    system_prompt: str,
+    user_prompt: str,
+    provider: str,
+    config: dict[str, Any] | None = None,
+) -> str:
+    """Single-shot text completion (asynchronous to prevent event loop blocking)."""
+    return await asyncio.to_thread(ask_structured, system_prompt, user_prompt, provider, config)

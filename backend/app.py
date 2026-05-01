@@ -1185,8 +1185,7 @@ async def tm_ai_extract(request: Request, archivo: UploadFile | None = File(None
         last_error = None
         for attempt in range(TM_AI_MAX_ATTEMPTS):
             try:
-                raw = await asyncio.to_thread(
-                    agent.ask_structured,
+                raw = await agent.ask_structured_async(
                     TM_AI_SYSTEM_PROMPT,
                     user_prompt,
                     provider,
