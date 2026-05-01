@@ -59,7 +59,9 @@ def _provider_config(provider: str, overrides: dict[str, Any] | None = None) -> 
     cfg["model"] = cfg.get("model") or AI_PROVIDERS[provider]["model"]
     cfg["temperature"] = float(cfg.get("temperature", 0.3))
     cfg["max_tokens"] = int(cfg.get("max_tokens", 300))
-    cfg["api_key"] = cfg.get("api_key") or os.getenv(cfg["env_key"])
+    # API key priority: 1) Azure App Settings (env var), 2) SQLite config table
+    # To reset to env var, clear the SQLite field via /config/guardar with blank key
+    cfg["api_key"] = os.getenv(cfg["env_key"]) or cfg.get("api_key")
     if not cfg["api_key"]:
         raise RuntimeError(f"Falta API key para {provider}. Configure {cfg['env_key']} o la tabla config.")
     return cfg
