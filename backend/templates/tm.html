@@ -279,9 +279,55 @@ const statusClass = {
   CONFLICT: 'danger',
   EXTRACTION_ERROR: 'secondary'
 };
+const AI_CLIENT_CHUNK_SIZE = 8000;
 
 function setProgress(msg) {
   document.getElementById('aiProgress').textContent = msg;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function chunkTextForAI(text, chunkSize = AI_CLIENT_CHUNK_SIZE) {
+  text = text || '';
+  if (text.length <= chunkSize) return [text];
+  const chunks = [];
+  let pos = 0;
+  while (pos < text.length) {
+    let end = Math.min(text.length, pos + chunkSize);
+    let cut = text.lastIndexOf('\n', end);
+    if (cut <= pos + 1000) cut = end;
+    chunks.push(text.slice(pos, cut));
+    pos = cut;
+  }
+  return chunks;
+}
+
+function emptyAiResult(sourceFile) {
+  return {ok: true, source_file: sourceFile, detected_columns: [], field_notes: {}, centros: [], match_hints: []};
+}
+
+function mergeAiResult(target, result) {
+  target.detected_columns.push(...(result.detected_columns || []));
+  Object.assign(target.field_notes, result.field_notes || {});
+  target.centros.push(...(result.centros || []));
+  target.match_hints.push(...(result.match_hints || []));
+}
+
+async function postAiExtract(payload, attempts = 2) {
+  let lastError = '';
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const r = await fetch('/api/tm/ai-extract', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if (r.ok) return await r.json();
+    lastError = await r.text();
+    if (attempt < attempts - 1) await sleep(1200 * (attempt + 1));
+  }
+  return {ok: false, field_notes: {http_error: lastError || 'ai-extract failed'}};
 }
 
 async function extractTextClient(file) {
@@ -323,19 +369,31 @@ async function aiExtractFile(file, eleccionId) {
     console.warn('client extraction failed', err);
   }
   if (text.trim()) {
-    const r = await fetch('/api/tm/ai-extract', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({eleccion_id: eleccionId, source_file: file.name, text})
-    });
-    return await r.json();
+    const chunks = chunkTextForAI(text);
+    const merged = emptyAiResult(file.name);
+    for (let i = 0; i < chunks.length; i++) {
+      setProgress('Procesando ' + file.name + ': AI lote ' + (i + 1) + '/' + chunks.length + '...');
+      const data = await postAiExtract({
+        eleccion_id: eleccionId,
+        source_file: file.name + ' lote ' + (i + 1) + '/' + chunks.length,
+        text: chunks[i]
+      });
+      if (!data.ok) {
+        merged.field_notes['chunk_' + (i + 1) + '_error'] = data.raw_text_sample || JSON.stringify(data.field_notes || data);
+        continue;
+      }
+      mergeAiResult(merged, data);
+    }
+    merged.detected_columns = [...new Set(merged.detected_columns.map(String))];
+    return merged.centros.length ? {...merged, ok: true} : {...merged, ok: false};
   }
   const form = new FormData();
   form.append('eleccion_id', eleccionId);
   form.append('source_file', file.name);
   form.append('archivo', file);
   const r = await fetch('/api/tm/ai-extract', {method: 'POST', body: form});
-  return await r.json();
+  if (r.ok) return await r.json();
+  return {ok: false, raw_text_sample: await r.text()};
 }
 
 function renderPreview(result) {
