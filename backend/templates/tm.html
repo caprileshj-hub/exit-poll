@@ -113,7 +113,7 @@
             <ul class="mb-0 mt-1">
                 <li>Centros nuevos se agregan</li>
                 <li>Centros existentes se actualizan (mesas, electores)</li>
-                <li>Centros ausentes se marcan inactivos (no se eliminan)</li>
+                <li>Centros ausentes se marcan inactivos solo dentro de los estados incluidos en el archivo</li>
                 <li>Coordenadas GPS y riesgo nunca se sobreescriben</li>
             </ul>
         </div>
@@ -199,6 +199,7 @@
                 <li><code>num_mesas</code> y <code>num_electores</code> se actualizan si vienen en el archivo.</li>
                 <li><code>direccion</code> solo se completa si el centro no la tenia.</li>
                 <li>GPS, riesgo y radio operativo no se sobreescriben desde tabla de mesa.</li>
+                <li>La confirmacion es acumulativa por estado: cargar La Guaira no desactiva otros estados ya cargados.</li>
                 <li>Filas AMBIGUOUS y CONFLICT bloquean la confirmacion hasta resolverse.</li>
             </ul>
         </div>

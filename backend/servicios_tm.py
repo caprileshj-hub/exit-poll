@@ -61,7 +61,7 @@ def _normalize_match_text(value: Any) -> str:
 
 def _canonical_estado_name(value: Any) -> str:
     name = _normalize_match_text(value or "")
-    if name in {"VARGAS", "ESTADO VARGAS", "LA GUAIRA", "ESTADO LA GUAIRA"}:
+    if name in {"VARGAS", "EDO VARGAS", "ESTADO VARGAS", "LA GUAIRA", "EDO LA GUAIRA", "ESTADO LA GUAIRA"}:
         return "LA GUAIRA"
     return name
 
@@ -71,6 +71,31 @@ def _to_int_or_none(value: Any) -> int | None:
         return None
     match = re.search(r"\d+", str(value).replace(".", "").replace(",", ""))
     return int(match.group(0)) if match else None
+
+
+def _normalize_center_code(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    first_part = raw.split(".", 1)[0].strip()
+    if first_part.isdigit() and len(first_part) >= 6:
+        return first_part
+    digits = re.sub(r"\D+", "", raw)
+    return digits or raw.upper()
+
+
+def _digits_code(value: Any) -> str:
+    return re.sub(r"\D+", "", str(value or ""))
+
+
+def _estado_code_from_centro(centro: dict[str, Any], codigo: str | None = None) -> str:
+    estado = _digits_code(centro.get("cod_estado"))
+    if estado:
+        return estado.zfill(2)[-2:]
+    codigo_norm = _normalize_center_code(codigo or centro.get("codigo_centro") or centro.get("codigo_cne"))
+    if codigo_norm.isdigit() and len(codigo_norm) >= 2:
+        return codigo_norm[:2]
+    return ""
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -98,21 +123,52 @@ def _ensure_tm_ai_tables(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_ec_centro ON election_centers(centro_id)")
 
 
+def _estado_rows(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute("SELECT id, codigo_cne, nombre FROM estados").fetchall()
+
+
+def _estado_ids_by_canonical(conn: sqlite3.Connection, canonical_name: str) -> set[int]:
+    if not canonical_name:
+        return set()
+    return {
+        row["id"] for row in _estado_rows(conn)
+        if _canonical_estado_name(row["nombre"]) == canonical_name
+    }
+
+
+def _estado_row_for_centro(conn: sqlite3.Connection, centro: dict[str, Any], codigo: str | None = None) -> sqlite3.Row | None:
+    estado_code = _estado_code_from_centro(centro, codigo)
+    if estado_code:
+        for row in _estado_rows(conn):
+            if _digits_code(row["codigo_cne"]).zfill(2)[-2:] == estado_code:
+                return row
+
+    canonical_name = _canonical_estado_name(centro.get("estado") or "")
+    if canonical_name:
+        for row in _estado_rows(conn):
+            if _canonical_estado_name(row["nombre"]) == canonical_name:
+                return row
+    return None
+
+
 def _obtener_o_crear_geo(
     conn: sqlite3.Connection,
     estado: str | None,
     municipio: str | None,
     parroquia: str | None,
+    cod_estado: str | None = None,
+    codigo_centro: str | None = None,
 ) -> tuple[int, int | None, int | None]:
     estado_nom = _canonical_estado_name(estado or "SIN ESTADO") or "SIN ESTADO"
-    row = conn.execute("SELECT id FROM estados WHERE nombre = ?", (estado_nom,)).fetchone()
-    if not row and estado_nom == "LA GUAIRA":
-        row = conn.execute("SELECT id FROM estados WHERE nombre IN ('VARGAS', 'ESTADO VARGAS')").fetchone()
+    row = _estado_row_for_centro(conn, {"estado": estado, "cod_estado": cod_estado}, codigo_centro)
     if row:
         id_estado = row["id"]
     else:
-        total = conn.execute("SELECT COUNT(*) c FROM estados").fetchone()["c"]
-        conn.execute("INSERT INTO estados (codigo_cne, nombre) VALUES (?, ?)", (f"AI{total + 1:02d}", estado_nom))
+        code = _estado_code_from_centro({"cod_estado": cod_estado}, codigo_centro)
+        if not code:
+            total = conn.execute("SELECT COUNT(*) c FROM estados").fetchone()["c"]
+            code = f"AI{total + 1:02d}"
+        conn.execute("INSERT INTO estados (codigo_cne, nombre) VALUES (?, ?)", (code, estado_nom))
         id_estado = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
     id_municipio = None
@@ -170,8 +226,49 @@ def _codigo_desde_item(item: dict[str, Any], centro: dict[str, Any], eleccion_id
         or centro.get("codigo_centro")
         or centro.get("codigo_cne")
     )
-    codigo = str(codigo or "").strip()
+    codigo = _normalize_center_code(codigo)
     return codigo or f"AI_{eleccion_id}_{uuid.uuid4().hex[:12]}"
+
+
+def _confirmed_estado_ids(conn: sqlite3.Connection, rows: list[dict[str, Any]]) -> list[int]:
+    ids: set[int] = set()
+    for item in rows:
+        if item.get("match_status") == "EXTRACTION_ERROR":
+            continue
+        centro = _centro_desde_item(item)
+        codigo = _codigo_desde_item(item, centro, 0)
+
+        if codigo:
+            existing = conn.execute("SELECT id_estado FROM centros WHERE codigo_cne = ?", (codigo,)).fetchone()
+            if existing and existing["id_estado"] is not None:
+                ids.add(existing["id_estado"])
+
+        row = _estado_row_for_centro(conn, centro, codigo)
+        if row:
+            ids.add(row["id"])
+
+        canonical = _canonical_estado_name(centro.get("estado") or "")
+        ids.update(_estado_ids_by_canonical(conn, canonical))
+
+    return sorted(ids)
+
+
+def _deactivate_tm_scope(conn: sqlite3.Connection, eleccion_id: int, estado_ids: list[int]) -> None:
+    if not estado_ids:
+        return
+    placeholders = ",".join("?" for _ in estado_ids)
+    conn.execute(f"UPDATE centros SET activo = 0 WHERE id_estado IN ({placeholders})", estado_ids)
+    conn.execute(
+        f"""
+        UPDATE election_centers
+        SET eligible = 0, updated_at = datetime('now')
+        WHERE eleccion_id = ?
+          AND centro_id IN (
+              SELECT codigo_cne FROM centros WHERE id_estado IN ({placeholders})
+          )
+        """,
+        [eleccion_id, *estado_ids],
+    )
 
 
 def _upsert_centro_confirmado(
@@ -206,6 +303,8 @@ def _upsert_centro_confirmado(
             centro.get("estado"),
             centro.get("municipio"),
             centro.get("parroquia"),
+            centro.get("cod_estado"),
+            codigo,
         )
         conn.execute("""
             INSERT INTO centros (
@@ -252,16 +351,14 @@ def procesar_confirmacion_tm(
     It preserves lat/lon/riesgo, deactivates absent centers, clears previous
     election eligibility, and reactivates only confirmed centers.
     """
-    stats = {"processed": 0, "written": 0, "skipped": 0}
+    stats = {"processed": 0, "written": 0, "skipped": 0, "scope_estados": 0}
     conn = _connect(db_path)
     try:
         _ensure_tm_ai_tables(conn)
+        affected_estado_ids = _confirmed_estado_ids(conn, rows)
+        stats["scope_estados"] = len(affected_estado_ids)
         conn.execute("BEGIN IMMEDIATE")
-        conn.execute("UPDATE centros SET activo = 0")
-        conn.execute(
-            "UPDATE election_centers SET eligible = 0, updated_at = datetime('now') WHERE eleccion_id = ?",
-            (eleccion_id,),
-        )
+        _deactivate_tm_scope(conn, eleccion_id, affected_estado_ids)
 
         for item in rows:
             stats["processed"] += 1

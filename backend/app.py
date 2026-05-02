@@ -716,7 +716,7 @@ async def tm_index(request: Request, msg: str = "", cat: str = "success"):
     elecciones = db.execute("SELECT id, nombre, tipo, fecha, activa FROM elecciones ORDER BY activa DESC, fecha DESC").fetchall()
 
     # Resumen por estado
-    por_estado = db.execute(
+    por_estado_raw = db.execute(
         """SELECT e.nombre, COUNT(c.codigo_cne) as centros,
                   SUM(c.num_electores) as electores, SUM(c.num_mesas) as mesas,
                   SUM(CASE WHEN c.lat IS NOT NULL THEN 1 ELSE 0 END) as con_gps
@@ -725,6 +725,16 @@ async def tm_index(request: Request, msg: str = "", cat: str = "success"):
            WHERE c.activo=1
            GROUP BY e.id ORDER BY e.nombre"""
     ).fetchall()
+    por_estado_map = {}
+    for row in por_estado_raw:
+        key = _canonical_estado_name(row["nombre"])
+        nombre = "LA GUAIRA" if key == "LA GUAIRA" else row["nombre"]
+        agg = por_estado_map.setdefault(nombre, {"nombre": nombre, "centros": 0, "electores": 0, "mesas": 0, "con_gps": 0})
+        agg["centros"] += int(row["centros"] or 0)
+        agg["electores"] += int(row["electores"] or 0)
+        agg["mesas"] += int(row["mesas"] or 0)
+        agg["con_gps"] += int(row["con_gps"] or 0)
+    por_estado = sorted(por_estado_map.values(), key=lambda r: r["nombre"])
     db.close()
     return templates.TemplateResponse(request=request, name="tm.html", context={
         "stats": stats, "por_estado": por_estado,
@@ -957,7 +967,7 @@ def _source_match_blob(centro: dict[str, Any]) -> str:
 
 def _canonical_estado_name(value: Any) -> str:
     name = _normalize_match_text(value or "")
-    if name in {"VARGAS", "ESTADO VARGAS", "LA GUAIRA", "ESTADO LA GUAIRA"}:
+    if name in {"VARGAS", "EDO VARGAS", "ESTADO VARGAS", "LA GUAIRA", "EDO LA GUAIRA", "ESTADO LA GUAIRA"}:
         return "LA GUAIRA"
     return name
 
@@ -998,6 +1008,49 @@ def _geo_code_prefix(centro: dict[str, Any]) -> str:
         if len(codigo) >= 2:
             return codigo[:2]
     return ""
+
+
+def _estado_code_from_centro(centro: dict[str, Any], codigo: str | None = None) -> str:
+    estado = _digits_code(centro.get("cod_estado"))
+    if estado:
+        return estado.zfill(2)[-2:]
+    codigo_norm = _normalize_center_code(codigo or centro.get("codigo_centro") or centro.get("codigo_cne"))
+    if codigo_norm.isdigit() and len(codigo_norm) >= 2:
+        return codigo_norm[:2]
+    return ""
+
+
+def _estado_rows(db: sqlite3.Connection) -> list[sqlite3.Row]:
+    return db.execute("SELECT id, codigo_cne, nombre FROM estados").fetchall()
+
+
+def _estado_ids_by_canonical(db: sqlite3.Connection, canonical_name: str) -> set[int]:
+    if not canonical_name:
+        return set()
+    return {
+        row["id"] for row in _estado_rows(db)
+        if _canonical_estado_name(row["nombre"]) == canonical_name
+    }
+
+
+def _estado_row_for_centro(db: sqlite3.Connection, centro: dict[str, Any], codigo: str | None = None) -> sqlite3.Row | None:
+    estado_code = _estado_code_from_centro(centro, codigo)
+    if estado_code:
+        for row in _estado_rows(db):
+            if _digits_code(row["codigo_cne"]).zfill(2)[-2:] == estado_code:
+                return row
+
+    canonical_name = _canonical_estado_name(centro.get("estado") or "")
+    if canonical_name:
+        for row in _estado_rows(db):
+            if _canonical_estado_name(row["nombre"]) == canonical_name:
+                return row
+    return None
+
+
+def _centro_from_confirm_item(item: dict[str, Any]) -> dict[str, Any]:
+    centro = item.get("centro")
+    return centro if isinstance(centro, dict) else {}
 
 
 GENERIC_MATCH_TOKENS = {
@@ -1174,15 +1227,22 @@ def _match_centros_request(centros: list[dict], hints: Any | None, eleccion_id: 
         db.close()
 
 
-def _obtener_o_crear_geo(db: sqlite3.Connection, estado: str | None, municipio: str | None, parroquia: str | None) -> tuple[int, int | None, int | None]:
+def _obtener_o_crear_geo(
+    db: sqlite3.Connection,
+    estado: str | None,
+    municipio: str | None,
+    parroquia: str | None,
+    cod_estado: str | None = None,
+    codigo_centro: str | None = None,
+) -> tuple[int, int | None, int | None]:
     estado_nom = _canonical_estado_name(estado or "SIN ESTADO") or "SIN ESTADO"
-    row = db.execute("SELECT id FROM estados WHERE nombre=?", (estado_nom,)).fetchone()
-    if not row and estado_nom == "LA GUAIRA":
-        row = db.execute("SELECT id FROM estados WHERE nombre IN ('VARGAS', 'ESTADO VARGAS')").fetchone()
+    row = _estado_row_for_centro(db, {"estado": estado, "cod_estado": cod_estado}, codigo_centro)
     if row:
         id_estado = row["id"]
     else:
-        code = f"AI{db.execute('SELECT COUNT(*) c FROM estados').fetchone()['c'] + 1:02d}"
+        code = _estado_code_from_centro({"cod_estado": cod_estado}, codigo_centro)
+        if not code:
+            code = f"AI{db.execute('SELECT COUNT(*) c FROM estados').fetchone()['c'] + 1:02d}"
         db.execute("INSERT INTO estados (codigo_cne, nombre) VALUES (?, ?)", (code, estado_nom))
         id_estado = db.execute("SELECT last_insert_rowid()").fetchone()[0]
 
@@ -1217,10 +1277,58 @@ def _to_int_or_none(value: Any) -> int | None:
     return int(match.group(0)) if match else None
 
 
+def _confirmed_estado_ids(db: sqlite3.Connection, rows: list[dict]) -> list[int]:
+    ids: set[int] = set()
+    for item in rows:
+        if item.get("match_status") == "EXTRACTION_ERROR":
+            continue
+
+        centro = _centro_from_confirm_item(item)
+        codigo = (
+            item.get("resolved_codigo_centro")
+            or item.get("matched_codigo_centro")
+            or centro.get("codigo_centro")
+            or centro.get("codigo_cne")
+        )
+        codigo_norm = _normalize_center_code(codigo)
+
+        if codigo_norm:
+            existing = db.execute("SELECT id_estado FROM centros WHERE codigo_cne=?", (codigo_norm,)).fetchone()
+            if existing and existing["id_estado"] is not None:
+                ids.add(existing["id_estado"])
+
+        row = _estado_row_for_centro(db, centro, codigo_norm)
+        if row:
+            ids.add(row["id"])
+
+        canonical = _canonical_estado_name(centro.get("estado") or "")
+        ids.update(_estado_ids_by_canonical(db, canonical))
+
+    return sorted(ids)
+
+
+def _deactivate_tm_scope(db: sqlite3.Connection, eleccion_id: int, estado_ids: list[int]) -> None:
+    if not estado_ids:
+        return
+    placeholders = ",".join("?" for _ in estado_ids)
+    db.execute(f"UPDATE centros SET activo = 0 WHERE id_estado IN ({placeholders})", estado_ids)
+    db.execute(
+        f"""
+        UPDATE election_centers
+        SET eligible = 0, updated_at = datetime('now')
+        WHERE eleccion_id = ?
+          AND centro_id IN (
+              SELECT codigo_cne FROM centros WHERE id_estado IN ({placeholders})
+          )
+        """,
+        [eleccion_id, *estado_ids],
+    )
+
+
 def _upsert_ai_center(db: sqlite3.Connection, eleccion_id: int, item: dict[str, Any], source_file: str) -> str:
     centro = item["centro"]
     codigo = item.get("resolved_codigo_centro") or item.get("matched_codigo_centro") or centro.get("codigo_centro")
-    codigo = str(codigo or "").strip()
+    codigo = _normalize_center_code(codigo)
     if not codigo:
         codigo = f"AI_{eleccion_id}_{uuid.uuid4().hex[:12]}"
 
@@ -1244,7 +1352,12 @@ def _upsert_ai_center(db: sqlite3.Connection, eleccion_id: int, item: dict[str, 
         """, (num_mesas, num_electores, direccion, direccion or "", direccion, codigo))
     else:
         id_estado, id_municipio, id_parroquia = _obtener_o_crear_geo(
-            db, centro.get("estado"), centro.get("municipio"), centro.get("parroquia")
+            db,
+            centro.get("estado"),
+            centro.get("municipio"),
+            centro.get("parroquia"),
+            centro.get("cod_estado"),
+            codigo,
         )
         db.execute("""
             INSERT INTO centros (
@@ -1389,13 +1502,10 @@ async def tm_confirm(request: Request):
     field_notes = payload.get("field_notes") or {}
     try:
         ensure_tm_ai_tables(db)
+        affected_estado_ids = _confirmed_estado_ids(db, rows)
         if not dry_run:
             db.execute("BEGIN IMMEDIATE")
-            db.execute("UPDATE centros SET activo = 0")
-            db.execute(
-                "UPDATE election_centers SET eligible = 0, updated_at = datetime('now') WHERE eleccion_id = ?",
-                (eleccion_id,),
-            )
+            _deactivate_tm_scope(db, eleccion_id, affected_estado_ids)
 
         for item in rows:
             status = item.get("match_status") or "EXTRACTION_ERROR"
@@ -1420,7 +1530,12 @@ async def tm_confirm(request: Request):
                 payload.get("user") or "local",
             ))
             db.commit()
-        return JSONResponse({"ok": True, "dry_run": dry_run, "stats": stats})
+        return JSONResponse({
+            "ok": True,
+            "dry_run": dry_run,
+            "stats": stats,
+            "replacement_scope": {"estado_ids": affected_estado_ids},
+        })
     except Exception:
         db.rollback()
         raise
