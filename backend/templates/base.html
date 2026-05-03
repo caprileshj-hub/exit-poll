@@ -42,25 +42,34 @@
                     <i class="bi bi-house-door me-1"></i>Inicio
                 </a>
                 <a class="btn btn-sm btn-outline-primary {% if active_page == 'tm' %}active{% endif %}" href="/tm">
-                    <i class="bi bi-table me-1"></i>TM
+                    <i class="bi bi-table me-1"></i>Tabla Mesa
                 </a>
                 <a class="btn btn-sm btn-outline-primary {% if active_page == 'elecciones' %}active{% endif %}" href="/elecciones">
                     <i class="bi bi-calendar-event me-1"></i>Elecciones
                 </a>
-                <a class="btn btn-sm btn-outline-primary {% if active_page == 'candidatos' %}active{% endif %}" href="/candidatos">
-                    <i class="bi bi-people me-1"></i>Candidatos
-                </a>
                 <a class="btn btn-sm btn-outline-primary {% if active_page == 'muestra' %}active{% endif %}" href="/muestra">
                     <i class="bi bi-bullseye me-1"></i>Muestra
                 </a>
+                <a class="btn btn-sm btn-outline-primary {% if active_page == 'pesos' %}active{% endif %}" href="/pesos">
+                    <i class="bi bi-sliders me-1"></i>Pesos
+                </a>
+                <a class="btn btn-sm btn-outline-primary {% if active_page == 'ficha' %}active{% endif %}" href="/ficha">
+                    <i class="bi bi-file-earmark-bar-graph me-1"></i>Ficha T&#233;cnica
+                </a>
+                <a class="btn btn-sm btn-outline-primary {% if active_page == 'candidatos' %}active{% endif %}" href="/candidatos">
+                    <i class="bi bi-people me-1"></i>Candidatos
+                </a>
                 <a class="btn btn-sm btn-outline-primary {% if active_page == 'visualizacion' %}active{% endif %}" href="/visualizacion">
-                    <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                    <i class="bi bi-map me-1"></i>Visualizaci&#243;n
+                </a>
+                <a class="btn btn-sm btn-outline-primary {% if active_page == 'config' %}active{% endif %}" href="/config">
+                    <i class="bi bi-cpu me-1"></i>Config IA
+                </a>
+                <a class="btn btn-sm btn-outline-primary {% if active_page == 'historicos' %}active{% endif %}" href="/historicos">
+                    <i class="bi bi-clock-history me-1"></i>Hist&#243;ricos
                 </a>
                 <a class="btn btn-sm btn-outline-danger" href="/live">
                     <i class="bi bi-broadcast me-1"></i>Live
-                </a>
-                <a class="btn btn-sm btn-outline-primary {% if active_page == 'config' %}active{% endif %}" href="/config">
-                    <i class="bi bi-cpu me-1"></i>IA
                 </a>
             </div>
         </div>
@@ -75,7 +84,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if active_page == 'tm' %}active{% endif %}" href="/tm">
-                        <i class="bi bi-table me-2"></i>Tabla de Mesa
+                        <i class="bi bi-table me-2"></i>Tabla Mesa
                     </a>
                 </li>
                 <li class="nav-item">
@@ -84,13 +93,13 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'candidatos' %}active{% endif %}" href="/candidatos">
-                        <i class="bi bi-people me-2"></i>Candidatos
+                    <a class="nav-link {% if active_page == 'muestra' %}active{% endif %}" href="/muestra">
+                        <i class="bi bi-bullseye me-2"></i>Muestra
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'muestra' %}active{% endif %}" href="/muestra">
-                        <i class="bi bi-bullseye me-2"></i>Muestra
+                    <a class="nav-link {% if active_page == 'pesos' %}active{% endif %}" href="/pesos">
+                        <i class="bi bi-sliders me-2"></i>Pesos
                     </a>
                 </li>
                 <li class="nav-item">
@@ -99,11 +108,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'pesos' %}active{% endif %}" href="/pesos">
-                        <i class="bi bi-sliders me-2"></i>Pesos
+                    <a class="nav-link {% if active_page == 'candidatos' %}active{% endif %}" href="/candidatos">
+                        <i class="bi bi-people me-2"></i>Candidatos
                     </a>
                 </li>
-                <li class="nav-item mt-2 pt-2" style="border-top: 1px solid #dee2e6;">
+                <li class="nav-item">
                     <a class="nav-link {% if active_page == 'visualizacion' %}active{% endif %}" href="/visualizacion">
                         <i class="bi bi-map me-2"></i>Visualizaci&#243;n
                     </a>
@@ -111,6 +120,11 @@
                 <li class="nav-item">
                     <a class="nav-link {% if active_page == 'config' %}active{% endif %}" href="/config">
                         <i class="bi bi-cpu me-2"></i>Config IA
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'historicos' %}active{% endif %}" href="/historicos">
+                        <i class="bi bi-clock-history me-2"></i>Hist&#243;ricos
                     </a>
                 </li>
             </ul>

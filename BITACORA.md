@@ -622,6 +622,22 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - Se detecto que el startup de Azure no instalaba dependencias si `uvicorn` ya existia.
 - Se ajusto `startup.py` para instalar `requirements.txt` al arrancar, evitando faltantes como `openai`.
 
+---
+
+### Fase 7 — Navegación y módulo Históricos (2026-05-02)
+
+- **Reorden de menú** (`backend/templates/base.html`): sidebar desktop y barra móvil reordenados al flujo operativo (Inicio → Tabla Mesa → Elecciones → Muestra → Pesos → Ficha Técnica → Candidatos → Visualización → Config IA → Históricos).
+- **Renombrado**: "Tabla de Mesa" → "Tabla Mesa" en desktop; "TM" → "Tabla Mesa" en móvil.
+- **Etiquetas completas en móvil**: se agregaron los ítems faltantes (Pesos, Ficha Técnica) y se normalizaron "Dashboard" → "Visualización" y "IA" → "Config IA".
+- **Separador visual** eliminado (era decorativo, quedaba en posición incorrecta tras el reorden).
+- **Módulo Históricos** (`app.py` + 3 plantillas nuevas):
+  - `/historicos` — índice con tarjeta por `eleccion_ref`: pct gobierno, pct oposición, número de centros.
+  - `/historicos/{ref}` — resumen nacional + tabla por estado + top 20 centros por volumen.
+  - `/historicos/comparar?a=&b=` — comparativa de dos referencias con swing por estado (pivot en Python).
+  - `/historicos/{ref}/mapa` — genera choropleth con `generador_heatmap.py` y redirige a `static/viz/hist_{ref}.html`.
+  - Sin cambios de esquema; consume `resultados_historicos`, `centros` y `estados` que ya existen.
+- **CLAUDE.md** agregado al repo con contexto operativo completo para sesiones futuras de Claude Code.
+
 ### Auditoria de dependencias
 - `pip-audit -r requirements.txt`: sin vulnerabilidades conocidas.
 - `pip-audit -r backend/requirements.txt` encontro vulnerabilidades en `starlette==0.46.2`:

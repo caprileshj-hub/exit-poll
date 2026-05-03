@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% set active_page = "historicos" %}
+{% block title %}Hist&#243;ricos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-clock-history me-2"></i>Hist&#243;ricos</h2>
+    {% if refs | length >= 2 %}
+    <a href="/historicos/comparar" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left-right me-1"></i>Comparar
+    </a>
+    {% endif %}
+</div>
+
+{% if refs %}
+<div class="row g-3">
+    {% for r in refs %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title fw-bold">{{ r["eleccion_ref"] }}</h5>
+                <div class="row text-center mt-3">
+                    <div class="col-4">
+                        <div class="fw-bold text-danger fs-5">{{ r["pct_gov"] }}%</div>
+                        <small class="text-muted">Gobierno</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold text-primary fs-5">{{ r["pct_opos"] }}%</div>
+                        <small class="text-muted">Oposici&#243;n</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold text-secondary fs-5">{{ "{:,}".format(r["num_centros"]) }}</div>
+                        <small class="text-muted">Centros</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent d-flex gap-2">
+                <a href="/historicos/{{ r['eleccion_ref'] }}" class="btn btn-sm btn-primary w-100">
+                    <i class="bi bi-table me-1"></i>Detalle
+                </a>
+                <a href="/historicos/{{ r['eleccion_ref'] }}/mapa" class="btn btn-sm btn-outline-secondary w-100">
+                    <i class="bi bi-map me-1"></i>Mapa
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-clock-history fs-1 d-block mb-2"></i>
+    No hay datos hist&#243;ricos cargados.
+    <div class="mt-2">
+        <small>Importa una Tabla Mesa o ejecuta el seed hist&#243;rico para poblar esta secci&#243;n.</small>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

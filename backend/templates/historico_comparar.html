@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% set active_page = "historicos" %}
+{% block title %}Comparar Hist&#243;ricos{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/historicos">Hist&#243;ricos</a></li>
+        <li class="breadcrumb-item active">Comparar</li>
+    </ol>
+</nav>
+
+<h2 class="mb-4"><i class="bi bi-arrow-left-right me-2"></i>Comparar elecciones</h2>
+
+<form method="get" action="/historicos/comparar" class="row g-3 mb-4">
+    <div class="col-md-5">
+        <label class="form-label">Elecci&#243;n A</label>
+        <select name="a" class="form-select" required>
+            <option value="">&#8212; selecciona &#8212;</option>
+            {% for r in todos %}
+            <option value="{{ r['eleccion_ref'] }}" {% if r['eleccion_ref'] == a %}selected{% endif %}>
+                {{ r["eleccion_ref"] }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-5">
+        <label class="form-label">Elecci&#243;n B</label>
+        <select name="b" class="form-select" required>
+            <option value="">&#8212; selecciona &#8212;</option>
+            {% for r in todos %}
+            <option value="{{ r['eleccion_ref'] }}" {% if r['eleccion_ref'] == b %}selected{% endif %}>
+                {{ r["eleccion_ref"] }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-primary w-100" type="submit">
+            <i class="bi bi-search me-1"></i>Comparar
+        </button>
+    </div>
+</form>
+
+{% if a and b %}
+    {% if comparacion %}
+    <div class="table-responsive">
+        <table class="table table-hover bg-white shadow-sm rounded">
+            <thead class="table-light">
+                <tr>
+                    <th>Estado</th>
+                    <th class="text-end text-danger">Gov {{ a }}</th>
+                    <th class="text-end text-primary">Opos {{ a }}</th>
+                    <th class="text-end text-danger">Gov {{ b }}</th>
+                    <th class="text-end text-primary">Opos {{ b }}</th>
+                    <th class="text-end">Swing gov</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for item in comparacion %}
+                <tr>
+                    <td>{{ item.estado }}</td>
+                    <td class="text-end text-danger">{% if item.a_gov is not none %}{{ item.a_gov }}%{% else %}&#8212;{% endif %}</td>
+                    <td class="text-end text-primary">{% if item.a_opos is not none %}{{ item.a_opos }}%{% else %}&#8212;{% endif %}</td>
+                    <td class="text-end text-danger">{% if item.b_gov is not none %}{{ item.b_gov }}%{% else %}&#8212;{% endif %}</td>
+                    <td class="text-end text-primary">{% if item.b_opos is not none %}{{ item.b_opos }}%{% else %}&#8212;{% endif %}</td>
+                    <td class="text-end fw-bold">
+                        {% if item.swing is not none %}
+                            <span class="{% if item.swing > 0 %}text-danger{% elif item.swing < 0 %}text-primary{% endif %}">
+                                {% if item.swing > 0 %}+{% endif %}{{ item.swing }}%
+                            </span>
+                        {% else %}&#8212;{% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">No hay datos comparables para esas dos referencias.</div>
+    {% endif %}
+{% endif %}
+{% endblock %}

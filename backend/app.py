@@ -2800,6 +2800,185 @@ def _turnos(eleccion) -> list[str]:
     return result
 
 
+# ── Históricos ───────────────────────────────────────────────────────────────
+
+def _datos_ventaja_historico_ref(conn, eleccion_ref: str) -> dict:
+    rows = conn.execute("""
+        SELECT e.nombre,
+               SUM(rh.votos_gobierno)   AS gob,
+               SUM(rh.votos_oposicion)  AS opo,
+               SUM(rh.votos_validos)    AS val
+        FROM resultados_historicos rh
+        JOIN centros c ON rh.codigo_centro = c.codigo_cne
+        JOIN estados e ON c.id_estado = e.id
+        WHERE rh.eleccion_ref = ?
+        GROUP BY e.id
+    """, (eleccion_ref,)).fetchall()
+    datos = {}
+    for r in rows:
+        if r["val"] and r["val"] > 0:
+            datos[_norm_estado(r["nombre"])] = round(
+                100 * r["gob"] / r["val"] - 100 * r["opo"] / r["val"], 1
+            )
+    return datos
+
+
+@app.get("/historicos", response_class=HTMLResponse)
+async def historicos_index(request: Request):
+    conn = get_db()
+    refs = conn.execute("""
+        SELECT
+            eleccion_ref,
+            COUNT(*)                                                            AS num_centros,
+            SUM(votos_validos)                                                  AS total_votos,
+            ROUND(SUM(votos_gobierno)*100.0  / NULLIF(SUM(votos_validos),0),1) AS pct_gov,
+            ROUND(SUM(votos_oposicion)*100.0 / NULLIF(SUM(votos_validos),0),1) AS pct_opos
+        FROM resultados_historicos
+        GROUP BY eleccion_ref
+        ORDER BY eleccion_ref DESC
+    """).fetchall()
+    conn.close()
+    return templates.TemplateResponse(request=request, name="historicos.html", context={
+        "refs": refs
+    })
+
+
+@app.get("/historicos/comparar", response_class=HTMLResponse)
+async def historicos_comparar(request: Request, a: str = "", b: str = ""):
+    conn = get_db()
+    todos = conn.execute(
+        "SELECT DISTINCT eleccion_ref FROM resultados_historicos ORDER BY eleccion_ref DESC"
+    ).fetchall()
+
+    comparacion = []
+    if a and b:
+        rows = conn.execute("""
+            SELECT
+                rh.eleccion_ref,
+                e.nombre                                                            AS estado,
+                ROUND(SUM(rh.votos_gobierno)*100.0  / NULLIF(SUM(rh.votos_validos),0),1) AS pct_gov,
+                ROUND(SUM(rh.votos_oposicion)*100.0 / NULLIF(SUM(rh.votos_validos),0),1) AS pct_opos
+            FROM resultados_historicos rh
+            JOIN centros c ON rh.codigo_centro = c.codigo_cne
+            JOIN estados e ON c.id_estado = e.id
+            WHERE rh.eleccion_ref IN (?, ?)
+            GROUP BY rh.eleccion_ref, e.id
+            ORDER BY e.nombre
+        """, (a, b)).fetchall()
+
+        pivot: dict = {}
+        for r in rows:
+            pivot.setdefault(r["estado"], {})[r["eleccion_ref"]] = {
+                "pct_gov": r["pct_gov"], "pct_opos": r["pct_opos"]
+            }
+
+        for estado, data in sorted(pivot.items()):
+            da = data.get(a, {})
+            db2 = data.get(b, {})
+            gov_a, gov_b = da.get("pct_gov"), db2.get("pct_gov")
+            swing = round(gov_b - gov_a, 1) if gov_a is not None and gov_b is not None else None
+            comparacion.append({
+                "estado": estado,
+                "a_gov": gov_a, "a_opos": da.get("pct_opos"),
+                "b_gov": gov_b, "b_opos": db2.get("pct_opos"),
+                "swing": swing,
+            })
+
+    conn.close()
+    return templates.TemplateResponse(request=request, name="historico_comparar.html", context={
+        "todos": todos, "a": a, "b": b, "comparacion": comparacion
+    })
+
+
+@app.get("/historicos/{ref}", response_class=HTMLResponse)
+async def historico_detalle(request: Request, ref: str):
+    conn = get_db()
+    if not conn.execute(
+        "SELECT 1 FROM resultados_historicos WHERE eleccion_ref=? LIMIT 1", (ref,)
+    ).fetchone():
+        conn.close()
+        raise HTTPException(404, detail=f"No hay datos para '{ref}'")
+
+    resumen = conn.execute("""
+        SELECT
+            COUNT(*)                                                            AS num_centros,
+            SUM(votos_validos)                                                  AS total_votos,
+            ROUND(SUM(votos_gobierno)*100.0  / NULLIF(SUM(votos_validos),0),1) AS pct_gov,
+            ROUND(SUM(votos_oposicion)*100.0 / NULLIF(SUM(votos_validos),0),1) AS pct_opos
+        FROM resultados_historicos
+        WHERE eleccion_ref = ?
+    """, (ref,)).fetchone()
+
+    estados = conn.execute("""
+        SELECT
+            e.nombre                                                            AS estado,
+            COUNT(*)                                                            AS num_centros,
+            SUM(rh.votos_validos)                                               AS total_votos,
+            ROUND(SUM(rh.votos_gobierno)*100.0  / NULLIF(SUM(rh.votos_validos),0),1) AS pct_gov,
+            ROUND(SUM(rh.votos_oposicion)*100.0 / NULLIF(SUM(rh.votos_validos),0),1) AS pct_opos
+        FROM resultados_historicos rh
+        JOIN centros c ON rh.codigo_centro = c.codigo_cne
+        JOIN estados e ON c.id_estado = e.id
+        WHERE rh.eleccion_ref = ?
+        GROUP BY e.id
+        ORDER BY e.nombre
+    """, (ref,)).fetchall()
+
+    top_centros = conn.execute("""
+        SELECT
+            rh.codigo_centro,
+            c.nombre        AS centro,
+            e.nombre        AS estado,
+            rh.votos_validos,
+            rh.pct_gobierno,
+            rh.pct_oposicion
+        FROM resultados_historicos rh
+        JOIN centros c ON rh.codigo_centro = c.codigo_cne
+        JOIN estados e ON c.id_estado = e.id
+        WHERE rh.eleccion_ref = ?
+        ORDER BY rh.votos_validos DESC
+        LIMIT 20
+    """, (ref,)).fetchall()
+
+    safe_ref = re.sub(r"[^a-zA-Z0-9_-]", "_", ref)
+    mapa_existe = (VIZ_DIR / f"hist_{safe_ref}.html").exists()
+    conn.close()
+
+    return templates.TemplateResponse(request=request, name="historico_detalle.html", context={
+        "ref": ref, "resumen": resumen, "estados": estados,
+        "top_centros": top_centros, "mapa_existe": mapa_existe,
+    })
+
+
+@app.get("/historicos/{ref}/mapa")
+async def historico_mapa(ref: str):
+    conn = get_db()
+    if not conn.execute(
+        "SELECT 1 FROM resultados_historicos WHERE eleccion_ref=? LIMIT 1", (ref,)
+    ).fetchone():
+        conn.close()
+        raise HTTPException(404)
+
+    datos_ventaja = _datos_ventaja_historico_ref(conn, ref)
+    conn.close()
+
+    if not datos_ventaja:
+        return RedirectResponse(f"/historicos/{ref}", status_code=303)
+
+    safe_ref = re.sub(r"[^a-zA-Z0-9_-]", "_", ref)
+    ruta = str(VIZ_DIR / f"hist_{safe_ref}.html")
+
+    sys.path.insert(0, str(BASE_DIR))
+    import generador_heatmap
+    import importlib
+    importlib.reload(generador_heatmap)
+    generador_heatmap.generar_heatmap(datos_ventaja, nivel="estado", ruta_salida=ruta, titulo=ref)
+
+    return RedirectResponse(f"/static/viz/hist_{safe_ref}.html", status_code=303)
+
+
+# ── Tests / demo data ─────────────────────────────────────────────────────────
+
 @app.post("/test/demo")
 async def test_demo():
     """Carga el dataset completo (todos los turnos) con datos CNE 2024."""

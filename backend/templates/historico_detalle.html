@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% set active_page = "historicos" %}
+{% block title %}Hist&#243;rico &mdash; {{ ref }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/historicos">Hist&#243;ricos</a></li>
+        <li class="breadcrumb-item active">{{ ref }}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-clock-history me-2"></i>{{ ref }}</h2>
+    <div class="d-flex gap-2">
+        <a href="/historicos/{{ ref }}/mapa" class="btn btn-outline-secondary">
+            <i class="bi bi-map me-1"></i>{% if mapa_existe %}Ver mapa{% else %}Generar mapa{% endif %}
+        </a>
+        <a href="/historicos/comparar?a={{ ref }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left-right me-1"></i>Comparar
+        </a>
+    </div>
+</div>
+
+<!-- Resumen nacional -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card card-stat text-center p-3">
+            <div class="number text-danger">{{ resumen["pct_gov"] }}%</div>
+            <small class="text-muted">Gobierno</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-stat text-center p-3" style="border-left-color:#2980b9">
+            <div class="number text-primary">{{ resumen["pct_opos"] }}%</div>
+            <small class="text-muted">Oposici&#243;n</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-stat text-center p-3">
+            <div class="number">{{ "{:,}".format(resumen["total_votos"] or 0) }}</div>
+            <small class="text-muted">Votos</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-stat text-center p-3">
+            <div class="number">{{ "{:,}".format(resumen["num_centros"]) }}</div>
+            <small class="text-muted">Centros</small>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla por estado -->
+<h5 class="mb-3">Por estado</h5>
+<div class="table-responsive mb-4">
+    <table class="table table-hover table-sm bg-white shadow-sm rounded">
+        <thead class="table-light">
+            <tr>
+                <th>Estado</th>
+                <th class="text-end">Centros</th>
+                <th class="text-end">Votos</th>
+                <th class="text-end text-danger">Gobierno</th>
+                <th class="text-end text-primary">Oposici&#243;n</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for e in estados %}
+            <tr>
+                <td>{{ e["estado"] }}</td>
+                <td class="text-end">{{ e["num_centros"] }}</td>
+                <td class="text-end">{{ "{:,}".format(e["total_votos"] or 0) }}</td>
+                <td class="text-end fw-semibold text-danger">{{ e["pct_gov"] }}%</td>
+                <td class="text-end fw-semibold text-primary">{{ e["pct_opos"] }}%</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Top 20 centros -->
+<h5 class="mb-3">Top 20 centros por volumen</h5>
+<div class="table-responsive">
+    <table class="table table-hover table-sm bg-white shadow-sm rounded">
+        <thead class="table-light">
+            <tr>
+                <th>Centro</th>
+                <th>Estado</th>
+                <th class="text-end">Votos</th>
+                <th class="text-end text-danger">Gobierno</th>
+                <th class="text-end text-primary">Oposici&#243;n</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for c in top_centros %}
+            <tr>
+                <td><small>{{ c["centro"] }}</small></td>
+                <td><small>{{ c["estado"] }}</small></td>
+                <td class="text-end">{{ "{:,}".format(c["votos_validos"] or 0) }}</td>
+                <td class="text-end text-danger">{{ c["pct_gobierno"] }}%</td>
+                <td class="text-end text-primary">{{ c["pct_oposicion"] }}%</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
