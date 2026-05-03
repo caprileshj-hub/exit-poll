@@ -37,6 +37,11 @@ def migrar(conn: sqlite3.Connection):
         conn.execute('ALTER TABLE municipios ADD COLUMN es_excepcion INTEGER DEFAULT 0')
         conn.commit()
         print('[~] Migración: municipios.es_excepcion añadida')
+    cols_elecciones = {r[1] for r in conn.execute('PRAGMA table_info(elecciones)')}
+    if 'notas' not in cols_elecciones:
+        conn.execute('ALTER TABLE elecciones ADD COLUMN notas TEXT')
+        conn.commit()
+        print('[~] Migracion: elecciones.notas anadida')
     conn.execute("""
         CREATE TABLE IF NOT EXISTS config (
             provider      TEXT PRIMARY KEY,
@@ -76,6 +81,104 @@ def migrar(conn: sqlite3.Connection):
             user                 TEXT,
             created_at           TEXT DEFAULT (datetime('now'))
         )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS resultados_mesa (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_eleccion     INTEGER NOT NULL REFERENCES elecciones(id),
+            codigo_cne      TEXT    NOT NULL REFERENCES centros(codigo_cne),
+            numero_mesa     INTEGER NOT NULL,
+            votos_gov       INTEGER NOT NULL DEFAULT 0,
+            votos_opos      INTEGER NOT NULL DEFAULT 0,
+            votos_otros     INTEGER NOT NULL DEFAULT 0,
+            votos_nulos     INTEGER NOT NULL DEFAULT 0,
+            votos_validos   INTEGER NOT NULL DEFAULT 0,
+            inscritos       INTEGER NOT NULL DEFAULT 0,
+            fuente          TEXT,
+            UNIQUE(id_eleccion, codigo_cne, numero_mesa)
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_rm_eleccion ON resultados_mesa(id_eleccion)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_rm_centro ON resultados_mesa(codigo_cne)")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS reportes_campo (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_eleccion     INTEGER NOT NULL REFERENCES elecciones(id),
+            codigo_cne      TEXT    NOT NULL REFERENCES centros(codigo_cne),
+            turno           INTEGER NOT NULL,
+            timestamp_rx    DATETIME DEFAULT CURRENT_TIMESTAMP,
+            votos_gov       INTEGER NOT NULL DEFAULT 0,
+            votos_opos      INTEGER NOT NULL DEFAULT 0,
+            votos_otros     INTEGER NOT NULL DEFAULT 0,
+            votos_nulos     INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(id_eleccion, codigo_cne, turno) ON CONFLICT REPLACE
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_rc_eleccion ON reportes_campo(id_eleccion)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_rc_centro ON reportes_campo(codigo_cne)")
+    conn.execute("""
+        CREATE VIEW IF NOT EXISTS v_proyeccion AS
+        WITH ultimo AS (
+            SELECT id_eleccion, codigo_cne, MAX(turno) AS t
+            FROM reportes_campo GROUP BY id_eleccion, codigo_cne
+        ),
+        campo AS (
+            SELECT rc.* FROM reportes_campo rc
+            JOIN ultimo u ON rc.id_eleccion=u.id_eleccion
+                         AND rc.codigo_cne=u.codigo_cne
+                         AND rc.turno=u.t
+        )
+        SELECT
+            c2.id_eleccion,
+            ct.id_estado,
+            ct.nombre                  AS centro,
+            ct.num_electores           AS peso,
+            campo.votos_gov,
+            campo.votos_opos,
+            campo.votos_otros,
+            campo.turno                AS ultimo_turno,
+            ROUND(campo.votos_gov  * 100.0 /
+                  NULLIF(campo.votos_gov+campo.votos_opos+campo.votos_otros,0),2) AS pct_gov,
+            ROUND(campo.votos_opos * 100.0 /
+                  NULLIF(campo.votos_gov+campo.votos_opos+campo.votos_otros,0),2) AS pct_opos
+        FROM campo
+        JOIN centros ct     ON ct.codigo_cne   = campo.codigo_cne
+        JOIN muestra c2     ON c2.codigo_centro = campo.codigo_cne
+                           AND c2.id_eleccion   = campo.id_eleccion
+    """)
+    conn.execute("""
+        CREATE VIEW IF NOT EXISTS v_evaluacion AS
+        WITH campo_final AS (
+            SELECT rc.* FROM reportes_campo rc
+            JOIN (SELECT id_eleccion, codigo_cne, MAX(turno) t
+                  FROM reportes_campo GROUP BY id_eleccion, codigo_cne) u
+              ON rc.id_eleccion=u.id_eleccion AND rc.codigo_cne=u.codigo_cne AND rc.turno=u.t
+        ),
+        cne_centro AS (
+            SELECT id_eleccion, codigo_cne,
+                   SUM(votos_gov)     AS votos_gov,
+                   SUM(votos_opos)    AS votos_opos,
+                   SUM(votos_validos) AS votos_validos
+            FROM resultados_mesa GROUP BY id_eleccion, codigo_cne
+        )
+        SELECT
+            m.id_eleccion,
+            ct.nombre   AS centro,
+            ct.id_estado,
+            ROUND(cf.votos_gov  *100.0/NULLIF(cf.votos_gov+cf.votos_opos+cf.votos_otros,0),2)
+                        AS campo_pct_gov,
+            ROUND(cf.votos_opos *100.0/NULLIF(cf.votos_gov+cf.votos_opos+cf.votos_otros,0),2)
+                        AS campo_pct_opos,
+            ROUND(cc.votos_gov  *100.0/NULLIF(cc.votos_validos,0),2)  AS cne_pct_gov,
+            ROUND(cc.votos_opos *100.0/NULLIF(cc.votos_validos,0),2)  AS cne_pct_opos,
+            ROUND(
+                (cf.votos_gov *100.0/NULLIF(cf.votos_gov+cf.votos_opos+cf.votos_otros,0)) -
+                (cc.votos_gov *100.0/NULLIF(cc.votos_validos,0))
+            ,2) AS delta_gov_pp
+        FROM muestra m
+        JOIN centros ct ON ct.codigo_cne = m.codigo_centro
+        LEFT JOIN campo_final cf ON cf.id_eleccion=m.id_eleccion AND cf.codigo_cne=m.codigo_centro
+        LEFT JOIN cne_centro  cc ON cc.id_eleccion=m.id_eleccion AND cc.codigo_cne=m.codigo_centro
     """)
     conn.commit()
 
