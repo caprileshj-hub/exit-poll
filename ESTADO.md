@@ -54,6 +54,7 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 - [x] Analista IA determinístico con guardrails (`analista_ia.py`)
 - [x] Abstracción multi-proveedor: OpenAI, Anthropic, Groq, Gemini (`agent.py`)
 - [x] Suficiencia por tipo de elección: Nacional (100 op/15%/3 cortes), Regional (60/10%/3), Municipal (30/10%/3)
+- [x] Hardening AI reportes v2.3: prompt separado, validación estadística previa, metadata de trazabilidad y adaptador de schema legado
 
 ### Visualización
 - [x] Heatmap Folium ADM1/ADM2 (`generador_heatmap.py`)
@@ -98,6 +99,7 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 - [ ] **Gráficos torta/barras** para clientes
 - [ ] **Cola/background jobs** para ingesta de múltiples PDFs grandes
 - [ ] **Hardening UX ingesta IA TM**: resolución manual para cargas grandes, progreso SSE por lote
+- [ ] **Schema AI v2.3 completo desde backend**: hoy el adaptador cubre faltantes; falta emitir nativamente `cortes_demograficos`, `motivadores_voto`, `ponderacion_activa`, `design_effect` y `tasa_no_respuesta`
 
 ### Fuera de scope web actual (repos separados)
 - [ ] APK Android (repo a crear)

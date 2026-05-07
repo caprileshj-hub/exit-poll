@@ -48,10 +48,10 @@ def get_db() -> sqlite3.Connection:
 
 
 AI_PROVIDER_DEFAULTS = {
-    "openai": {"label": "OpenAI", "model": "gpt-4o-mini"},
+    "openai": {"label": "OpenAI", "model": "gpt-4o"},
     "groq": {"label": "Groq", "model": "llama-3.1-8b-instant"},
-    "anthropic": {"label": "Anthropic", "model": "claude-haiku-4-5-20251001"},
-    "gemini": {"label": "Gemini", "model": "gemini-2.5-flash"},
+    "anthropic": {"label": "Anthropic", "model": "claude-sonnet-4-5"},
+    "gemini": {"label": "Gemini", "model": "gemini-1.5-pro"},
 }
 
 TM_AI_CHUNK_SIZE = 15000
@@ -77,7 +77,7 @@ def ensure_config_table(db: sqlite3.Connection) -> None:
     for provider, defaults in AI_PROVIDER_DEFAULTS.items():
         db.execute("""
             INSERT OR IGNORE INTO config (provider, model, temperature, max_tokens, active)
-            VALUES (?, ?, 0.3, 300, ?)
+            VALUES (?, ?, 0, 300, ?)
         """, (provider, defaults["model"], 1 if provider == "openai" and active_count == 0 else 0))
     db.commit()
 
@@ -2447,7 +2447,7 @@ async def config_save(
     provider: str = Form(...),
     api_key: str = Form(""),
     model: str = Form(...),
-    temperature: float = Form(0.3),
+    temperature: float = Form(0),
     max_tokens: int = Form(300),
 ):
     if provider not in AI_PROVIDER_DEFAULTS:

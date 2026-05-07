@@ -9,6 +9,19 @@
 
 <!-- Codex: agregar aquí los cambios del próximo commit antes de pushear -->
 
+### refactor — Hardening modulo AI de reportes
+- Documentado estado inicial del modulo en `AI_MODULE_REVIEW.md` antes de tocar implementacion
+- Separado prompt v2.3 en `backend/ai_prompts.py`
+- Agregado validador estadistico secuencial y adaptador de schema en `backend/ai_validation.py`
+- `backend/agent.py` mantiene compatibilidad con `ask_agent`/`ask_structured` y agrega `llm_call(...)` + metadata de trazabilidad
+- `ask_agent()` valida suficiencia estadistica antes de resolver API key o tocar proveedor remoto
+- Alias `google` agregado para reutilizar la configuracion Gemini sin cambiar la tabla `config`
+- Defaults AI alineados a reportes deterministas (`temperature=0`) y modelos requeridos por proveedor
+- Tests nuevos para validacion estadistica y schema legado
+- Archivos: `AI_MODULE_REVIEW.md`, `backend/ai_prompts.py`, `backend/ai_validation.py`, `backend/agent.py`, `backend/app.py`, `backend/templates/config.html`, `test_ai_validation.py`, `.gitignore`
+- Tests: `venv\Scripts\python.exe -m pytest -q test_flujo.py test_ai_validation.py --basetemp .pytest_ai_tmp3 -p no:cacheprovider` → 7 passed
+- Deploy: requiere redeploy para activar cambios AI en Azure
+
 ### test — Dependencias de desarrollo para pytest
 - Agregado `requirements-dev.txt` con dependencias backend + `pytest`
 - Documentado el harness de tests backend en `ESTADO.md`

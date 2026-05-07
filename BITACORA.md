@@ -767,3 +767,78 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - Se marco como completado el harness de tests backend.
 - Se separo la cobertura pendiente como trabajo futuro: rutas criticas FastAPI, ponderacion por tipo de eleccion y ampliacion de pruebas.
 - Se movio a resuelto el bug de agregacion regional/municipal porque `calcular_resultado_ponderado()` ya retorna resultados anidados por ambito y no pisa estados/municipios previos.
+
+---
+
+## 2026-05-07 - Hardening modulo AI de reportes v2.3
+
+### Diagnostico previo
+- Se revisaron los archivos reales del modulo AI antes de modificar codigo:
+  - `backend/agent.py`
+  - `backend/analista_ia.py`
+  - integraciones en `backend/app.py`
+  - `test_flujo.py`
+- Se documento el estado inicial en `AI_MODULE_REVIEW.md`.
+- Hallazgo principal: el sistema tiene dos capas AI distintas:
+  - `agent.py`: LLM generativo configurable para chat y TM AI.
+  - `analista_ia.py`: analista deterministico sin tokens para panel live.
+- El prompt externo asumia que no habia abstraccion multi-proveedor, pero esta ya existia. Se decidio refinarla sin reconstruirla.
+
+### Prompt y validacion
+- Se separo el system prompt v2.3 en `backend/ai_prompts.py`.
+- El prompt exige 5 secciones fijas:
+  1. ESTADO DE LA CONTIENDA
+  2. COBERTURA Y CALIDAD MUESTRAL
+  3. ANALISIS DEMOGRAFICO
+  4. MOTIVADORES DE VOTO
+  5. ADVERTENCIA METODOLOGICA
+- Se agrego `backend/ai_validation.py` con validador secuencial:
+  - muestra global
+  - coherencia interna
+  - subgrupos demograficos
+- Si la validacion falla, se aborta antes de llamar al LLM.
+
+### Schema real vs schema v2.3
+- El schema v2.3 esperado no coincide completo con el contexto actual del backend.
+- Se agrego adaptador sin tocar BD ni pipeline:
+  - `total_opiniones` / `total_votos` -> `tamano_muestra_actual`
+  - `cobertura_pct` -> `porcentaje_cobertura_geografica`
+  - `suficiencia.minimo_opiniones` -> `umbral_requerido`
+  - cortes registrados -> `porcentaje_cobertura_horaria`
+- Faltantes documentados como pendientes:
+  - `cortes_demograficos`
+  - `motivadores_voto`
+  - `ponderacion_activa`
+  - `design_effect`
+  - `tasa_no_respuesta`
+
+### Abstraccion LLM y trazabilidad
+- `agent.py` conserva funciones existentes:
+  - `ask_agent`
+  - `ask_structured`
+  - `ask_structured_async`
+- Se agrego interfaz minima:
+  - `llm_call(system_prompt, user_message, provider, api_key, model, temperature) -> str`
+- Se agrego `llm_call_with_metadata()` para trazabilidad:
+  - timestamp
+  - proveedor
+  - modelo
+  - version prompt
+  - version schema
+  - tokens usados si proveedor los expone
+  - latencia
+- El streaming de `ask_agent()` agrega metadata al final del reporte.
+- `ask_agent()` valida el contexto antes de resolver API key o tocar proveedor remoto; asi un contexto insuficiente devuelve el mensaje estadistico aunque falte configuracion LLM.
+
+### Proveedores
+- Soporte conservado y alineado:
+  - OpenAI: `gpt-4o`, `gpt-4-turbo`, `gpt-4o-mini`
+  - Anthropic: `claude-opus-4-5`, `claude-sonnet-4-5`, `claude-haiku-4-5-20251001`
+  - Google/Gemini: `gemini-1.5-pro`, `gemini-2.5-flash`
+  - Groq se mantiene como proveedor ya existente OpenAI-compatible.
+- Se agrego alias interno `google -> gemini` para que la interfaz `llm_call()` acepte el nombre del spec sin cambiar la tabla `config`.
+- Temperatura recomendada para reportes: `0`, configurable desde `/config`.
+
+### Validacion
+- `venv\Scripts\python.exe -m compileall -q backend test_flujo.py test_ai_validation.py`: OK.
+- `venv\Scripts\python.exe -m pytest -q test_flujo.py test_ai_validation.py --basetemp .pytest_ai_tmp3 -p no:cacheprovider`: 7 passed.

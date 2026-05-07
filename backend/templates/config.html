@@ -97,7 +97,7 @@ const testOutput = document.getElementById('testOutput');
 providerSelect.addEventListener('change', function() {
   const cfg = configs[providerSelect.value] || {};
   modelInput.value = cfg.model || '';
-  temperatureInput.value = cfg.temperature ?? 0.3;
+  temperatureInput.value = cfg.temperature ?? 0;
   temperatureValue.textContent = temperatureInput.value;
   maxTokensInput.value = cfg.max_tokens || 300;
 });

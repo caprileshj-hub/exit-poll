@@ -1,64 +1,69 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
+import time
+from datetime import datetime, timezone
 from typing import Any, Iterator
 
+try:
+    from ai_prompts import PROMPT_VERSION, SCHEMA_VERSION, report_system_prompt
+    from ai_validation import INSUFFICIENT_MESSAGE, validate_ai_context
+except ImportError:  # pragma: no cover - supports importing as backend.agent in tests
+    from backend.ai_prompts import PROMPT_VERSION, SCHEMA_VERSION, report_system_prompt
+    from backend.ai_validation import INSUFFICIENT_MESSAGE, validate_ai_context
 
-SYSTEM_PROMPT = """
-Eres un analista especializado en exit polls electorales.
-SOLO respondes preguntas basadas en los datos del proceso electoral en curso.
-Tienes acceso a: conteos de opiniones por candidato, tendencias por turno de 20 minutos,
-e historial de centros electorales de procesos anteriores.
-El sistema registra opiniones de participantes, no votos oficiales. Nunca uses la palabra "votos" para describir los datos del exit poll.
-No hagas analisis nacional, estadal, municipal, por centro ni por candidato si los datos de ese ambito son insuficientes.
-Considera insuficiente cualquier ambito sin opiniones validas, sin cobertura minima, sin al menos 3 cortes comparables, o marcado como datos_suficientes=false en el contexto.
 
-Formato de respuesta obligatorio:
-TENDENCIA: [qué está ocurriendo en este momento]
-ANOMALÍA: [algo estadísticamente inusual, o "ninguna detectada"]
-PROYECCIÓN: [dirección probable al cierre basada en la tendencia actual]
-
-Si la pregunta no puede responderse con los datos disponibles, responde 
-exactamente: "datos insuficientes para establecer tendencias"
-No especules. No uses conocimiento externo. Temperatura mental: mínima.
-"""
+SYSTEM_PROMPT = report_system_prompt()
 
 
 AI_PROVIDERS = {
     "openai": {
-        "model": "gpt-4o-mini",
+        "model": "gpt-4o",
+        "models": ["gpt-4o", "gpt-4-turbo", "gpt-4o-mini"],
         "env_key": "OPENAI_API_KEY",
         "client": "openai",
         "base_url": None,
     },
     "groq": {
         "model": "llama-3.1-8b-instant",
+        "models": ["llama-3.1-8b-instant"],
         "env_key": "GROQ_API_KEY",
         "client": "openai",
         "base_url": "https://api.groq.com/openai/v1",
     },
     "anthropic": {
-        "model": "claude-haiku-4-5-20251001",
+        "model": "claude-sonnet-4-5",
+        "models": ["claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-4-5-20251001"],
         "env_key": "ANTHROPIC_API_KEY",
         "client": "anthropic",
         "base_url": None,
     },
     "gemini": {
-        "model": "gemini-2.5-flash",
+        "model": "gemini-1.5-pro",
+        "models": ["gemini-1.5-pro", "gemini-2.5-flash"],
         "env_key": "GEMINI_API_KEY",
         "client": "openai",
         "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
     },
 }
 
+PROVIDER_ALIASES = {
+    "google": "gemini",
+}
+
 
 def _provider_config(provider: str, overrides: dict[str, Any] | None = None) -> dict[str, Any]:
+    requested_provider = provider
+    provider = PROVIDER_ALIASES.get(provider, provider)
     if provider not in AI_PROVIDERS:
-        raise ValueError(f"Proveedor no soportado: {provider}")
+        raise ValueError(f"Proveedor no soportado: {requested_provider}")
+
     cfg = {**AI_PROVIDERS[provider], **(overrides or {})}
+    cfg["provider"] = requested_provider
     cfg["model"] = cfg.get("model") or AI_PROVIDERS[provider]["model"]
-    cfg["temperature"] = float(cfg.get("temperature", 0.3))
+    cfg["temperature"] = float(cfg.get("temperature", 0))
     cfg["max_tokens"] = int(cfg.get("max_tokens", 300))
     # API key priority: 1) Azure App Settings/env var, 2) SQLite config table.
     # This avoids keeping production tied to an old key saved in SQLite.
@@ -68,27 +73,53 @@ def _provider_config(provider: str, overrides: dict[str, Any] | None = None) -> 
     return cfg
 
 
-def _messages(question: str, context: dict[str, Any]) -> list[dict[str, str]]:
+def _metadata(cfg: dict[str, Any], latency_ms: int | None, tokens_used: int | None) -> dict[str, Any]:
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "provider": cfg.get("provider"),
+        "model": cfg.get("model"),
+        "prompt_version": PROMPT_VERSION,
+        "schema_version": SCHEMA_VERSION,
+        "tokens_used": tokens_used,
+        "latency_ms": latency_ms,
+    }
+
+
+def _metadata_footer(metadata: dict[str, Any]) -> str:
+    return "\n\n---\nMETADATA\n" + json.dumps(metadata, ensure_ascii=False, sort_keys=True)
+
+
+def _messages(question: str, context: dict[str, Any], system_prompt: str | None = None) -> list[dict[str, str]]:
     return [
-        {"role": "system", "content": SYSTEM_PROMPT.strip()},
+        {"role": "system", "content": (system_prompt or SYSTEM_PROMPT).strip()},
         {
             "role": "user",
             "content": (
                 "Datos disponibles del exit poll:\n"
-                f"{context}\n\n"
+                f"{json.dumps(context, ensure_ascii=False, indent=2, default=str)}\n\n"
                 f"Pregunta: {question}"
             ),
         },
     ]
 
 
-def _ask_openai_compatible(question: str, context: dict[str, Any], cfg: dict[str, Any]) -> Iterator[str]:
+def _openai_client(cfg: dict[str, Any]):
     from openai import OpenAI
 
     kwargs = {"api_key": cfg["api_key"]}
     if cfg.get("base_url"):
         kwargs["base_url"] = cfg["base_url"]
-    client = OpenAI(**kwargs)
+    return OpenAI(**kwargs)
+
+
+def _anthropic_client(cfg: dict[str, Any]):
+    from anthropic import Anthropic
+
+    return Anthropic(api_key=cfg["api_key"])
+
+
+def _ask_openai_compatible(question: str, context: dict[str, Any], cfg: dict[str, Any]) -> Iterator[str]:
+    client = _openai_client(cfg)
     stream = client.chat.completions.create(
         model=cfg["model"],
         messages=_messages(question, context),
@@ -103,12 +134,10 @@ def _ask_openai_compatible(question: str, context: dict[str, Any], cfg: dict[str
 
 
 def _ask_anthropic(question: str, context: dict[str, Any], cfg: dict[str, Any]) -> Iterator[str]:
-    from anthropic import Anthropic
-
-    client = Anthropic(api_key=cfg["api_key"])
+    client = _anthropic_client(cfg)
     user_content = (
         "Datos disponibles del exit poll:\n"
-        f"{context}\n\n"
+        f"{json.dumps(context, ensure_ascii=False, indent=2, default=str)}\n\n"
         f"Pregunta: {question}"
     )
     with client.messages.stream(
@@ -129,11 +158,89 @@ def ask_agent(
     provider: str,
     config: dict[str, Any] | None = None,
 ) -> Iterator[str]:
+    validation = validate_ai_context(context)
+    if not validation.ok:
+        yield validation.message or INSUFFICIENT_MESSAGE
+        return
+
     cfg = _provider_config(provider, config)
+    started = time.perf_counter()
     if cfg["client"] == "anthropic":
-        yield from _ask_anthropic(question, context, cfg)
+        yield from _ask_anthropic(question, validation.context, cfg)
     else:
-        yield from _ask_openai_compatible(question, context, cfg)
+        yield from _ask_openai_compatible(question, validation.context, cfg)
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    yield _metadata_footer(_metadata(cfg, latency_ms=latency_ms, tokens_used=None))
+
+
+def llm_call(
+    system_prompt: str,
+    user_message: str,
+    provider: str,
+    api_key: str,
+    model: str,
+    temperature: float,
+) -> str:
+    """Provider-agnostic one-shot call. Required minimal interface."""
+    result = llm_call_with_metadata(system_prompt, user_message, provider, api_key, model, temperature)
+    return result["text"]
+
+
+def llm_call_with_metadata(
+    system_prompt: str,
+    user_message: str,
+    provider: str,
+    api_key: str,
+    model: str,
+    temperature: float,
+    max_tokens: int = 800,
+) -> dict[str, Any]:
+    """Provider-agnostic one-shot call with trace metadata."""
+    cfg = _provider_config(provider, {
+        "api_key": api_key,
+        "model": model,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    })
+    started = time.perf_counter()
+    tokens_used: int | None = None
+
+    if cfg["client"] == "anthropic":
+        client = _anthropic_client(cfg)
+        message = client.messages.create(
+            model=cfg["model"],
+            max_tokens=cfg["max_tokens"],
+            temperature=cfg["temperature"],
+            system=system_prompt.strip(),
+            messages=[{"role": "user", "content": user_message}],
+        )
+        text = "".join(
+            block.text for block in message.content
+            if getattr(block, "type", None) == "text"
+        )
+        usage = getattr(message, "usage", None)
+        if usage:
+            tokens_used = int(getattr(usage, "input_tokens", 0) or 0) + int(getattr(usage, "output_tokens", 0) or 0)
+    else:
+        client = _openai_client(cfg)
+        response = client.chat.completions.create(
+            model=cfg["model"],
+            messages=[
+                {"role": "system", "content": system_prompt.strip()},
+                {"role": "user", "content": user_message},
+            ],
+            temperature=cfg["temperature"],
+            max_tokens=cfg["max_tokens"],
+        )
+        text = response.choices[0].message.content or ""
+        usage = getattr(response, "usage", None)
+        tokens_used = int(getattr(usage, "total_tokens", 0) or 0) if usage else None
+
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    return {
+        "text": text,
+        "metadata": _metadata(cfg, latency_ms=latency_ms, tokens_used=tokens_used),
+    }
 
 
 def ask_structured(
@@ -145,9 +252,7 @@ def ask_structured(
     """Single-shot text completion through the configured provider."""
     cfg = _provider_config(provider, config)
     if cfg["client"] == "anthropic":
-        from anthropic import Anthropic
-
-        client = Anthropic(api_key=cfg["api_key"])
+        client = _anthropic_client(cfg)
         message = client.messages.create(
             model=cfg["model"],
             max_tokens=cfg["max_tokens"],
@@ -160,12 +265,7 @@ def ask_structured(
             if getattr(block, "type", None) == "text"
         )
 
-    from openai import OpenAI
-
-    kwargs = {"api_key": cfg["api_key"]}
-    if cfg.get("base_url"):
-        kwargs["base_url"] = cfg["base_url"]
-    client = OpenAI(**kwargs)
+    client = _openai_client(cfg)
     request = {
         "model": cfg["model"],
         "messages": [
