@@ -11,8 +11,8 @@
 | Parámetro | Valor |
 |-----------|-------|
 | Repo | `https://github.com/caprileshj-hub/exit-poll.git` · Rama principal: `main` |
-| Local | Windows 11 / PowerShell · `D:\Test\exit_poll` (no confundir con `D:\Test` — hay proyectos hermanos) |
-| venv | `D:\Test\.venv` — Python 3.12. Nunca 3.14. Si falla: `python3.12 -m venv D:\Test\.venv` |
+| Local | Windows 11 / PowerShell. Pavilion: proyectos en `D:\Test`. Lenovo: proyectos en `C:\Proyects`. |
+| venv | Python 3.12. Nunca 3.14. Pavilion: `D:\Test\.venv`. Lenovo: `C:\Proyects\exit-poll\venv`. |
 | Deploy | Azure App Service B1 (1 core / 1.75 GB RAM), eastus · Always On activo |
 | BD | SQLite WAL · `backend/exitpoll.db` |
 | URL producción | `https://exit-poll-ve-hqfch0gvfzekeqck.eastus-01.azurewebsites.net` |

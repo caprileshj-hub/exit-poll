@@ -732,3 +732,38 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 ### Validacion
 - `python -m py_compile backend\app.py backend\simulador_showcase.py`: OK.
 - `pytest -q`: 1 passed.
+
+---
+
+## 2026-05-07 - Sincronizacion local, pytest dev y documentacion multi-equipo
+
+### Sincronizacion
+- Se actualizo la Lenovo desde `origin/main` con fast-forward hasta `b232f13`.
+- El workspace local quedo sincronizado en `main` antes de aplicar cambios nuevos.
+
+### Rutas locales por computadora
+- Se documento en `PROJECT_CONTEXT.md` la convencion de rutas para evitar confusion entre equipos:
+  - Pavilion: proyectos en `D:\Test`.
+  - Lenovo: proyectos en `C:\Proyects`.
+- Se ajusto tambien la referencia de venv:
+  - Pavilion: `D:\Test\.venv`.
+  - Lenovo: `C:\Proyects\exit-poll\venv`.
+
+### Harness de tests backend
+- Se agrego `requirements-dev.txt` para dependencias de desarrollo:
+  - reutiliza `backend/requirements.txt`
+  - agrega `pytest>=8.0.0`
+- Se instalo `pytest` en el venv local de Lenovo.
+- Se ejecuto `test_flujo.py` con SQLite temporal:
+  - `venv\Scripts\python.exe -m pytest -q test_flujo.py --basetemp .pytest_tmp3 -p no:cacheprovider`
+  - Resultado: `1 passed`.
+- Se agregaron a `.gitignore` los artefactos temporales de pytest:
+  - `.pytest_cache/`
+  - `.pytest_tmp*/`
+  - `pytest-cache-files-*/`
+
+### Estado y bugs
+- Se mantuvo pendiente el parser SMS + validacion GPS del gateway Android.
+- Se marco como completado el harness de tests backend.
+- Se separo la cobertura pendiente como trabajo futuro: rutas criticas FastAPI, ponderacion por tipo de eleccion y ampliacion de pruebas.
+- Se movio a resuelto el bug de agregacion regional/municipal porque `calcular_resultado_ponderado()` ya retorna resultados anidados por ambito y no pisa estados/municipios previos.

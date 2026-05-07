@@ -85,7 +85,10 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
   - Parsear formato `C;V;T;L`
   - Validar Haversine < `radio_m` del centro registrado
   - Insertar en `sms_raw` y `votos` con `valid` y `turno` calculado
-- [ ] **Cobertura de tests backend**
+- [x] **Harness de tests backend**
+  - Dependencias de desarrollo documentadas en `requirements-dev.txt`
+  - `test_flujo.py` ejecutable con pytest sobre SQLite temporal
+- [ ] **Ampliar cobertura de tests backend**
   - Rutas FastAPI críticas: `/candidatos`, `/pesos`, `/visualizacion`, `/tm`
   - `calcular_resultado_ponderado()` en `simulador_showcase.py`
   - Calculador pesos por tipo de elección (regional, municipal, asamblea)
@@ -110,17 +113,17 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 
 ## Bugs conocidos
 
-### BUG-001: Agregación incorrecta en simulador regional/municipal
-- **Archivo**: `backend/simulador_showcase.py` · función `calcular_resultado_ponderado()`
-- **Síntoma**: En ramas `regional` y `municipal`, asignaciones tipo `resultado[id_cand] = ...` dentro de loops por estado/municipio. El último sobrescribe los anteriores.
-- **Impacto**: Porcentajes finales incorrectos para elecciones no nacionales.
-- **Acción**: Definir si retorna agregado global o desglosado por ámbito; ajustar estructura de retorno y su consumidor en consola/dashboard.
-
-### BUG-002: UI candidatos — show/hide de campos por tipo no cubre todos los casos
+### BUG-001: UI candidatos — show/hide de campos por tipo no cubre todos los casos
 - **Archivos**: `backend/templates/candidato_form.html`, `backend/app.py`
 - **Síntoma**: El formulario persiste `id_estado`, `id_municipio`, `id_circuito`, `id_circ_indigena` correctamente, pero la lógica JS de show/hide puede no cubrir todas las combinaciones tipo_candidato × tipo_eleccion.
 - **Impacto**: Candidatos `lista`, `nominal`, `indigena` pueden quedar sin su geografía correctamente asociada.
 - **Acción**: Revisar JS del formulario; agregar validación server-side por combinación.
+
+## Bugs resueltos
+
+### RESUELTO: Agregación incorrecta en simulador regional/municipal
+- **Archivo**: `backend/simulador_showcase.py` · función `calcular_resultado_ponderado()`
+- **Resolución**: Las ramas `regional` y `municipal` ahora retornan resultados anidados por ámbito (`id_estado` o `id_municipio`) y evitan sobrescribir resultados de ámbitos anteriores.
 
 ---
 

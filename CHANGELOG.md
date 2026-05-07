@@ -9,6 +9,14 @@
 
 <!-- Codex: agregar aquí los cambios del próximo commit antes de pushear -->
 
+### test — Dependencias de desarrollo para pytest
+- Agregado `requirements-dev.txt` con dependencias backend + `pytest`
+- Documentado el harness de tests backend en `ESTADO.md`
+- `BUG-001` de agregación regional/municipal movido a resuelto tras verificar la implementación actual
+- Archivos: `requirements-dev.txt`, `ESTADO.md`, `CHANGELOG.md`
+- Tests: `venv\Scripts\python.exe -m pytest -q test_flujo.py --basetemp .pytest_tmp3 -p no:cacheprovider` → 1 passed
+- Deploy: no requiere redeploy
+
 ---
 
 ## 2026-05-07
