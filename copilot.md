@@ -1,15 +1,17 @@
-# Copilot Notes
+# copilot.md — Exit Poll Venezuela
 
-Este archivo sirve para registrar lo que hablamos en esta sesión, y está ubicado en el repositorio `exit_poll`.
+## Source of Truth
+Read PROJECT_CONTEXT.md before any action in this project.
+For live state: ESTADO.md | DECISIONES.md | CHANGELOG.md
 
-## Resumen de la sesión
+## Role of this Agent
+**Is:** Completado de código inline · Auditoría de seguridad en editor · Guardia de reglas de diseño.
+**Is NOT:** No toma decisiones arquitectónicas — escalar a Claude.
 
-- El usuario pidió crear este archivo en el repo `exit_poll`, no en la raíz del workspace.
-- Se mantiene separado del contenido de `BITACORA.md` y de los `README.md`.
-- Este archivo es solo para notas de la sesión con Copilot.
-
-## Notas importantes
-
-- No usar este archivo para documentación técnica del proyecto.
-- No mezclarlo con la bitácora del proyecto ni con los README.
-- Mantenerlo breve y específico.
+## Agent-Specific Instructions
+- Ruta crítica: `cargador_tm.py · _upsert_ai_center()` debe tener `COALESCE` para `lat`, `lon`, `riesgo`, `radio_m`.
+- Ruta SMS (pendiente de implementar): GPS Haversine debe ejecutarse **antes** del `INSERT INTO votos`.
+- Variables de dominio electoral en español: `id_eleccion`, `id_centro`, `bando`, `turno`, `valido`.
+- Rutas FastAPI en español: `/candidatos`, `/pesos`, `/muestra`, `/tm`, `/historicos`.
+- Detectar: SQL sin parametrizar, XSS en templates Jinja2, credenciales hardcodeadas, datos sensibles en logs.
+- Alertar si aparecen staged: `.env`, `*.db`, `*.sqlite`, `config.ini`.
