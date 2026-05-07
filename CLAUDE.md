@@ -1,206 +1,112 @@
 # CLAUDE.md — Exit Poll Venezuela
 
-Archivo de contexto para Claude Code. Cubre el dominio operativo, decisiones de arquitectura, estado actual y preferencias de colaboración. El `README.md` es documentación pública; este archivo es la memoria de trabajo.
+> Contexto para Claude Code. Integra reglas del proyecto (comunes a todos los agentes), el rol específico de Claude, y el contexto activo de la sesión.
+> El `README.md` es documentación pública. Este archivo es la memoria de trabajo de Claude.
 
 ---
 
-## Repo y entorno
+## Capa 1 — Reglas del Proyecto
 
-- Repo activo: `D:\Test\exit_poll` (no confundir con `D:\Test`, que tiene varios proyectos hermanos).
-- Rama principal: `main`. Remoto: `https://github.com/caprileshj-hub/exit-poll.git`.
-- Shell: PowerShell en Windows 11. Entorno virtual en `D:\Test\.venv` (Python 3.12 — evitar 3.14).
-- Comandos clave:
+> Reglas invariantes comunes a todos los agentes. No cambiar sin consenso explícito.
 
+### Entorno
+- Repo: `https://github.com/caprileshj-hub/exit-poll.git` · Rama: `main`
+- Local (Windows 11, PowerShell): `D:\Test\exit_poll` (no confundir con `D:\Test` — hay varios proyectos hermanos)
+- venv: `D:\Test\.venv` — Python 3.12 (nunca 3.14)
+- Deploy: Azure App Service B1, eastus
+
+### Comandos esenciales
 ```powershell
-# Tests
 & 'D:\Test\.venv\Scripts\pytest.exe' -q
-
-# Dry-run del seed histórico
 & 'D:\Test\.venv\Scripts\python.exe' backend\seed_2006.py --dry-run
-
-# Levantar backend local
 & 'D:\Test\.venv\Scripts\uvicorn.exe' app:app --reload --app-dir backend
 ```
 
-- Dependencias: hay `requirements.txt` en la raíz y otro en `backend/`. Instalar ambos al reconstruir el venv.
-
----
-
-## Flujo operativo original (dominio)
-
-El sistema reemplaza un proceso manual de exit poll electoral venezolano:
-
-1. **Selección de muestra** — 2 centros por estado. Excepciones con granularidad de parroquia: Distrito Capital, La Guaira, y 4 municipios de Miranda que forman parte de Caracas (Chacao, Baruta, El Hatillo, Sucre).
-2. **Campo** — Encuestador en el centro. Votante selecciona candidato. Mínimo 15 encuestas cada 30 min. Encuestador totaliza y llama al centro de totalización cada turno.
-3. **Transcripción** — Antes: papeleta → Access. Ahora: SMS → gateway Android → FastAPI.
-4. **Core** — Antes: Excel con pesos y jerarquía. Ahora: `calculador_pesos.py` + `procesador_datos.py`.
-5. **Visualización** — Heatmap + gráficos de tendencia + dashboard para clientes.
-
-**Propósito real del exit poll:** NO es predecir el ganador. Es dar información a los actores políticos para movilizar maquinaria durante la jornada. El trabajo real termina a las 11am. Se continúa hasta las 4-5pm por los clientes. Comparar con el resultado CNE (a las 6pm) no es una métrica válida de precisión.
-
----
-
-## Arquitectura SMS (decisión fija)
-
-La señal de datos celular en Venezuela es mala en campo. SMS es el único canal confiable.
-
+### Arquitectura SMS (decisión fija)
 ```
-[APK Android] → SMS → [Gateway Android dedicado] → HTTP POST → [FastAPI] → [SQLite] → [Dashboard]
+[APK Android] → SMS → [Gateway Android] → HTTP POST → [FastAPI] → [SQLite WAL] → [Dashboard]
 ```
-
-### Formato SMS (< 40 chars)
-
-```
-C1234;V2;T1932;L09a7F3b
-```
-
-| Campo | Descripción |
-|-------|-------------|
-| `C`   | Código CNE del centro |
-| `V`   | Candidato (V0 = nulo) |
-| `T`   | Timestamp local HHMM |
-| `L`   | GPS como Geohash (~38m, 6 chars) |
-
-El número del teléfono del encuestador es su ID — nunca viaja en el SMS.
+Formato: `C1234;V2;T1932;L09a7F3b` (~28 chars)
+`C`=código CNE · `V`=candidato (V0=nulo) · `T`=HHMM · `L`=Geohash 6 chars (~38m)
+El número de teléfono del encuestador es su ID — no viaja en el SMS.
 
 ### Parámetros operativos (no cambiar sin consenso)
+| Parámetro | Valor |
+|-----------|-------|
+| Techo votos/turno | 25 (fraude si supera) |
+| Piso votos/turno | 8 (alerta inactividad) |
+| Duración turno | 20 min (interno, invisible) |
+| Radio GPS validez | 300m defecto, configurable por centro |
 
-- Techo de votos por turno: **25** (fraude si se supera)
-- Piso de votos por turno: **8** (alerta de inactividad)
-- Duración del turno: **20 minutos** (interno, invisible para encuestadores y clientes)
-- Radio GPS de validez: **300 metros** por defecto, configurable por centro
-
-### Anti-fraude GPS
-
-Si las coordenadas del SMS caen fuera del radio del centro → `valid=false`, no agrega. El votante no puede reportar desde su casa.
-
----
-
-## Tabla de Mesa (TM) — reglas de ingesta
-
-La TM es el insumo fundacional (centros, mesas, electores, geografía). El CNE la cambia de formato en cada ciclo. Hay dos caminos:
-
-1. **Determinístico legacy** (`convertidor_tm.py` + `cargador_tm.py`) — formatos conocidos 2015/2018.
-2. **Asistido por IA** (`/tm` en la app) — multi-formato; usa el proveedor configurado en `/config`.
-
-**Reglas invariables en TM:**
-- Nunca sobrescribir `lat`, `lon`, `riesgo`, ni `radio_m` desde un archivo CNE.
-- Centros ausentes en una nueva TM no se borran ni se marcan inactivos.
-- Filas ambiguas o con conflicto bloquean la confirmación hasta resolverse.
-- La IA usa el proveedor de `/config`; no crear superficie separada de API keys.
-
----
-
-## Arquitectura actual
+### Reglas de diseño no negociables
+1. **TM sin sobrescritura**: `lat`, `lon`, `riesgo`, `radio_m` son datos operativos. Jamás se sobrescriben desde un archivo CNE.
+2. **Guardrail analista**: frase exacta si no hay suficientes datos: `datos insuficientes para establecer tendencias`
+3. **IA centralizada**: único proveedor en `/config`. Sin endpoints ni API keys separadas por módulo.
+4. **APK nativa**: SMS en background requiere Android nativo (Kotlin/Java). No PWA.
+5. **GPS requerimiento duro**: Haversine < `radio_m`; si no, `valid=false`, no totaliza.
+6. **Centros ausentes en TM no se eliminan**: sin `election_centers` para esa elección, pero el centro permanece.
+7. **Clientes no ven auditoría**: semáforo de centros, panel encuestadores, alertas de fraude — acceso interno exclusivo.
+8. **Propósito del exit poll**: informar movilización política durante la jornada. No predecir ganador. El trabajo real termina a las 11am. Comparar contra resultado CNE no es métrica válida de precisión.
 
 ### Stack
-
-| Capa | Tecnología |
-|------|-----------|
+| Capa | Tech |
+|------|------|
 | Backend | Python 3.12, FastAPI, Jinja2 |
-| BD | SQLite (WAL mode, foreign keys) |
+| BD | SQLite (WAL + FK) · `backend/exitpoll.db` |
 | Visualización | Folium, Plotly, Bootstrap 5 |
 | Procesamiento | pandas, openpyxl, pdfplumber, python-docx |
-| IA | Abstracción multi-proveedor (`agent.py`) — OpenAI, Anthropic, Groq, Gemini |
-| Móvil (pendiente) | APK Android nativo (no PWA — SMS en background) |
+| IA | `backend/agent.py` — OpenAI, Anthropic, Groq, Gemini |
 | Deploy | Azure App Service B1, eastus |
 
-### Archivos clave
+---
 
-| Archivo | Rol |
-|---------|-----|
-| `backend/app.py` | FastAPI: dashboard config, live view, endpoints TM/IA |
-| `backend/schema.sql` | Esquema SQLite |
-| `backend/init_db.py` | Init y migraciones ligeras |
-| `backend/agent.py` | Abstracción proveedores IA |
-| `backend/analista_ia.py` | Analista determinístico con guardrails |
-| `backend/calculador_pesos.py` | Ponderación jerárquica 4 niveles |
-| `backend/selector_muestra.py` | Selección de muestra con filtro de elegibilidad |
-| `backend/cargador_tm.py` | Cargador diferencial TM |
-| `backend/convertidor_tm.py` | Conversor determinístico 2015/2018 |
-| `backend/generador_heatmap.py` | Choropleth Folium ADM1/ADM2 |
-| `backend/generador_dashboard.py` | HTML autónomo: mapa + tendencias |
-| `backend/seed_2006.py` | Carga histórica presidencial 2006 |
-| `backend/TM_ESTANDAR.md` | Spec del CSV interno (15 columnas) |
-| `BITACORA.md` | Historial de fases y pendientes |
+## Capa 2 — Rol de Claude en el Stack Multi-Agente
 
-### BD — grupos de tablas
+**Claude = Arquitectura + Auditoría técnica + Orquestación**
 
-| Grupo | Tablas |
-|-------|--------|
-| Geografía | `estados`, `municipios`, `parroquias`, `circuitos`, `circunscripciones_indigenas` |
-| Centros | `centros`, `election_centers`, `tm_ingestion_logs` |
-| Elecciones | `elecciones`, `candidatos` |
-| Muestra | `muestra`, `pesos`, `centros_candidatos` |
-| Encuestadores | `encuestadores` |
-| Votos | `sms_raw`, `votos` |
-| Histórico | `resultados_historicos`, `resultados_mesa`, `reportes_campo` |
-| Auditoría | `alertas` |
-| Clientes | `clientes`, `contratos`, `accesos_geograficos`, `accesos_vistas` |
+En este proyecto operan cuatro agentes con roles complementarios:
+- **Claude** (este archivo): decisiones arquitectónicas, auditoría, prompt engineering, orquestación del resto.
+- **Codex** (`codex.md`): implementación autónoma, git, tests, deploy, CHANGELOG.
+- **Gemini** (`gemini.md`): revisión de arquitectura pública, análisis de superficie de vulnerabilidades.
+- **Copilot** (`copilot.md`): completado de código inline, auditoría de seguridad en editor, Azure config.
+
+### Responsabilidades exclusivas de Claude
+- Definir contratos entre módulos y evaluar trade-offs arquitectónicos.
+- Revisar y aprobar cambios de esquema antes de que Codex los implemente.
+- Diseñar y refinar prompts del analista IA y del flujo de ingesta TM.
+- Mantener `CLAUDE.md`, `ESTADO.md` y `DECISIONES.md` sincronizados.
+- **No ejecuta git directamente** — eso es responsabilidad de Codex.
+
+### Directivas operativas
+- Responder y documentar en **español**.
+- "arréglalo" o "dale" → proceder sin otra ronda de permiso.
+- "súbelo" → coordinar con Codex para commitear y pushear.
+- Bugs pendientes → anotar en `ESTADO.md` sección Pendientes.
+- Comportamiento cambiado → sincronizar `README.md`.
+- Antes de `git pull`: verificar que no haya cambios sin commitear.
+- `test_flujo.py` es smoke test legacy; un pytest verde no garantiza funcionalidad FastAPI real.
+- Para cambios de esquema o seed: `--dry-run` primero.
 
 ---
 
-## Estado actual (al 2026-05-02)
+## Capa 3 — Contexto Activo
 
-App en producción: `https://exit-poll-ve-hqfch0gvfzekeqck.eastus-01.azurewebsites.net`
+> Actualizar al inicio y cierre de cada sesión significativa.
+> Estado completo → `ESTADO.md` · Decisiones con rationale → `DECISIONES.md` · Changelog → `CHANGELOG.md`
 
-**Azure:** Plan B1 (1 core / 1.75 GB RAM). Always On activado. Solo `backend/` se empaqueta como raíz del artefacto. Startup: `bash /home/site/wwwroot/startup.sh`.
+**Fase activa**: Fase 7 — Hardening ingesta IA TM, APK Android, auditoría interna, cobertura tests.
 
-### Completado (Fases 1–7 parcial)
+**Últimas decisiones implementadas relevantes para Claude**:
+- Guardrail `datos insuficientes para establecer tendencias` activo en `analista_ia.py`, `agent.py`, `/chat`.
+- Ingesta IA TM: chunking 15k chars, `response_format=json_object`, `asyncio.to_thread` aplicado.
+- Matching: `difflib.SequenceMatcher` · MATCHED ≥ 0.88 · AMBIGUOUS 0.72–0.88 · NEW < 0.72.
+- CVEs starlette resueltos: `fastapi==0.136.1`, `starlette==0.49.1`.
+- Formulario candidatos extendido: `id_estado`, `id_municipio`, `id_circuito`, `id_circ_indigena`.
+- Módulo Históricos: `/historicos`, `/historicos/{ref}`, `/historicos/comparar`, `/historicos/{ref}/mapa`.
 
-- BD SQLite completa con WAL, foreign keys, modelo de clientes y auditoría
-- Pipeline de ingesta TM: determinístico (2015/2018) + IA multi-formato
-- Selector de muestra con elegibilidad por elección
-- Calculador de pesos jerárquico 4 niveles con excepciones DC/La Guaira/Miranda-Caracas
-- Generador de heatmap Folium ADM1/ADM2
-- Dashboard HTML autónomo (mapa 58% + tendencias Plotly 42%)
-- Dashboard FastAPI de configuración (elecciones, candidatos, muestra, pesos, TM, demo, live view)
-- Integración datos CNE 2024 (11.927 centros en `resultados_historicos`)
-- Analista IA determinístico con guardrails; frase exacta requerida: `datos insuficientes para establecer tendencias`
-- Seed histórico 2006 (11.118 centros, 33.002 mesas, 580 reportes de campo)
-
-### Pendiente (Fase 7)
-
-- Hardening de ingesta IA de TM: UX para archivos grandes, rate limits, resolución manual, fuzzy matching
-- Parser SMS + validación GPS en FastAPI
-- APK Android (UI encuestador + SMS + cola offline)
-- Gateway Android (lector SMS → HTTP POST)
-- Dashboard de auditoría interna (estado de centros, panel encuestadores, alertas de fraude)
-- Gráficos para clientes (torta, barras)
-- Ampliar cobertura de tests: rutas FastAPI, carga TM, muestra, pesos, analista
-
----
-
-## Reglas de diseño (no negociables)
-
-- **TM sin sobrescritura de campo:** `lat`, `lon`, `riesgo`, `radio_m` son datos operativos; nunca vienen de un archivo CNE.
-- **Analista con guardrails:** hasta no tener mínimo de opiniones, cobertura y cortes comparables, la frase de bloqueo es exactamente `datos insuficientes para establecer tendencias`.
-- **IA centralizada:** un único proveedor configurado en `/config`; no crear endpoints ni claves separadas por módulo.
-- **APK nativa, no PWA:** el SMS en background requiere Android nativo (Kotlin/Java). Las PWA no tienen acceso a SMS.
-- **GPS como requerimiento duro:** no es opcional; es la principal defensa antifraude operativa.
-- **Centros ausentes en TM no se eliminan.**
-- **Clientes no ven datos de auditoría:** las vistas internas (encuestadores, alertas, centros) no se exponen al cliente.
-
----
-
-## Deploy en Azure
-
-- Artefacto: solo `backend/` como raíz (`wwwroot`).
-- Oryx detecta `requirements.txt` en wwwroot e instala.
-- Startup: `bash /home/site/wwwroot/startup.sh` → `uvicorn app:app`.
-- Si hay cold start: verificar que Always On esté activo (Portal → Configuration → General settings).
-- Si `startup.sh` detecta 0 centros al arrancar, ejecuta `init_showcase.py` automáticamente.
-- Geojson ADM1 y ADM2 están en `backend/` (no en la raíz) para que se incluyan en el artefacto.
-
----
-
-## Preferencias de colaboración
-
-- Responder y documentar en **español** para este repo.
-- Si el usuario dice "arréglalo" o "dale", proceder sin pedir otra ronda de permiso.
-- Si dice "súbelo", commitear y pushear después de validar.
-- Si quedan bugs pendientes, anotarlos en `BITACORA.md`.
-- Si se cambia comportamiento importante, sincronizar `README.md`.
-- Antes de hacer `git pull`, verificar que no haya cambios locales sin commitear.
-- El test `test_flujo.py` es un smoke test legacy; no confiar en un pytest verde como garantía de funcionalidad real de FastAPI.
-- Para cambios de esquema o seed: correr `--dry-run` primero.
+**Pendiente de decisión arquitectónica (Claude debe resolver)**:
+- [ ] Cola/background jobs para ingesta de múltiples PDFs — Celery vs. asyncio Queue vs. thread pool.
+- [ ] RapidFuzz vs. difflib cuando el volumen escale — costo de dependencia vs. calidad de matching.
+- [ ] Diseño de vista de auditoría interna: semáforo centros, panel encuestadores, alertas fraude.
+- [ ] Estrategia distribución APK Android (sideload directo, Play Store interno, MDM).
+- [ ] SQLite WAL bajo carga del día de elección — ¿suficiente o migrar a PostgreSQL?

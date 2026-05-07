@@ -1,111 +1,102 @@
-# Codex Notes - Exit Poll Venezuela
+# codex.md — Exit Poll Venezuela
 
-Este archivo resume el contexto operativo del repo para que futuras sesiones de Codex no empiecen desde cero.
+> Contexto operativo para Codex. Integra reglas del proyecto, rol de ejecución, y estado activo de implementación.
+> Si el usuario dice que subió cambios o pide revisar lo último: `git pull --ff-only origin main` antes de analizar.
 
-## Ubicacion y flujo de trabajo
+---
 
-- Repo activo: `D:\Test\exit_poll`.
-- No trabajar desde `D:\Test` como si fuera el repo de la app; ahi hay varios proyectos hermanos.
-- Rama principal actual: `main`.
-- Remoto: `origin/main` en `https://github.com/caprileshj-hub/exit-poll.git`.
-- Si el usuario dice que ya subio cambios o pide revisar lo ultimo, hacer `git pull --ff-only origin main` antes de analizar.
-- Si el usuario pide arreglar algo con frases como "dale arreglalo", proceder a modificar y validar sin pedir otra ronda de permiso.
-- Si el usuario pide "subelo al repo", commitear y pushear despues de validar.
+## Capa 1 — Reglas del Proyecto
 
-## Entorno local
+> Reglas invariantes comunes a todos los agentes. No cambiar sin consenso.
 
-- Windows / PowerShell.
-- Entorno virtual usado para validar: `D:\Test\.venv`.
-- Este repo ha tenido problemas cuando el venv queda apuntando a un Python roto o a Python 3.14. La ruta que funciono fue Python 3.12.
-- Comandos utiles:
+### Entorno
+- Repo: `https://github.com/caprileshj-hub/exit-poll.git` · Rama: `main`
+- Local (Windows 11, PowerShell): `D:\Test\exit_poll` (no confundir con `D:\Test` — hay varios proyectos hermanos)
+- venv: `D:\Test\.venv` — Python 3.12 (si falla, reconstruir con `python3.12 -m venv`; nunca 3.14)
+- Deploy: Azure App Service B1, eastus
 
+### Comandos esenciales
 ```powershell
 & 'D:\Test\.venv\Scripts\pytest.exe' -q
 & 'D:\Test\.venv\Scripts\python.exe' backend\seed_2006.py --dry-run
+& 'D:\Test\.venv\Scripts\pip.exe' install -r requirements.txt -r backend\requirements.txt pytest
 ```
 
-- Si `python.exe` del venv falla dentro del sandbox pero los entrypoints existen, probar fuera del sandbox o reconstruir el venv con Python 3.12.
-- Dependencias: instalar desde ambos archivos cuando se reconstruya el entorno.
-
-```powershell
-& 'D:\Test\.venv\Scripts\pip.exe' install -r 'D:\Test\exit_poll\requirements.txt' -r 'D:\Test\exit_poll\backend\requirements.txt' pytest
+### Arquitectura SMS (decisión fija)
 ```
-
-## Estructura importante
-
-- `backend/app.py`: FastAPI, dashboard, rutas de configuracion, live view y endpoints de TM/IA.
-- `backend/schema.sql`: esquema base de SQLite.
-- `backend/init_db.py`: inicializacion y migraciones ligeras.
-- `backend/cargador_tm.py`: cargador diferencial de Tabla de Mesa.
-- `backend/convertidor_tm.py`: conversion deterministica para formatos conocidos.
-- `backend/agent.py`: abstraccion de proveedores IA configurados en `/config`.
-- `backend/analista_ia.py`: analista deterministico con guardrails.
-- `backend/selector_muestra.py`: seleccion de muestra.
-- `backend/calculador_pesos.py`: ponderacion jerarquica.
-- `backend/seed_2006.py`: carga historica presidencial 2006.
-- `README.md`: documento publico del estado del producto.
-- `BITACORA.md`: registro historico y pendientes; puede tener ruido de encoding, preferir agregar secciones nuevas en vez de parches fragiles.
-
-## Decisiones ya tomadas
-
-- El canal de campo principal es SMS por baja conectividad.
-- La Tabla de Mesa tiene dos caminos de ingestion:
-  - deterministico legacy para formatos conocidos;
-  - asistido por IA para formatos nuevos o variables.
-- La IA usa la configuracion existente en `/config`; no se debe crear una superficie separada de API keys.
-- En TM, nunca sobrescribir coordenadas, riesgo ni radio desde un archivo CNE.
-- Los centros ausentes en una nueva TM no se borran.
-- Si hay filas ambiguas o conflictivas en TM, bloquear confirmacion hasta resolverlas.
-- El analista debe usar la frase exacta `datos insuficientes para establecer tendencias` cuando no hay datos suficientes.
-- Azure espera preservar el nesting `exit_poll/backend`; `backend/startup.sh` asume `cd /home/site/wwwroot/exit_poll/backend` antes de levantar `uvicorn app:app`.
-
-## Cambios recientes relevantes
-
-- Se agrego soporte historico 2006:
-  - `elecciones.notas`;
-  - `resultados_mesa`;
-  - `reportes_campo`;
-  - vistas `v_proyeccion` y `v_evaluacion`;
-  - `backend/seed_2006.py`;
-  - archivos fuente en `backend/data/2006/`.
-- Commit publicado: `719db81 Add 2006 historical seed data`.
-- Validacion del seed 2006 en `--dry-run`:
-  - 11,118 centros cargables;
-  - 33,002 mesas;
-  - 11,118 historicos;
-  - 580 reportes de campo;
-  - 6 centros de campo sin match.
-
-## Validacion antes de commitear
-
-Minimo:
-
-```powershell
-& 'D:\Test\.venv\Scripts\pytest.exe' -q
-git diff --check
-git status --short --branch
+[APK Android] → SMS → [Gateway Android] → HTTP POST → [FastAPI] → [SQLite WAL] → [Dashboard]
 ```
+Formato: `C1234;V2;T1932;L09a7F3b` · `C`=CNE · `V`=candidato · `T`=HHMM · `L`=Geohash 6 chars
 
-Para cambios de base de datos o seed:
+### Reglas de diseño no negociables
+1. `lat`, `lon`, `riesgo`, `radio_m` de `centros` jamás se sobrescriben desde un archivo CNE.
+2. Guardrail analista — frase exacta: `datos insuficientes para establecer tendencias`
+3. IA centralizada en `/config`. Sin endpoints ni API keys separadas por módulo.
+4. APK nativa (Android nativo), no PWA.
+5. GPS requerimiento duro — votos fuera del radio → `valid=false`, no totalizan.
+6. Centros ausentes en TM no se eliminan.
+7. Clientes no ven auditoría.
+8. Propósito: informar movilización, no predecir ganador.
 
-```powershell
-& 'D:\Test\.venv\Scripts\python.exe' backend\seed_2006.py --dry-run
-```
+---
 
-El test actual `test_flujo.py` es un smoke test legacy; no cubre todo FastAPI ni todos los flujos reales. No sobreconfiar en un `pytest` verde.
+## Capa 2 — Rol de Codex
 
-## Riesgos y pendientes conocidos
+**Codex = Implementación autónoma + Git + Tests + Deploy + CHANGELOG**
 
-- Falta ampliar cobertura de tests backend para rutas FastAPI, carga TM, muestra, pesos y analista.
-- Seguir revisando soporte por tipo de eleccion: regional, municipal y asamblea.
-- La integracion SMS/GPS/gateway Android sigue en desarrollo.
-- La ingestion IA de TM necesita hardening de UX para archivos grandes, limites de proveedor, resolucion manual y matching difuso.
-- Si se toca deploy, verificar que workflow, artifact y `backend/startup.sh` sigan alineados.
+### Responsabilidades exclusivas de Codex
+- Implementar features y fixes definidos por Claude o el usuario.
+- Correr validaciones antes de commitear: `pytest -q` + `python -m py_compile` sobre archivos modificados.
+- Gestionar git: stage → commit (mensaje en español, descriptivo) → push.
+- **Mantener `CHANGELOG.md` actualizado en cada commit** con fecha, tipo y archivos afectados.
+- Operaciones de deploy Azure (empaquetar `backend/` con `git archive HEAD:backend`, `az webapp deploy`).
+- No tomar decisiones arquitectónicas por cuenta propia — escalar a Claude si hay duda de diseño.
 
-## Preferencias de colaboracion
+### Flujo estándar
+1. `git pull --ff-only origin main` si el usuario menciona cambios recientes.
+2. Implementar el cambio solicitado.
+3. Validar: `pytest -q` + `py_compile` de los archivos modificados.
+4. Para cambios de BD/seed: `--dry-run` primero, luego aplicar.
+5. `git diff --check && git status --short --branch` antes de commitear.
+6. Commitear + pushear.
+7. Registrar en `CHANGELOG.md`.
+8. Si quedan bugs → registrar en `ESTADO.md` sección Pendientes.
 
-- El usuario suele escribir en espanol para este repo; responder y documentar en espanol.
-- Mantener momentum: diagnosticar, arreglar, validar, documentar y publicar cuando el pedido lo implique.
-- Si quedan bugs para despues, guardarlos en `BITACORA.md`.
-- Si se actualiza comportamiento importante, mantener `README.md` sincronizado.
-- Antes de editar archivos sensibles, leer el contexto cercano y respetar cambios no hechos por Codex.
+### Directivas operativas
+- "arréglalo" o "dale" → proceder sin otra ronda de permiso.
+- "súbelo" → commitear y pushear después de validar.
+- Responder y documentar en **español**.
+- `test_flujo.py` es smoke test legacy — pytest verde no garantiza funcionalidad FastAPI completa.
+- No commitear `.env`, `*.db`, `*.sqlite` — están en `.gitignore`.
+- Antes de editar archivos sensibles, leer contexto cercano.
+
+---
+
+## Capa 3 — Contexto Activo (Codex)
+
+> Estado completo del sistema → `ESTADO.md`
+
+**Fase activa**: Fase 7
+
+**Pendientes de implementación asignados a Codex**:
+- [ ] Parser SMS en `backend/app.py`: recibir POST del gateway, parsear `C;V;T;L`, validar Haversine < `radio_m`, insertar `sms_raw` + `votos` con `valid` y `turno`
+- [ ] Dashboard auditoría interna: semáforo centros, panel encuestadores, alertas fraude (rutas internas, sin acceso cliente)
+- [ ] Gráficos torta/barras para clientes
+- [ ] Tests FastAPI: rutas `/candidatos`, `/pesos`, `/visualizacion`, `/tm`
+- [ ] Tests `calcular_resultado_ponderado()` en `simulador_showcase.py` para elecciones regionales/municipales
+- [ ] Tests calculador pesos por tipo de elección
+
+**Bugs conocidos**:
+1. `backend/simulador_showcase.py` · `calcular_resultado_ponderado()` — pisa resultados por estado/municipio en loop (ver BUG-001 en `ESTADO.md`)
+2. `backend/templates/candidato_form.html` — lógica JS show/hide de campos por tipo candidato × tipo elección puede tener casos no cubiertos (ver BUG-002 en `ESTADO.md`)
+
+**Último estado validado** (2026-05-02):
+- `pytest -q` → 1 passed
+- `GET /config` → 200 · `GET /live` → 200 · SSE `/stream/dashboard` → `{"ok": true}`
+- Deploy Azure → RuntimeSuccessful, Running
+
+**Estructura deploy Azure**:
+- Solo `backend/` como raíz del artefacto: `git archive HEAD:backend > backend_deploy.zip`
+- Startup: `python /home/site/wwwroot/startup.py` (no `startup.sh` — CRLF issues)
+- `OPENAI_API_KEY` en Azure App Settings, no en código
+- `SCM_DO_BUILD_DURING_DEPLOYMENT=0` (Oryx desactivado)
