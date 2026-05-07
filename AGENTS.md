@@ -1,4 +1,4 @@
-# codex.md — Exit Poll Venezuela
+# AGENTS.md — Exit Poll Venezuela
 
 ## Source of Truth
 Read PROJECT_CONTEXT.md before any action in this project.
