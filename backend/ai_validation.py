@@ -43,6 +43,22 @@ def _schema_value(context: dict[str, Any], key: str, fallback: Any = None) -> An
     return context.get(key, fallback)
 
 
+def _mark_missing(
+    normalized: dict[str, Any],
+    differences: list[str],
+    field: str,
+    message: str,
+) -> None:
+    missing = normalized.setdefault("campos_ausentes_schema", [])
+    if field not in missing:
+        missing.append(field)
+    warnings = normalized.setdefault("advertencias_metodologicas", [])
+    warning = f"{field}: ausente en el schema real; no inferir ni completar."
+    if warning not in warnings:
+        warnings.append(warning)
+    differences.append(message)
+
+
 def normalize_context(context: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     """Map the current app context to the v2.3 report schema without changing DB code."""
     normalized = deepcopy(context)
@@ -103,20 +119,79 @@ def normalize_context(context: dict[str, Any]) -> tuple[dict[str, Any], list[str
 
     if "ponderacion_activa" not in normalized:
         normalized["ponderacion_activa"] = None
-        differences.append("schema real no trae ponderacion_activa; se marca como desconocida")
+        _mark_missing(
+            normalized,
+            differences,
+            "ponderacion_activa",
+            "schema real no trae ponderacion_activa; flag explicito de ausencia",
+        )
 
     if "cortes_demograficos" not in normalized:
         normalized["cortes_demograficos"] = {}
-        differences.append("schema real no trae cortes_demograficos")
+        _mark_missing(
+            normalized,
+            differences,
+            "cortes_demograficos",
+            "schema real no trae cortes_demograficos; se inicializa vacio y se marca ausente",
+        )
 
     if "motivadores_voto" not in normalized:
         normalized["motivadores_voto"] = {}
-        differences.append("schema real no trae motivadores_voto")
+        _mark_missing(
+            normalized,
+            differences,
+            "motivadores_voto",
+            "schema real no trae motivadores_voto; se inicializa vacio y se marca ausente",
+        )
 
     normalized.setdefault("series_temporales", context.get("ventajas_nacionales") or [])
-    normalized.setdefault("metadata_metodologica", {})
+    metadata = deepcopy(_metadata(normalized))
+    if "design_effect_estimado" not in metadata:
+        metadata["design_effect_estimado"] = None
+        _mark_missing(
+            normalized,
+            differences,
+            "metadata_metodologica.design_effect_estimado",
+            "schema real no trae design_effect_estimado; flag explicito de ausencia",
+        )
+    if "tasa_no_respuesta" not in metadata:
+        metadata["tasa_no_respuesta"] = None
+        _mark_missing(
+            normalized,
+            differences,
+            "metadata_metodologica.tasa_no_respuesta",
+            "schema real no trae tasa_no_respuesta; flag explicito de ausencia",
+        )
+    metadata["campos_ausentes"] = list(normalized.get("campos_ausentes_schema", []))
+    metadata["advertencias_metodologicas"] = list(normalized.get("advertencias_metodologicas", []))
+    normalized["metadata_metodologica"] = metadata
+    _apply_methodological_flags(normalized)
     normalized["schema_differences"] = differences
     return normalized, differences
+
+
+def _add_flag(context: dict[str, Any], flag: str) -> None:
+    flags = context.setdefault("flags_metodologicos", [])
+    if flag not in flags:
+        flags.append(flag)
+    metadata = context.setdefault("metadata_metodologica", {})
+    meta_flags = metadata.setdefault("flags_metodologicos", [])
+    if flag not in meta_flags:
+        meta_flags.append(flag)
+
+
+def _apply_methodological_flags(context: dict[str, Any]) -> None:
+    metadata = context.get("metadata_metodologica") or {}
+    tasa_no_respuesta = metadata.get("tasa_no_respuesta")
+    if tasa_no_respuesta is not None and _as_float(tasa_no_respuesta) > 15:
+        _add_flag(context, "ALTA_NO_RESPUESTA")
+
+    margin = context.get("margen_error_global")
+    if margin is None:
+        return
+    otros = (context.get("distribucion_general") or {}).get("Otros")
+    if isinstance(otros, dict) and _as_float(otros.get("porcentaje")) > _as_float(margin):
+        _add_flag(context, "OTROS_SIGNIFICATIVO")
 
 
 def validate_ai_context(context: dict[str, Any]) -> ValidationResult:
@@ -173,6 +248,7 @@ def _validate_demographics(context: dict[str, Any], notes: list[str]) -> dict[st
     cuts = context.get("cortes_demograficos") or {}
     min_raw = _as_int(context.get("umbral_subgrupo_minimo_bruto"), 30)
     privacy = _as_int(context.get("umbral_supresion_privacidad"), 5)
+    global_moe = context.get("margen_error_global")
     validated: dict[str, Any] = {}
 
     for variable, strata in cuts.items():
@@ -187,8 +263,12 @@ def _validate_demographics(context: dict[str, Any], notes: list[str]) -> dict[st
             item = deepcopy(payload) if isinstance(payload, dict) else {"valor": payload}
             n_raw = _as_int(item.get("n_bruta"), 0)
             if n_raw < privacy:
-                item["suprimido_privacidad"] = True
-                item["excluido_estadistico"] = True
+                item = {
+                    "n_bruta": n_raw,
+                    "suprimido_privacidad": True,
+                    "excluido_estadistico": True,
+                    "valor_suprimido": True,
+                }
                 privacy_count += 1
                 excluded_count += 1
             elif n_raw < min_raw:
@@ -197,6 +277,10 @@ def _validate_demographics(context: dict[str, Any], notes: list[str]) -> dict[st
             else:
                 item["excluido_estadistico"] = False
                 item["suprimido_privacidad"] = False
+            if not item.get("suprimido_privacidad") and "moe_subgrupo" not in item and global_moe is not None:
+                item["moe_usado"] = global_moe
+                item["advertencia_moe"] = "moe_subgrupo ausente; se usa margen_error_global."
+                notes.append(f"{variable}.{name}: moe_subgrupo ausente; se usa margen_error_global")
             kept[name] = item
 
         if kept and excluded_count == len(kept):
