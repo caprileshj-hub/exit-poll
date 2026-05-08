@@ -10,6 +10,7 @@ import sqlite3
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
 import backend.analista_ia as analista_ia
 import backend.app as app_backend
@@ -98,6 +99,19 @@ def _inyectar_opiniones(conn: sqlite3.Connection, inicio: int, cantidad: int, tu
     conn.commit()
 
 
+def _inyectar_resultados_historicos(conn: sqlite3.Connection) -> None:
+    for idx in range(1, 5):
+        codigo = f"010100{idx:03d}"
+        conn.execute(
+            """INSERT INTO resultados_historicos (
+                   codigo_centro, eleccion_ref, votos_validos,
+                   votos_gobierno, votos_oposicion, pct_gobierno, pct_oposicion
+               ) VALUES (?, 'referencia-test', 100, 40, 60, 40.0, 60.0)""",
+            (codigo,),
+        )
+    conn.commit()
+
+
 def _analisis(conn: sqlite3.Connection) -> dict:
     eleccion = conn.execute("SELECT * FROM elecciones WHERE activa=1").fetchone()
     candidatos = app_backend._nombres_candidatos(conn, eleccion["id"])
@@ -126,3 +140,36 @@ def test_simula_dia_electoral_y_guardrail_ia(tmp_path, monkeypatch):
         assert consolidado["metricas"]["ventaja_actual"] < 0
     finally:
         conn.close()
+
+
+def test_live_usa_dashboard_referencia_si_no_hay_votos(tmp_path, monkeypatch):
+    db_path = _init_db(tmp_path, monkeypatch)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        _seed_eleccion(conn)
+        _inyectar_resultados_historicos(conn)
+
+        payload = app_backend._dashboard_stream_payload(conn)
+        assert payload["fuente_datos"] == "dashboard_referencia"
+        assert payload["total_opiniones"] == 400
+        assert payload["geo"]
+        assert payload["series"]["VENEZUELA"]
+
+        contexto = app_backend._contexto_analista(
+            conn,
+            conn.execute("SELECT * FROM elecciones WHERE activa=1").fetchone(),
+            app_backend._nombres_candidatos(conn, 1),
+        )
+        assert contexto["fuente_datos"] == "dashboard_referencia"
+        assert contexto["total_opiniones"] == 400
+    finally:
+        conn.close()
+
+    client = TestClient(app_backend.app)
+    response = client.get("/live")
+    assert response.status_code == 200
+    assert "Corre: python backend/simulador_showcase.py --reset" not in response.text
+    assert "AI Electoral Analyst" in response.text
+    assert "ep-live-source" in response.text
+    assert "Datos de referencia del dashboard" in response.text

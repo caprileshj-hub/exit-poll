@@ -2,7 +2,7 @@
 
 > Estado actual del proyecto: qué funciona, qué está pendiente, qué bugs hay abiertos.
 > Actualizar al cierre de cada sesión de trabajo significativa.
-> Última actualización: 2026-05-07
+> Última actualización: 2026-05-08
 
 ---
 
@@ -59,7 +59,7 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 ### Visualización
 - [x] Heatmap Folium ADM1/ADM2 (`generador_heatmap.py`)
 - [x] Dashboard HTML autónomo: mapa 58% + tendencias Plotly 42% (`generador_dashboard.py`)
-- [x] SSE live dashboard (`/stream/dashboard`) — sin meta refresh
+- [x] SSE live dashboard (`/stream/dashboard`) — sin meta refresh; `/live` usa votos reales cuando existen y cae a la misma referencia del dashboard mientras no haya opiniones SMS
 - [x] Módulo Históricos: `/historicos`, `/historicos/{ref}`, `/historicos/comparar`, `/historicos/{ref}/mapa`
 
 ### Dashboard de configuración FastAPI

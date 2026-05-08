@@ -488,6 +488,12 @@ if (window.EventSource) {{
       if (liveTotal && (data.total_opiniones !== undefined || data.total_votos !== undefined)) {{
         liveTotal.textContent = Number(data.total_opiniones || data.total_votos || 0).toLocaleString() + ' opiniones procesadas';
       }}
+      var liveSource = document.getElementById('ep-live-source');
+      if (liveSource && data.fuente_datos) {{
+        liveSource.textContent = data.fuente_datos === 'live'
+          ? 'Datos en vivo por SMS'
+          : 'Datos de referencia del dashboard hasta recibir opiniones en vivo';
+      }}
     }} catch(err) {{
       console.warn('[exit-poll] SSE:', err);
     }}

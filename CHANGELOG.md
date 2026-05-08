@@ -9,6 +9,16 @@
 
 <!-- Codex: agregar aquí los cambios del próximo commit antes de pushear -->
 
+### fix — Live dashboard alineado con visualización
+- `/live` ahora usa votos reales cuando existen y cae a la misma data de referencia que `/visualizacion` mientras no haya opiniones SMS en `votos`
+- `/stream/dashboard` expone `fuente_datos` para distinguir `live` de `dashboard_referencia`
+- El panel del analista IA usa el mismo contexto que la vista live, incluyendo nota de fuente cuando opera con referencia
+- `generador_dashboard.py` actualiza por SSE la etiqueta de fuente sin recargar la página
+- Agregado test para `votos=0` con datos históricos disponibles
+- Archivos: `backend/app.py`, `backend/generador_dashboard.py`, `test_flujo.py`, `ESTADO.md`, `CHANGELOG.md`, `BITACORA.md`
+- Tests: `D:\Test\.venv\Scripts\pytest.exe -q` → 15 passed
+- Deploy: requiere redeploy para activar el cambio en Azure
+
 ### refactor — Hardening modulo AI de reportes
 - Documentado estado inicial del modulo en `AI_MODULE_REVIEW.md` antes de tocar implementacion
 - Separado prompt v2.3 en `backend/ai_prompts.py`

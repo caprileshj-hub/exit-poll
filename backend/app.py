@@ -1840,6 +1840,51 @@ def _tendencia_simulada(datos_ventaja: dict, n_puntos: int = 15) -> dict:
     return tendencias
 
 
+def _total_referencia_dashboard(db, id_eleccion: int | None = None, fuente: str = "todos") -> int:
+    """Cuenta opiniones de referencia con la misma fuente usada por /visualizacion."""
+    if fuente == "muestra" and id_eleccion:
+        row = db.execute("""
+            SELECT COALESCE(SUM(rh.votos_validos), 0) AS total
+            FROM muestra m
+            LEFT JOIN resultados_historicos rh ON rh.codigo_centro = m.codigo_centro
+            WHERE m.id_eleccion = ? AND m.activo = 1
+        """, (id_eleccion,)).fetchone()
+    else:
+        row = db.execute("""
+            SELECT COALESCE(SUM(rh.votos_validos), 0) AS total
+            FROM resultados_historicos rh
+            JOIN centros c ON rh.codigo_centro = c.codigo_cne
+            WHERE c.activo = 1
+        """).fetchone()
+    return int(row["total"] or 0)
+
+
+def _datos_dashboard_referencia(
+    db,
+    id_eleccion: int | None,
+    nivel: str = "estado",
+    fuente: str = "todos",
+) -> tuple[dict, dict, int]:
+    """Devuelve la misma data base que usa el dashboard estatico de /visualizacion."""
+    if nivel == "municipio":
+        if fuente == "muestra" and id_eleccion:
+            datos_ventaja = _datos_ventaja_muestra_municipio(db, id_eleccion)
+        else:
+            datos_ventaja = _datos_ventaja_por_municipio(db)
+    elif fuente == "muestra" and id_eleccion:
+        datos_ventaja = _datos_ventaja_muestra(db, id_eleccion)
+    else:
+        datos_ventaja = _datos_ventaja_por_estado(db)
+
+    if not datos_ventaja:
+        return {}, {}, 0
+    return (
+        datos_ventaja,
+        _tendencia_simulada(datos_ventaja),
+        _total_referencia_dashboard(db, id_eleccion, fuente),
+    )
+
+
 def _nombres_candidatos(db, id_eleccion: int = None) -> dict:
     """Obtiene nombres de candidatos gobierno/oposición de la elección."""
     cand = {'gobierno': 'Gobierno', 'oposicion': 'Oposici\u00f3n'}
@@ -2110,9 +2155,17 @@ def _dashboard_stream_payload(db: sqlite3.Connection) -> dict:
         }
 
     datos_ventaja, datos_tendencia, total_votos = _datos_vivos(db, eleccion["id"])
+    fuente_datos = "live"
+    if total_votos == 0:
+        datos_ventaja, datos_tendencia, total_votos = _datos_dashboard_referencia(
+            db, eleccion["id"], nivel="estado", fuente="todos"
+        )
+        fuente_datos = "dashboard_referencia" if total_votos else "sin_datos"
+
     return {
         "ok": True,
         "eleccion": eleccion["nombre"],
+        "fuente_datos": fuente_datos,
         "geo": datos_ventaja,
         "series": datos_tendencia,
         "total_votos": total_votos,
@@ -2184,16 +2237,28 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
     eid = eleccion["id"]
     tipo_eleccion = eleccion["tipo"]
     datos_ventaja, datos_tendencia, total_votos = _datos_vivos(db, eid)
+    fuente_datos = "live"
+    usando_referencia = False
+    if total_votos == 0:
+        datos_ventaja, datos_tendencia, total_votos = _datos_dashboard_referencia(
+            db, eid, nivel="estado", fuente="todos"
+        )
+        fuente_datos = "dashboard_referencia" if total_votos else "sin_datos"
+        usando_referencia = total_votos > 0
+
     muestra_total = db.execute(
         "SELECT COUNT(*) c FROM muestra WHERE id_eleccion=? AND activo=1",
         (eid,),
     ).fetchone()["c"]
-    centros_reportando = db.execute("""
-        SELECT COUNT(DISTINCT v.codigo_centro) c
-        FROM votos v
-        JOIN muestra m ON m.codigo_centro = v.codigo_centro
-        WHERE m.id_eleccion = ? AND v.valido = 1
-    """, (eid,)).fetchone()["c"]
+    if usando_referencia:
+        centros_reportando = muestra_total
+    else:
+        centros_reportando = db.execute("""
+            SELECT COUNT(DISTINCT v.codigo_centro) c
+            FROM votos v
+            JOIN muestra m ON m.codigo_centro = v.codigo_centro
+            WHERE m.id_eleccion = ? AND v.valido = 1
+        """, (eid,)).fetchone()["c"]
 
     puntos_nac = datos_tendencia.get("VENEZUELA") or []
     ventajas_nacionales = [
@@ -2223,38 +2288,48 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
     }
     regla = reglas.get(tipo_eleccion, reglas["nacional"])
     estados_suf = {}
-    rows_estado_suf = db.execute("""
-        SELECT
-            est.nombre AS estado,
-            COUNT(v.id) AS opiniones,
-            COUNT(DISTINCT v.codigo_centro) AS centros_reportando,
-            COUNT(DISTINCT m.codigo_centro) AS centros_muestra,
-            COUNT(DISTINCT v.turno) AS cortes
-        FROM muestra m
-        JOIN centros c ON c.codigo_cne = m.codigo_centro
-        JOIN estados est ON est.id = c.id_estado
-        LEFT JOIN votos v
-          ON v.codigo_centro = m.codigo_centro
-         AND v.valido = 1
-        WHERE m.id_eleccion = ? AND m.activo = 1
-        GROUP BY est.id
-    """, (eid,)).fetchall()
-    for r in rows_estado_suf:
-        nombre = _norm_estado(r["estado"])
-        centros_estado = int(r["centros_muestra"] or 0)
-        cobertura_estado = round(100 * int(r["centros_reportando"] or 0) / centros_estado, 1) if centros_estado else 0
-        opiniones_estado = int(r["opiniones"] or 0)
-        cortes_estado = int(r["cortes"] or 0)
-        estados_suf[nombre] = {
-            "opiniones": opiniones_estado,
-            "cobertura_pct": cobertura_estado,
-            "cortes": cortes_estado,
-            "datos_suficientes": (
-                opiniones_estado >= regla["minimo_opiniones"]
-                and cobertura_estado >= regla["minimo_cobertura_pct"]
-                and cortes_estado >= regla["minimo_cortes"]
-            ),
-        }
+    if usando_referencia:
+        for nombre, puntos in tendencias_por_estado.items():
+            estados_suf[nombre.title()] = {
+                "opiniones": None,
+                "cobertura_pct": 100.0,
+                "cortes": len(puntos),
+                "datos_suficientes": len(puntos) >= regla["minimo_cortes"],
+                "fuente_datos": fuente_datos,
+            }
+    else:
+        rows_estado_suf = db.execute("""
+            SELECT
+                est.nombre AS estado,
+                COUNT(v.id) AS opiniones,
+                COUNT(DISTINCT v.codigo_centro) AS centros_reportando,
+                COUNT(DISTINCT m.codigo_centro) AS centros_muestra,
+                COUNT(DISTINCT v.turno) AS cortes
+            FROM muestra m
+            JOIN centros c ON c.codigo_cne = m.codigo_centro
+            JOIN estados est ON est.id = c.id_estado
+            LEFT JOIN votos v
+              ON v.codigo_centro = m.codigo_centro
+             AND v.valido = 1
+            WHERE m.id_eleccion = ? AND m.activo = 1
+            GROUP BY est.id
+        """, (eid,)).fetchall()
+        for r in rows_estado_suf:
+            nombre = _norm_estado(r["estado"])
+            centros_estado = int(r["centros_muestra"] or 0)
+            cobertura_estado = round(100 * int(r["centros_reportando"] or 0) / centros_estado, 1) if centros_estado else 0
+            opiniones_estado = int(r["opiniones"] or 0)
+            cortes_estado = int(r["cortes"] or 0)
+            estados_suf[nombre] = {
+                "opiniones": opiniones_estado,
+                "cobertura_pct": cobertura_estado,
+                "cortes": cortes_estado,
+                "datos_suficientes": (
+                    opiniones_estado >= regla["minimo_opiniones"]
+                    and cobertura_estado >= regla["minimo_cobertura_pct"]
+                    and cortes_estado >= regla["minimo_cortes"]
+                ),
+            }
     datos_suficientes = (
         total_votos >= regla["minimo_opiniones"]
         and (round(100 * centros_reportando / muestra_total, 1) if muestra_total else 0) >= regla["minimo_cobertura_pct"]
@@ -2265,6 +2340,11 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
         "ok": True,
         "eleccion": eleccion["nombre"],
         "tipo_eleccion": tipo_eleccion,
+        "fuente_datos": fuente_datos,
+        "nota_fuente": (
+            "Datos de referencia del dashboard; no son opiniones recibidas por SMS en vivo."
+            if usando_referencia else None
+        ),
         "hora_actual": hora_actual,
         "total_votos": total_votos,
         "total_opiniones": total_votos,
@@ -2661,6 +2741,12 @@ async def live_dashboard(refresh: int = 5):
 
         eid = eleccion["id"]
         datos_ventaja, datos_tendencia, total_votos = _datos_vivos(db, eid)
+        fuente_datos = "live"
+        if total_votos == 0:
+            datos_ventaja, datos_tendencia, total_votos = _datos_dashboard_referencia(
+                db, eid, nivel="estado", fuente="todos"
+            )
+            fuente_datos = "dashboard_referencia" if total_votos else "sin_datos"
         candidatos_dict = _nombres_candidatos(db, eid)
     finally:
         db.close()
@@ -2681,6 +2767,11 @@ async def live_dashboard(refresh: int = 5):
     importlib.reload(generador_dashboard)
 
     titulo = f"{eleccion['nombre']} — EN VIVO"
+    subtitulo_fuente = (
+        "Datos en vivo por SMS"
+        if fuente_datos == "live"
+        else "Datos de referencia del dashboard hasta recibir opiniones en vivo"
+    )
     tmp = tempfile.mktemp(suffix=".html")
     try:
         generador_dashboard.generar_dashboard(
@@ -2703,7 +2794,8 @@ async def live_dashboard(refresh: int = 5):
         f'box-shadow:0 2px 6px rgba(0,0,0,.35);">'
         f'<span>&#x1F534;&nbsp; EN VIVO &nbsp;&#x2502;&nbsp; {eleccion["nombre"]}'
         f'&nbsp;&#x2502;&nbsp; <span id="ep-live-total">{total_votos:,} opiniones procesadas</span></span>'
-        f'<span style="opacity:.7">SSE&nbsp;cada 60s</span>'
+        f'<span style="opacity:.7"><span id="ep-live-source">{subtitulo_fuente}</span> '
+        f'&nbsp;&#x2502;&nbsp; SSE&nbsp;cada 60s</span>'
         f'</div>'
     )
 

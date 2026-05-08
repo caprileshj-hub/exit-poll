@@ -842,3 +842,29 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 ### Validacion
 - `venv\Scripts\python.exe -m compileall -q backend test_flujo.py test_ai_validation.py`: OK.
 - `venv\Scripts\python.exe -m pytest -q test_flujo.py test_ai_validation.py --basetemp .pytest_ai_tmp3 -p no:cacheprovider`: 7 passed.
+
+---
+
+## 2026-05-08 - Live dashboard alineado con visualizacion
+
+### Problema
+- `/visualizacion/generar` construia el dashboard desde `resultados_historicos`.
+- `/live` solo miraba `votos`; cuando no habia opiniones SMS cargadas, mostraba estado vacio aunque el dashboard estatico tuviera data.
+- El panel del analista IA quedaba sobre una vista que no representaba lo que el usuario veia en el dashboard.
+
+### Cambio
+- Se agrego fallback comun en `backend/app.py`: primero se usan votos reales; si `votos` esta vacia, `/live`, `/stream/dashboard` y el contexto del analista usan la misma referencia que `/visualizacion`.
+- `/stream/dashboard` ahora reporta `fuente_datos`:
+  - `live` cuando hay opiniones reales.
+  - `dashboard_referencia` mientras se muestra la referencia historica/simulada.
+- `backend/generador_dashboard.py` actualiza por SSE la etiqueta de fuente sin recargar la pagina.
+- El analista IA recibe `nota_fuente` cuando opera sobre referencia, para no confundirla con opiniones SMS reales.
+
+### Validacion
+- `D:\Test\.venv\Scripts\python.exe -m py_compile backend\app.py backend\generador_dashboard.py test_flujo.py`: OK.
+- `D:\Test\.venv\Scripts\pytest.exe -q`: 15 passed.
+- Verificacion local con la BD real:
+  - `/live` responde 200.
+  - Incluye `AI Electoral Analyst`.
+  - Incluye `Datos de referencia del dashboard`.
+  - Ya no muestra `Corre: python backend/simulador_showcase.py --reset` cuando hay referencia disponible.
