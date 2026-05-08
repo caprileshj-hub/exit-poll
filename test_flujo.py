@@ -163,6 +163,13 @@ def test_live_usa_dashboard_referencia_si_no_hay_votos(tmp_path, monkeypatch):
         )
         assert contexto["fuente_datos"] == "dashboard_referencia"
         assert contexto["total_opiniones"] == 400
+        assert contexto["suficiencia"]["estados"]["Distrito Capital"]["datos_suficientes"] is True
+        lectura_estado = analista_ia.analizar_contexto(contexto, "como va Distrito Capital")
+        assert lectura_estado["estado"] == "dato_disponible"
+        assert "data de referencia que muestra el dashboard" in lectura_estado["resumen"]
+        lectura_sin_estado = analista_ia.analizar_contexto(contexto, "como va Carabobo")
+        assert lectura_sin_estado["estado"] == "sin_datos"
+        assert lectura_sin_estado["resumen"] == INSUFICIENTE
     finally:
         conn.close()
 

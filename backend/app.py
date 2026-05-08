@@ -2296,6 +2296,7 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
                 "cortes": len(puntos),
                 "datos_suficientes": len(puntos) >= regla["minimo_cortes"],
                 "fuente_datos": fuente_datos,
+                "nota": "Referencia de dashboard; no son opiniones SMS reales.",
             }
     else:
         rows_estado_suf = db.execute("""

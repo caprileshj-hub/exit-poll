@@ -13,6 +13,13 @@ from typing import Any
 
 SIN_DATOS = "datos insuficientes para establecer tendencias"
 
+ESTADOS_VE = [
+    "Amazonas", "Anzoategui", "Apure", "Aragua", "Barinas", "Bolivar",
+    "Carabobo", "Cojedes", "Delta Amacuro", "Distrito Capital", "Falcon",
+    "Guarico", "Lara", "Merida", "Miranda", "Monagas", "Nueva Esparta",
+    "Portuguesa", "Sucre", "Tachira", "Trujillo", "Vargas", "Yaracuy", "Zulia",
+]
+
 
 # ── Utilidades ────────────────────────────────────────────────────────────────
 
@@ -69,6 +76,32 @@ def _detectar_estado(pregunta: str, estados: dict) -> str | None:
         if token in preg and estado_real in estados:
             return estado_real
     return None
+
+
+def _detectar_estado_conocido(pregunta: str) -> str | None:
+    preg = _norm(pregunta)
+    alias = {
+        "caracas": "Distrito Capital",
+        "dc": "Distrito Capital",
+        "distrito": "Distrito Capital",
+        "guaira": "Vargas",
+        "vargas": "Vargas",
+        "margarita": "Nueva Esparta",
+        "delta": "Delta Amacuro",
+    }
+    for token, estado_real in alias.items():
+        if token in preg:
+            return estado_real
+    for estado in sorted(ESTADOS_VE, key=lambda k: len(k), reverse=True):
+        if _norm(estado) in preg:
+            return estado
+    return None
+
+
+def _fuente_prefijo(contexto: dict[str, Any]) -> str:
+    if contexto.get("fuente_datos") == "dashboard_referencia":
+        return "Segun la data de referencia que muestra el dashboard, "
+    return ""
 
 
 def _detectar_candidato(pregunta: str, candidatos: dict) -> str | None:
@@ -130,6 +163,7 @@ def _analizar_estado(nombre_estado: str, contexto: dict[str, Any]) -> dict[str, 
     suficiencia_estados = (contexto.get("suficiencia") or {}).get("estados") or {}
     candidatos = contexto.get("candidatos") or {}
     hora = contexto.get("hora_actual") or "este corte"
+    fuente_prefijo = _fuente_prefijo(contexto)
 
     ventaja = ventajas_por_estado.get(nombre_estado)
     puntos = tendencias_por_estado.get(nombre_estado.upper()) or []
@@ -145,6 +179,12 @@ def _analizar_estado(nombre_estado: str, contexto: dict[str, Any]) -> dict[str, 
     if ventaja is None or n_puntos < 3 or not estado_suf.get("datos_suficientes", False):
         resumen = SIN_DATOS
         estado_lec = "sin_datos"
+        metricas = {
+            "ventaja_estado": None,
+            "n_cortes": n_puntos,
+            "variacion_reciente": None,
+            "fuente_datos": estado_suf.get("fuente_datos") or contexto.get("fuente_datos"),
+        }
     else:
         arriba = gob if ventaja >= 0 else opo
         abajo = opo if ventaja >= 0 else gob
@@ -163,21 +203,23 @@ def _analizar_estado(nombre_estado: str, contexto: dict[str, Any]) -> dict[str, 
                 diferencia_nac = f" Esto está {_fmt_pct(abs(diff))} {comp} de la ventaja nacional del gobierno."
 
         resumen = (
-            f"En {nombre_estado}, hasta {hora}, {arriba} tiene una ventaja observada "
+            f"{fuente_prefijo}en {nombre_estado}, hasta {hora}, {arriba} tiene una ventaja observada "
             f"de {_fmt_pct(dif)} sobre {abajo}.{tendencia_txt}{diferencia_nac} "
             "Esta es una lectura parcial del corte actual."
         )
         estado_lec = "dato_disponible"
+        metricas = {
+            "ventaja_estado": ventaja,
+            "n_cortes": n_puntos,
+            "variacion_reciente": round(variacion, 2) if variacion is not None else None,
+            "fuente_datos": estado_suf.get("fuente_datos") or contexto.get("fuente_datos"),
+        }
 
     return {
         "estado": estado_lec,
         "ambito": nombre_estado,
         "resumen": resumen,
-        "metricas": {
-            "ventaja_estado": ventaja,
-            "n_cortes": n_puntos,
-            "variacion_reciente": round(variacion, 2) if variacion is not None else None,
-        },
+        "metricas": metricas,
         "advertencias": [
             "No se declara ganador: solo ventaja observada.",
             "Lectura basada únicamente en datos del corte actual.",
@@ -251,7 +293,7 @@ def _analizar_candidato(bando: str, contexto: dict[str, Any]) -> dict[str, Any]:
             )
 
     resumen = (
-        f"Hasta {hora}, {nombre} registra {pct_txt}. "
+        f"{_fuente_prefijo(contexto)}hasta {hora}, {nombre} registra {pct_txt}. "
         f"{estados_txt} "
         f"Cobertura de muestra: {_fmt_pct(cobertura)} con {total_votos:,} opiniones validas procesadas. "
         "Esta lectura describe la tendencia observada, no el resultado final."
@@ -299,21 +341,21 @@ def _analizar_nacional(contexto: dict[str, Any], pregunta: str) -> dict[str, Any
         resumen = SIN_DATOS
     elif lectura["estado"] == "competitivo":
         resumen = (
-            f"Con los datos recibidos hasta {hora}, {candidato_arriba} aparece con una "
+            f"{_fuente_prefijo(contexto)}con los datos recibidos hasta {hora}, {candidato_arriba} aparece con una "
             f"ventaja observada de {_fmt_pct(abs(float(ventaja)))} sobre {candidato_abajo}, "
             f"pero esa diferencia está dentro o muy cerca del margen aproximado "
             f"({_fmt_pct(margen)}). La lectura correcta es escenario competitivo, no ganador."
         )
     elif lectura["estado"] == "tendencia_consistente":
         resumen = (
-            f"Con los datos recibidos hasta {hora}, {candidato_arriba} mantiene una "
+            f"{_fuente_prefijo(contexto)}con los datos recibidos hasta {hora}, {candidato_arriba} mantiene una "
             f"ventaja consistente de {_fmt_pct(abs(float(ventaja)))} sobre {candidato_abajo}. "
             f"La variación reciente es de {_fmt_pct(variacion)} y el margen aproximado es "
             f"{_fmt_pct(margen)}. Esto sugiere una tendencia favorable, sin declarar resultado final."
         )
     else:
         resumen = (
-            f"Con los datos recibidos hasta {hora}, {candidato_arriba} tiene una ventaja "
+            f"{_fuente_prefijo(contexto)}con los datos recibidos hasta {hora}, {candidato_arriba} tiene una ventaja "
             f"observada de {_fmt_pct(abs(float(ventaja)))} sobre {candidato_abajo}. "
             f"El margen aproximado es {_fmt_pct(margen)} y la cobertura va en "
             f"{_fmt_pct(cobertura)}. La ventaja existe, pero todavía debe monitorearse en cortes posteriores."
@@ -361,6 +403,15 @@ def analizar_contexto(contexto: dict[str, Any], pregunta: str | None = None) -> 
     estado_detectado = _detectar_estado(pregunta, ventajas_por_estado)
     if estado_detectado:
         return _analizar_estado(estado_detectado, contexto)
+    estado_mencionado = _detectar_estado_conocido(pregunta)
+    if estado_mencionado:
+        return {
+            "estado": "sin_datos",
+            "ambito": estado_mencionado,
+            "resumen": SIN_DATOS,
+            "metricas": {"fuente_datos": contexto.get("fuente_datos")},
+            "advertencias": ["Ese estado no esta en la data actualmente visible del dashboard."],
+        }
 
     bando_detectado = _detectar_candidato(pregunta, candidatos)
     if bando_detectado:
