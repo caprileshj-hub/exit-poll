@@ -2919,20 +2919,72 @@ def _datos_ventaja_historico_ref(conn, eleccion_ref: str) -> dict:
 @app.get("/historicos", response_class=HTMLResponse)
 async def historicos_index(request: Request):
     conn = get_db()
-    refs = conn.execute("""
-        SELECT
-            eleccion_ref,
-            COUNT(*)                                                            AS num_centros,
-            SUM(votos_validos)                                                  AS total_votos,
-            ROUND(SUM(votos_gobierno)*100.0  / NULLIF(SUM(votos_validos),0),1) AS pct_gov,
-            ROUND(SUM(votos_oposicion)*100.0 / NULLIF(SUM(votos_validos),0),1) AS pct_opos
+
+    # ── Elecciones con datos de estudio (exit poll) ───────────────────────────
+    est_rows = conn.execute("""
+        SELECT eleccion_ref,
+               COALESCE(MAX(CASE WHEN f='e' THEN nombre_eleccion END),
+                        MAX(CASE WHEN f='o' THEN nombre_eleccion END)) AS nombre_eleccion,
+               COALESCE(MAX(CASE WHEN f='e' THEN fecha_eleccion END),
+                        MAX(CASE WHEN f='o' THEN fecha_eleccion END))  AS fecha_eleccion,
+               MAX(CASE WHEN f='e' THEN pct_gov   END) AS e_gov,
+               MAX(CASE WHEN f='e' THEN pct_opos  END) AS e_opos,
+               MAX(CASE WHEN f='o' THEN pct_gov   END) AS o_gov,
+               MAX(CASE WHEN f='o' THEN pct_opos  END) AS o_opos,
+               MAX(CASE WHEN f='e' THEN num_centros END) AS e_centros
+        FROM (
+            SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos,
+                   num_centros, 'e' AS f
+            FROM historico_estudios WHERE ambito='NACIONAL'
+            UNION ALL
+            SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos,
+                   NULL, 'o'
+            FROM historico_oficial WHERE ambito='NACIONAL'
+        )
+        GROUP BY eleccion_ref
+        ORDER BY fecha_eleccion DESC, eleccion_ref DESC
+    """).fetchall()
+
+    est_refs = {r["eleccion_ref"] for r in est_rows}
+
+    # ── Elecciones solo en resultados_historicos (sin estudio) ───────────────
+    rh_rows = conn.execute("""
+        SELECT eleccion_ref,
+               COUNT(*)                                                             AS num_centros,
+               SUM(votos_validos)                                                   AS total_votos,
+               ROUND(SUM(votos_gobierno)*100.0  / NULLIF(SUM(votos_validos),0), 1) AS o_gov,
+               ROUND(SUM(votos_oposicion)*100.0 / NULLIF(SUM(votos_validos),0), 1) AS o_opos
         FROM resultados_historicos
         GROUP BY eleccion_ref
         ORDER BY eleccion_ref DESC
     """).fetchall()
+
+    # Construir lista unificada: estudios primero, luego rh sin duplicados
+    elections = []
+    for r in est_rows:
+        d = dict(r)
+        d["tipo"] = "con_estudio"
+        if d["e_gov"] is not None and d["o_gov"] is not None:
+            d["delta"] = round(d["e_gov"] - d["o_gov"], 1)
+            d["ganador_ok"] = (d["e_gov"] > d["e_opos"]) == (d["o_gov"] > d["o_opos"])
+        else:
+            d["delta"] = None
+            d["ganador_ok"] = None
+        elections.append(d)
+
+    for r in rh_rows:
+        if r["eleccion_ref"] in est_refs:
+            continue  # ya cubierto por estudios
+        d = dict(r)
+        d["tipo"] = "resultados"
+        d["nombre_eleccion"] = None
+        d["fecha_eleccion"] = None
+        d["e_gov"] = d["e_opos"] = d["delta"] = d["ganador_ok"] = None
+        elections.append(d)
+
     conn.close()
     return templates.TemplateResponse(request=request, name="historicos.html", context={
-        "refs": refs
+        "elections": elections
     })
 
 
@@ -3047,40 +3099,17 @@ def _estudios_pivot(conn, ref: str) -> list[dict]:
 
 @app.get("/historicos/estudios", response_class=HTMLResponse)
 async def historico_estudios_index(request: Request):
-    conn = get_db()
-    refs = conn.execute("""
-        SELECT eleccion_ref,
-               COALESCE(MAX(CASE WHEN f='e' THEN nombre_eleccion END),
-                        MAX(CASE WHEN f='o' THEN nombre_eleccion END)) AS nombre_eleccion,
-               COALESCE(MAX(CASE WHEN f='e' THEN fecha_eleccion END),
-                        MAX(CASE WHEN f='o' THEN fecha_eleccion END))  AS fecha_eleccion,
-               MAX(CASE WHEN f='e' THEN pct_gov  END) AS e_gov,
-               MAX(CASE WHEN f='e' THEN pct_opos END) AS e_opos,
-               MAX(CASE WHEN f='o' THEN pct_gov  END) AS o_gov,
-               MAX(CASE WHEN f='o' THEN pct_opos END) AS o_opos
-        FROM (
-            SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos, 'e' AS f
-            FROM historico_estudios WHERE ambito='NACIONAL'
-            UNION ALL
-            SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos, 'o'
-            FROM historico_oficial WHERE ambito='NACIONAL'
-        )
-        GROUP BY eleccion_ref
-        ORDER BY fecha_eleccion DESC, eleccion_ref DESC
-    """).fetchall()
-    conn.close()
-    return templates.TemplateResponse(request=request, name="historico_estudios.html", context={
-        "refs": [dict(r) for r in refs]
-    })
+    return RedirectResponse("/historicos", status_code=301)
 
 
 @app.get("/historicos/estudios/nuevo", response_class=HTMLResponse)
-async def historico_estudio_nuevo_get(request: Request):
+async def historico_estudio_nuevo_get(request: Request, ref: str = ""):
     conn = get_db()
     estados = _estados_para_form(conn)
     conn.close()
     return templates.TemplateResponse(request=request, name="historico_estudio_editar.html", context={
-        "estados": estados, "estudio": {}, "oficial": {}, "turnos": {}, "meta": {}, "edit_ref": ""
+        "estados": estados, "estudio": {}, "oficial": {}, "turnos": {},
+        "meta": {"ref": ref}, "edit_ref": ""
     })
 
 
