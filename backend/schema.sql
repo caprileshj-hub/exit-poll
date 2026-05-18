@@ -432,3 +432,59 @@ CREATE TABLE IF NOT EXISTS accesos_vistas (
                         'tabla_centros'
                     ))
 );
+
+
+-- =============================================================
+-- BLOQUE 9: ESTUDIOS HISTÓRICOS — comparación exit poll vs oficial
+-- Carga manual por ámbito. No depende de centros ni FK geográficas.
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS historico_estudios (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    eleccion_ref    TEXT NOT NULL,
+    ambito          TEXT NOT NULL,          -- 'NACIONAL' o codigo_cne del estado
+    nombre          TEXT NOT NULL,          -- 'Nacional' / 'Zulia' / etc.
+    nombre_eleccion TEXT,                   -- solo en ambito='NACIONAL'
+    fecha_eleccion  TEXT,                   -- solo en ambito='NACIONAL'
+    pct_gov         REAL NOT NULL DEFAULT 0,
+    pct_opos        REAL NOT NULL DEFAULT 0,
+    pct_otros       REAL NOT NULL DEFAULT 0,
+    num_centros     INTEGER NOT NULL DEFAULT 0,
+    fuente          TEXT,
+    notas           TEXT,
+    updated_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(eleccion_ref, ambito)
+);
+
+CREATE TABLE IF NOT EXISTS historico_oficial (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    eleccion_ref    TEXT NOT NULL,
+    ambito          TEXT NOT NULL,
+    nombre          TEXT NOT NULL,
+    nombre_eleccion TEXT,
+    fecha_eleccion  TEXT,
+    pct_gov         REAL NOT NULL DEFAULT 0,
+    pct_opos        REAL NOT NULL DEFAULT 0,
+    pct_otros       REAL NOT NULL DEFAULT 0,
+    total_votos     INTEGER NOT NULL DEFAULT 0,
+    fuente          TEXT,
+    updated_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(eleccion_ref, ambito)
+);
+
+CREATE TABLE IF NOT EXISTS historico_estudios_turnos (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    eleccion_ref    TEXT NOT NULL,
+    turno           INTEGER NOT NULL,
+    hora_label      TEXT,                   -- ej: '08:00–09:30'
+    pct_gov         REAL NOT NULL DEFAULT 0,
+    pct_opos        REAL NOT NULL DEFAULT 0,
+    pct_otros       REAL NOT NULL DEFAULT 0,
+    num_centros     INTEGER NOT NULL DEFAULT 0,
+    updated_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(eleccion_ref, turno)
+);
+
+CREATE INDEX IF NOT EXISTS idx_he_ref   ON historico_estudios(eleccion_ref);
+CREATE INDEX IF NOT EXISTS idx_ho_ref   ON historico_oficial(eleccion_ref);
+CREATE INDEX IF NOT EXISTS idx_het_ref  ON historico_estudios_turnos(eleccion_ref);

@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% set active_page = "estudios" %}
+{% block title %}Estudio &mdash; {{ meta.nombre_eleccion or ref }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<style>
+    .delta-ok   { color: #198754; font-weight: 600; }
+    .delta-warn { color: #fd7e14; font-weight: 600; }
+    .delta-bad  { color: #dc3545; font-weight: 600; }
+    .card-kpi   { border-left: 4px solid var(--ep-azul); }
+    .card-kpi .val { font-size: 1.8rem; font-weight: 700; color: var(--ep-azul); }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/historicos/estudios">Estudios</a></li>
+        <li class="breadcrumb-item active">{{ meta.nombre_eleccion or ref }}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0"><i class="bi bi-bar-chart-steps me-2"></i>{{ meta.nombre_eleccion or ref }}</h2>
+        {% if meta.fecha_eleccion %}<small class="text-muted">{{ meta.fecha_eleccion }}</small>{% endif %}
+    </div>
+    <a href="/historicos/estudios/{{ ref }}/editar" class="btn btn-outline-secondary">
+        <i class="bi bi-pencil me-1"></i>Editar datos
+    </a>
+</div>
+
+<!-- ── Resumen nacional ────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card card-kpi p-3 text-center">
+            <div class="val text-danger">{{ nac.e_gov or '&#8212;' }}{% if nac.e_gov is not none %}%{% endif %}</div>
+            <small class="text-muted">Estudio Gov</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-kpi p-3 text-center" style="border-color:#2980b9">
+            <div class="val text-primary">{{ nac.e_opos or '&#8212;' }}{% if nac.e_opos is not none %}%{% endif %}</div>
+            <small class="text-muted">Estudio Opos</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-kpi p-3 text-center" style="border-color:#198754">
+            <div class="val text-danger" style="font-size:1.4rem">{{ nac.o_gov or '&#8212;' }}{% if nac.o_gov is not none %}%{% endif %}</div>
+            <small class="text-muted">Oficial Gov</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-kpi p-3 text-center" style="border-color:#198754">
+            <div class="val text-primary" style="font-size:1.4rem">{{ nac.o_opos or '&#8212;' }}{% if nac.o_opos is not none %}%{% endif %}</div>
+            <small class="text-muted">Oficial Opos</small>
+        </div>
+    </div>
+</div>
+
+<!-- ── Análisis de acertividad ────────────────────────────────────────────── -->
+{% if analisis %}
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3"><i class="bi bi-clipboard2-check me-2"></i>An&#225;lisis de acertividad</h5>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="p-3 rounded bg-light text-center">
+                    <div class="fs-4
+                        {% if analisis.error_abs <= 0.5 %}text-success
+                        {% elif analisis.error_abs <= 2 %}text-warning
+                        {% else %}text-danger{% endif %}">
+                        {{ '%+.1f'|format(analisis.delta_gov) }} pp
+                    </div>
+                    <small class="text-muted">Error estudio vs oficial (gov)</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 rounded bg-light text-center">
+                    {% if analisis.acierto_ganador %}
+                    <div class="fs-4 text-success"><i class="bi bi-check-circle-fill"></i></div>
+                    <small class="text-muted">Ganador correcto ({{ analisis.ganador_oficial }})</small>
+                    {% else %}
+                    <div class="fs-4 text-danger"><i class="bi bi-x-circle-fill"></i></div>
+                    <small class="text-muted">
+                        Estudio: {{ analisis.ganador_estudio }} /
+                        Oficial: {{ analisis.ganador_oficial }}
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 rounded bg-light text-center">
+                    {% if analisis.rmse_estados is not none %}
+                    <div class="fs-4
+                        {% if analisis.rmse_estados <= 1 %}text-success
+                        {% elif analisis.rmse_estados <= 3 %}text-warning
+                        {% else %}text-danger{% endif %}">
+                        {{ analisis.rmse_estados }} pp
+                    </div>
+                    <small class="text-muted">RMSE por estado ({{ analisis.n_estados }} estados)</small>
+                    {% else %}
+                    <div class="text-muted">&#8212;</div>
+                    <small class="text-muted">Sin datos por estado</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="mt-3 p-3 border rounded small">
+            <strong>Resumen:</strong>
+            El estudio proyect&#243;
+            <strong class="text-danger">{{ nac.e_gov }}% gobierno</strong> /
+            <strong class="text-primary">{{ nac.e_opos }}% oposici&#243;n</strong>.
+            El resultado oficial fue
+            <strong class="text-danger">{{ nac.o_gov }}% gobierno</strong> /
+            <strong class="text-primary">{{ nac.o_opos }}% oposici&#243;n</strong>,
+            con un error de <strong>{{ analisis.error_abs }} pp</strong> en la proyecci&#243;n de gobierno.
+            {% if analisis.acierto_ganador %}
+            El estudio <span class="text-success fw-bold">acert&#243;</span> el ganador de la contienda
+            ({{ analisis.ganador_oficial }}).
+            {% else %}
+            El estudio <span class="text-danger fw-bold">no acert&#243;</span> el ganador:
+            proyect&#243; {{ analisis.ganador_estudio }} pero gan&#243; {{ analisis.ganador_oficial }}.
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ── Gráfico tendencia por turnos ──────────────────────────────────────── -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3"><i class="bi bi-graph-up me-2"></i>Tendencia del estudio por turno</h5>
+        <div id="chart-turnos" style="height:340px;"></div>
+        {% if not turnos_json or turnos_json == '[]' %}
+        <div class="text-center text-muted py-4">
+            <i class="bi bi-clock fs-3 d-block mb-2"></i>
+            No hay datos por turno cargados.
+            <a href="/historicos/estudios/{{ ref }}/editar" class="d-block mt-1">Agregar datos de turnos</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── Comparación por estado ────────────────────────────────────────────── -->
+{% if estados_rows %}
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3"><i class="bi bi-map me-2"></i>Comparaci&#243;n por estado</h5>
+        <div class="table-responsive">
+            <table class="table table-hover table-sm bg-white rounded">
+                <thead class="table-light">
+                    <tr>
+                        <th>Estado</th>
+                        <th class="text-end text-danger">Est. Gov%</th>
+                        <th class="text-end text-primary">Est. Opos%</th>
+                        <th class="text-end text-danger">Ofic. Gov%</th>
+                        <th class="text-end text-primary">Ofic. Opos%</th>
+                        <th class="text-end">&#916; gov pp</th>
+                        <th class="text-end text-muted">Centros</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in estados_rows %}
+                <tr>
+                    <td>{{ row.nombre }}</td>
+                    <td class="text-end text-danger fw-semibold">
+                        {% if row.e_gov is not none %}{{ row.e_gov }}%{% else %}<span class="text-muted">&#8212;</span>{% endif %}
+                    </td>
+                    <td class="text-end text-primary fw-semibold">
+                        {% if row.e_opos is not none %}{{ row.e_opos }}%{% else %}<span class="text-muted">&#8212;</span>{% endif %}
+                    </td>
+                    <td class="text-end text-danger">
+                        {% if row.o_gov is not none %}{{ row.o_gov }}%{% else %}<span class="text-muted">&#8212;</span>{% endif %}
+                    </td>
+                    <td class="text-end text-primary">
+                        {% if row.o_opos is not none %}{{ row.o_opos }}%{% else %}<span class="text-muted">&#8212;</span>{% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if row.delta_gov is not none %}
+                        <span class="
+                            {% if row.error_abs <= 0.5 %}delta-ok
+                            {% elif row.error_abs <= 2 %}delta-warn
+                            {% else %}delta-bad{% endif %}">
+                            {% if row.delta_gov > 0 %}+{% endif %}{{ row.delta_gov }} pp
+                        </span>
+                        {% else %}<span class="text-muted">&#8212;</span>{% endif %}
+                    </td>
+                    <td class="text-end text-muted small">
+                        {% if row.e_centros %}{{ row.e_centros }}{% else %}&#8212;{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-2 d-flex gap-3 small text-muted">
+            <span><span class="delta-ok">&#9632;</span> &#8804; 0.5 pp</span>
+            <span><span class="delta-warn">&#9632;</span> 0.5 &#8211; 2 pp</span>
+            <span><span class="delta-bad">&#9632;</span> &gt; 2 pp</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const turnos = {{ turnos_json | safe }};
+    if (!turnos || turnos.length === 0) return;
+
+    const labels = turnos.map(t => t.hora_label || ('Turno ' + t.turno));
+    const govVals  = turnos.map(t => t.pct_gov);
+    const oposVals = turnos.map(t => t.pct_opos);
+
+    const traces = [
+        {
+            x: labels, y: govVals,
+            mode: 'lines+markers', name: 'Estudio Gov%',
+            line: { color: '#c0392b', width: 2 },
+            marker: { size: 7 }
+        },
+        {
+            x: labels, y: oposVals,
+            mode: 'lines+markers', name: 'Estudio Opos%',
+            line: { color: '#2980b9', width: 2 },
+            marker: { size: 7 }
+        }
+    ];
+
+    const shapes = [];
+    const annotations = [];
+    const oGov  = {{ o_gov_nac  if o_gov_nac  is not none else 'null' }};
+    const oOpos = {{ o_opos_nac if o_opos_nac is not none else 'null' }};
+
+    if (oGov !== null) {
+        shapes.push({ type: 'line', xref: 'paper', x0: 0, x1: 1,
+                      yref: 'y', y0: oGov, y1: oGov,
+                      line: { color: '#c0392b', width: 1.5, dash: 'dot' } });
+        annotations.push({ xref: 'paper', x: 1.01, y: oGov,
+                           text: 'Ofic Gov ' + oGov + '%',
+                           showarrow: false, xanchor: 'left',
+                           font: { color: '#c0392b', size: 11 } });
+    }
+    if (oOpos !== null) {
+        shapes.push({ type: 'line', xref: 'paper', x0: 0, x1: 1,
+                      yref: 'y', y0: oOpos, y1: oOpos,
+                      line: { color: '#2980b9', width: 1.5, dash: 'dot' } });
+        annotations.push({ xref: 'paper', x: 1.01, y: oOpos,
+                           text: 'Ofic Opos ' + oOpos + '%',
+                           showarrow: false, xanchor: 'left',
+                           font: { color: '#2980b9', size: 11 } });
+    }
+
+    const layout = {
+        margin: { t: 20, r: 100, b: 40, l: 50 },
+        legend: { orientation: 'h', y: -0.15 },
+        yaxis: { title: '%', range: [0, 100] },
+        shapes, annotations,
+        plot_bgcolor: '#fff',
+        paper_bgcolor: '#fff',
+    };
+
+    Plotly.newPlot('chart-turnos', traces, layout, { responsive: true, displayModeBar: false });
+})();
+</script>
+{% endblock %}

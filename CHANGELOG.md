@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-05-18
+
+### feat — Módulo Estudios Históricos con importación automática desde cores Excel
+
+- Tres tablas nuevas (bloque 9 del schema): `historico_estudios`, `historico_oficial`, `historico_estudios_turnos`
+  - `historico_estudios`: resultados finales del exit poll por `eleccion_ref` + `ambito` (NACIONAL o código estado)
+  - `historico_oficial`: resultados CNE oficiales, mismo pivote; admite estados sin cobertura del estudio
+  - `historico_estudios_turnos`: serie de tiempo intra-jornada (hasta 12 turnos) con % acumulados por turno
+  - Upsert por `(eleccion_ref, ambito)` y `(eleccion_ref, turno)` para re-importaciones idempotentes
+- Cinco rutas nuevas bajo `/historicos/estudios/*` (insertadas antes del wildcard `/historicos/{ref}` para evitar captura):
+  - `GET /historicos/estudios` — índice de estudios con tarjetas de error ± pp
+  - `GET /historicos/estudios/nuevo` — formulario de alta vacío
+  - `GET /historicos/estudios/{ref}` — detalle con gráfico Plotly, análisis acertividad y tabla por estado
+  - `GET /historicos/estudios/{ref}/editar` — formulario de edición con datos pre-poblados
+  - `POST /historicos/estudios/guardar` — upsert; valida suma 99.5–100.5% server-side y client-side
+- Helper `_estudios_pivot()` usa UNION ALL + GROUP BY (workaround FULL OUTER JOIN no disponible en SQLite)
+- Análisis de acertividad calculado en tiempo de respuesta: delta_gov pp, acierto ganador, RMSE por estado
+- Navegación: enlace "Estudios" agregado a sidebar desktop y barra móvil (`base.html`)
+- Templates nuevos: `historico_estudios.html`, `historico_estudio_editar.html`, `historico_estudio_detalle.html`
+- Script `import_2006.py`: carga Presidencial 2006 desde Excel core (`Presentacion Basica Copia5.xls`) y resultados oficiales por mesa (`resultado elecciones presidenciales 2006.xlsx`)
+  - Estudio: agrega hoja Entrada (datos increméntales por turno y centro) → 22 estados + NACIONAL · 225 centros
+  - Turnos: extrae 12 turnos desde hoja Cálculos con % acumulados
+  - Oficial: agrega xlsx por estado → 24 estados + NACIONAL · 11.7M votos escrutados
+  - Resultado: Chávez 61.06% (estudio) vs 62.10% (oficial) · error −1.04 pp · ganador correcto
+- Archivos: `backend/schema.sql`, `backend/init_db.py`, `backend/app.py`, `backend/templates/base.html`, `backend/templates/historico_estudios.html`, `backend/templates/historico_estudio_editar.html`, `backend/templates/historico_estudio_detalle.html`, `backend/import_2006.py`
+- Tests: smoke test pasa; datos verificados contra totales del core original (Entrada sum == Cálculos nacional: 9.074/5.194/306/287 votos)
+- Deploy: requiere redeploy; la migración `init_db.py` crea las tablas automáticamente si no existen
+
+---
+
 ## [Unreleased]
 
 <!-- Codex: agregar aquí los cambios del próximo commit antes de pushear -->

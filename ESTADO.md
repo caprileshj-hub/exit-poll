@@ -2,13 +2,13 @@
 
 > Estado actual del proyecto: qué funciona, qué está pendiente, qué bugs hay abiertos.
 > Actualizar al cierre de cada sesión de trabajo significativa.
-> Última actualización: 2026-05-08
+> Última actualización: 2026-05-18
 
 ---
 
 ## Resumen ejecutivo
 
-Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 1–6 completas. Fase 7 en curso: hardening ingesta IA TM, APK Android (repo separado), cobertura de tests, auditoría interna.
+Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 1–6 completas. Fase 7 en curso: hardening ingesta IA TM, APK Android (repo separado), cobertura de tests, auditoría interna. Módulo de Estudios Históricos implementado con primer dataset cargado (Presidencial 2006).
 
 ---
 
@@ -61,6 +61,10 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 - [x] Dashboard HTML autónomo: mapa 58% + tendencias Plotly 42% (`generador_dashboard.py`)
 - [x] SSE live dashboard (`/stream/dashboard`) — sin meta refresh; `/live` usa votos reales cuando existen y cae a la misma referencia del dashboard mientras no haya opiniones SMS
 - [x] Módulo Históricos: `/historicos`, `/historicos/{ref}`, `/historicos/comparar`, `/historicos/{ref}/mapa`
+- [x] Módulo Estudios Históricos: `/historicos/estudios`, detalle con Plotly, edición manual, análisis acertividad
+  - Tablas: `historico_estudios`, `historico_oficial`, `historico_estudios_turnos` (bloque 9 schema)
+  - Importador `import_2006.py`: Presidencial 2006 — 22 estados, 12 turnos, 24 estados oficial
+  - Error nacional −1.04 pp (Chávez 61.06% vs 62.10% oficial); ganador correcto
 
 ### Dashboard de configuración FastAPI
 - [x] Gestión de elecciones y candidatos (con fotos, ámbito geográfico, circuitos)

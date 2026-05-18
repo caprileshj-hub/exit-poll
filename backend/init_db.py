@@ -116,6 +116,61 @@ def migrar(conn: sqlite3.Connection):
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_rc_eleccion ON reportes_campo(id_eleccion)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_rc_centro ON reportes_campo(codigo_cne)")
+    # Bloque 9: estudios históricos
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS historico_estudios (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            eleccion_ref    TEXT NOT NULL,
+            ambito          TEXT NOT NULL,
+            nombre          TEXT NOT NULL,
+            nombre_eleccion TEXT,
+            fecha_eleccion  TEXT,
+            pct_gov         REAL NOT NULL DEFAULT 0,
+            pct_opos        REAL NOT NULL DEFAULT 0,
+            pct_otros       REAL NOT NULL DEFAULT 0,
+            num_centros     INTEGER NOT NULL DEFAULT 0,
+            fuente          TEXT,
+            notas           TEXT,
+            updated_at      TEXT DEFAULT (datetime('now')),
+            UNIQUE(eleccion_ref, ambito)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS historico_oficial (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            eleccion_ref    TEXT NOT NULL,
+            ambito          TEXT NOT NULL,
+            nombre          TEXT NOT NULL,
+            nombre_eleccion TEXT,
+            fecha_eleccion  TEXT,
+            pct_gov         REAL NOT NULL DEFAULT 0,
+            pct_opos        REAL NOT NULL DEFAULT 0,
+            pct_otros       REAL NOT NULL DEFAULT 0,
+            total_votos     INTEGER NOT NULL DEFAULT 0,
+            fuente          TEXT,
+            updated_at      TEXT DEFAULT (datetime('now')),
+            UNIQUE(eleccion_ref, ambito)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS historico_estudios_turnos (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            eleccion_ref    TEXT NOT NULL,
+            turno           INTEGER NOT NULL,
+            hora_label      TEXT,
+            pct_gov         REAL NOT NULL DEFAULT 0,
+            pct_opos        REAL NOT NULL DEFAULT 0,
+            pct_otros       REAL NOT NULL DEFAULT 0,
+            num_centros     INTEGER NOT NULL DEFAULT 0,
+            updated_at      TEXT DEFAULT (datetime('now')),
+            UNIQUE(eleccion_ref, turno)
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_he_ref  ON historico_estudios(eleccion_ref)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_ho_ref  ON historico_oficial(eleccion_ref)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_het_ref ON historico_estudios_turnos(eleccion_ref)")
+    conn.commit()
+    print('[~] Migración: tablas historico_estudios, historico_oficial, historico_estudios_turnos añadidas')
     conn.execute("""
         CREATE VIEW IF NOT EXISTS v_proyeccion AS
         WITH ultimo AS (

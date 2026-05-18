@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% set active_page = "estudios" %}
+{% block title %}Estudios Hist&#243;ricos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-bar-chart-steps me-2"></i>Estudios Hist&#243;ricos</h2>
+    <a href="/historicos/estudios/nuevo" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Nuevo estudio
+    </a>
+</div>
+
+{% if refs %}
+<div class="row g-3">
+    {% for r in refs %}
+    {% set delta = none %}
+    {% if r.e_gov is not none and r.o_gov is not none %}
+        {% set delta = (r.e_gov - r.o_gov) | round(1) %}
+    {% endif %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <h5 class="card-title fw-bold mb-0">
+                        {{ r.nombre_eleccion or r.eleccion_ref }}
+                    </h5>
+                    {% if r.e_gov is not none %}
+                        <span class="badge bg-secondary">Estudio</span>
+                    {% endif %}
+                </div>
+                {% if r.fecha_eleccion %}
+                <small class="text-muted">{{ r.fecha_eleccion }}</small>
+                {% endif %}
+                <div class="row text-center mt-3">
+                    <div class="col-6">
+                        <div class="small text-muted mb-1">Estudio</div>
+                        {% if r.e_gov is not none %}
+                        <div class="fw-bold text-danger">{{ r.e_gov }}%</div>
+                        <div class="fw-bold text-primary">{{ r.e_opos }}%</div>
+                        {% else %}
+                        <div class="text-muted">&#8212;</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-6">
+                        <div class="small text-muted mb-1">Oficial</div>
+                        {% if r.o_gov is not none %}
+                        <div class="fw-bold text-danger">{{ r.o_gov }}%</div>
+                        <div class="fw-bold text-primary">{{ r.o_opos }}%</div>
+                        {% else %}
+                        <div class="text-muted">&#8212;</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if delta is not none %}
+                <div class="text-center mt-2">
+                    <span class="badge {% if delta | abs <= 0.5 %}bg-success{% elif delta | abs <= 2 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                        &#916; {{ '%+.1f'|format(delta) }} pp
+                    </span>
+                    <small class="text-muted ms-1">error gov</small>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent d-flex gap-2">
+                <a href="/historicos/estudios/{{ r.eleccion_ref }}" class="btn btn-sm btn-primary w-100">
+                    <i class="bi bi-bar-chart me-1"></i>Ver
+                </a>
+                <a href="/historicos/estudios/{{ r.eleccion_ref }}/editar" class="btn btn-sm btn-outline-secondary w-100">
+                    <i class="bi bi-pencil me-1"></i>Editar
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-bar-chart-steps fs-1 d-block mb-2"></i>
+    No hay estudios hist&#243;ricos cargados.
+    <div class="mt-2">
+        <a href="/historicos/estudios/nuevo" class="btn btn-primary mt-2">
+            <i class="bi bi-plus-lg me-1"></i>Cargar primer estudio
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -2983,6 +2983,326 @@ async def historicos_comparar(request: Request, a: str = "", b: str = ""):
     })
 
 
+# ── Historicos: Estudios ──────────────────────────────────────────────────────
+
+_ESTADOS_FALLBACK = [
+    ("01", "Distrito Capital"), ("02", "Amazonas"), ("03", "Anzoátegui"),
+    ("04", "Apure"), ("05", "Aragua"), ("06", "Barinas"), ("07", "Bolívar"),
+    ("08", "Carabobo"), ("09", "Cojedes"), ("10", "Delta Amacuro"),
+    ("11", "Falcón"), ("12", "Guárico"), ("13", "La Guaira"),
+    ("14", "Lara"), ("15", "Mérida"), ("16", "Miranda"), ("17", "Monagas"),
+    ("18", "Nueva Esparta"), ("19", "Portuguesa"), ("20", "Sucre"),
+    ("21", "Táchira"), ("22", "Trujillo"), ("23", "Yaracuy"), ("24", "Zulia"),
+]
+
+
+def _estados_para_form(conn) -> list[tuple[str, str]]:
+    rows = conn.execute("SELECT codigo_cne, nombre FROM estados ORDER BY nombre").fetchall()
+    if rows:
+        return [(r["codigo_cne"], r["nombre"]) for r in rows]
+    return _ESTADOS_FALLBACK
+
+
+def _estudios_pivot(conn, ref: str) -> list[dict]:
+    """LEFT+RIGHT JOIN emulado via UNION para SQLite (no soporta FULL OUTER JOIN)."""
+    rows = conn.execute("""
+        SELECT ambito, nombre,
+               MAX(CASE WHEN fuente='e' THEN pct_gov   END) AS e_gov,
+               MAX(CASE WHEN fuente='e' THEN pct_opos  END) AS e_opos,
+               MAX(CASE WHEN fuente='e' THEN pct_otros END) AS e_otros,
+               MAX(CASE WHEN fuente='e' THEN num_centros END) AS e_centros,
+               MAX(CASE WHEN fuente='o' THEN pct_gov   END) AS o_gov,
+               MAX(CASE WHEN fuente='o' THEN pct_opos  END) AS o_opos,
+               MAX(CASE WHEN fuente='o' THEN pct_otros END) AS o_otros,
+               MAX(CASE WHEN fuente='o' THEN total_votos END) AS o_votos
+        FROM (
+            SELECT ambito, nombre, pct_gov, pct_opos, pct_otros,
+                   num_centros, NULL AS total_votos, 'e' AS fuente
+            FROM historico_estudios WHERE eleccion_ref = ?
+            UNION ALL
+            SELECT ambito, nombre, pct_gov, pct_opos, pct_otros,
+                   NULL, total_votos, 'o'
+            FROM historico_oficial WHERE eleccion_ref = ?
+        )
+        GROUP BY ambito
+        ORDER BY CASE WHEN ambito='NACIONAL' THEN 0 ELSE 1 END, nombre
+    """, (ref, ref)).fetchall()
+
+    result = []
+    for r in rows:
+        delta = None
+        if r["e_gov"] is not None and r["o_gov"] is not None:
+            delta = round(r["e_gov"] - r["o_gov"], 1)
+        result.append({
+            "ambito": r["ambito"], "nombre": r["nombre"],
+            "e_gov": r["e_gov"], "e_opos": r["e_opos"], "e_otros": r["e_otros"],
+            "e_centros": r["e_centros"],
+            "o_gov": r["o_gov"], "o_opos": r["o_opos"], "o_otros": r["o_otros"],
+            "o_votos": r["o_votos"],
+            "delta_gov": delta,
+            "error_abs": abs(delta) if delta is not None else None,
+        })
+    return result
+
+
+@app.get("/historicos/estudios", response_class=HTMLResponse)
+async def historico_estudios_index(request: Request):
+    conn = get_db()
+    refs = conn.execute("""
+        SELECT eleccion_ref,
+               COALESCE(MAX(CASE WHEN f='e' THEN nombre_eleccion END),
+                        MAX(CASE WHEN f='o' THEN nombre_eleccion END)) AS nombre_eleccion,
+               COALESCE(MAX(CASE WHEN f='e' THEN fecha_eleccion END),
+                        MAX(CASE WHEN f='o' THEN fecha_eleccion END))  AS fecha_eleccion,
+               MAX(CASE WHEN f='e' THEN pct_gov  END) AS e_gov,
+               MAX(CASE WHEN f='e' THEN pct_opos END) AS e_opos,
+               MAX(CASE WHEN f='o' THEN pct_gov  END) AS o_gov,
+               MAX(CASE WHEN f='o' THEN pct_opos END) AS o_opos
+        FROM (
+            SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos, 'e' AS f
+            FROM historico_estudios WHERE ambito='NACIONAL'
+            UNION ALL
+            SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos, 'o'
+            FROM historico_oficial WHERE ambito='NACIONAL'
+        )
+        GROUP BY eleccion_ref
+        ORDER BY fecha_eleccion DESC, eleccion_ref DESC
+    """).fetchall()
+    conn.close()
+    return templates.TemplateResponse(request=request, name="historico_estudios.html", context={
+        "refs": [dict(r) for r in refs]
+    })
+
+
+@app.get("/historicos/estudios/nuevo", response_class=HTMLResponse)
+async def historico_estudio_nuevo_get(request: Request):
+    conn = get_db()
+    estados = _estados_para_form(conn)
+    conn.close()
+    return templates.TemplateResponse(request=request, name="historico_estudio_editar.html", context={
+        "estados": estados, "estudio": {}, "oficial": {}, "turnos": {}, "meta": {}, "edit_ref": ""
+    })
+
+
+@app.get("/historicos/estudios/{ref}/editar", response_class=HTMLResponse)
+async def historico_estudio_editar_get(request: Request, ref: str):
+    conn = get_db()
+    estados = _estados_para_form(conn)
+    estudio = {r["ambito"]: dict(r) for r in
+               conn.execute("SELECT * FROM historico_estudios WHERE eleccion_ref=?", (ref,)).fetchall()}
+    oficial = {r["ambito"]: dict(r) for r in
+               conn.execute("SELECT * FROM historico_oficial WHERE eleccion_ref=?", (ref,)).fetchall()}
+    turnos_list = conn.execute(
+        "SELECT * FROM historico_estudios_turnos WHERE eleccion_ref=? ORDER BY turno",
+        (ref,)
+    ).fetchall()
+    turnos = {r["turno"]: dict(r) for r in turnos_list}
+    nac_e = estudio.get("NACIONAL", {})
+    nac_o = oficial.get("NACIONAL", {})
+    meta = {
+        "ref": ref,
+        "nombre_eleccion": nac_e.get("nombre_eleccion") or nac_o.get("nombre_eleccion") or "",
+        "fecha_eleccion":  nac_e.get("fecha_eleccion")  or nac_o.get("fecha_eleccion")  or "",
+    }
+    conn.close()
+    return templates.TemplateResponse(request=request, name="historico_estudio_editar.html", context={
+        "estados": estados, "estudio": estudio, "oficial": oficial,
+        "turnos": turnos, "meta": meta, "edit_ref": ref
+    })
+
+
+@app.post("/historicos/estudios/guardar", response_class=RedirectResponse)
+async def historico_estudio_guardar(request: Request):
+    form = await request.form()
+    ref             = (form.get("eleccion_ref") or "").strip()
+    nombre_eleccion = (form.get("nombre_eleccion") or "").strip()
+    fecha_eleccion  = (form.get("fecha_eleccion") or "").strip()
+    if not ref:
+        raise HTTPException(400, "Referencia requerida")
+
+    conn = get_db()
+    estados = _estados_para_form(conn)
+    ambitos = [("NACIONAL", "Nacional")] + list(estados)
+
+    def _f(key):
+        v = (form.get(key) or "").strip()
+        try:
+            return float(v) if v else None
+        except ValueError:
+            return None
+
+    def _i(key):
+        v = (form.get(key) or "").strip()
+        try:
+            return int(float(v)) if v else 0
+        except ValueError:
+            return 0
+
+    # Parse & validate all ambito rows
+    parsed_ambitos = []
+    errores = []
+    for ambito, nombre_amb in ambitos:
+        e = {"gov": _f(f"e_{ambito}_gov"), "opos": _f(f"e_{ambito}_opos"),
+             "otros": _f(f"e_{ambito}_otros") or 0,
+             "centros": _i(f"e_{ambito}_centros"),
+             "fuente": (form.get(f"e_{ambito}_fuente") or "").strip() or None}
+        o = {"gov": _f(f"o_{ambito}_gov"), "opos": _f(f"o_{ambito}_opos"),
+             "otros": _f(f"o_{ambito}_otros") or 0,
+             "votos": _i(f"o_{ambito}_votos")}
+        if e["gov"] is not None or e["opos"] is not None:
+            total = (e["gov"] or 0) + (e["opos"] or 0) + e["otros"]
+            if total > 0 and not (99.5 <= total <= 100.5):
+                errores.append(f"{nombre_amb} (estudio): suma {total:.1f}% ≠ 100%")
+        if o["gov"] is not None or o["opos"] is not None:
+            total = (o["gov"] or 0) + (o["opos"] or 0) + o["otros"]
+            if total > 0 and not (99.5 <= total <= 100.5):
+                errores.append(f"{nombre_amb} (oficial): suma {total:.1f}% ≠ 100%")
+        parsed_ambitos.append((ambito, nombre_amb, e, o))
+
+    # Parse & validate turnos
+    parsed_turnos = []
+    for t in range(1, 13):
+        tgov  = _f(f"t_{t}_gov")
+        topos = _f(f"t_{t}_opos")
+        totros = _f(f"t_{t}_otros") or 0
+        if tgov is not None or topos is not None:
+            total = (tgov or 0) + (topos or 0) + totros
+            if total > 0 and not (99.5 <= total <= 100.5):
+                errores.append(f"Turno {t}: suma {total:.1f}% ≠ 100%")
+            parsed_turnos.append({
+                "turno": t,
+                "hora_label": (form.get(f"t_{t}_hora") or "").strip() or None,
+                "gov": tgov or 0, "opos": topos or 0, "otros": totros,
+                "centros": _i(f"t_{t}_centros"),
+            })
+
+    if errores:
+        conn.close()
+        raise HTTPException(400, "; ".join(errores))
+
+    # Save ambito rows
+    for ambito, nombre_amb, e, o in parsed_ambitos:
+        is_nac = ambito == "NACIONAL"
+        ne = nombre_eleccion if is_nac else None
+        fe = fecha_eleccion if is_nac else None
+        if e["gov"] is not None or e["opos"] is not None:
+            conn.execute("""
+                INSERT INTO historico_estudios
+                    (eleccion_ref, ambito, nombre, nombre_eleccion, fecha_eleccion,
+                     pct_gov, pct_opos, pct_otros, num_centros, fuente, updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,datetime('now'))
+                ON CONFLICT(eleccion_ref, ambito) DO UPDATE SET
+                    nombre=excluded.nombre,
+                    nombre_eleccion=COALESCE(excluded.nombre_eleccion, nombre_eleccion),
+                    fecha_eleccion=COALESCE(excluded.fecha_eleccion, fecha_eleccion),
+                    pct_gov=excluded.pct_gov, pct_opos=excluded.pct_opos,
+                    pct_otros=excluded.pct_otros, num_centros=excluded.num_centros,
+                    fuente=COALESCE(excluded.fuente, fuente), updated_at=excluded.updated_at
+            """, (ref, ambito, nombre_amb, ne, fe,
+                  e["gov"] or 0, e["opos"] or 0, e["otros"], e["centros"], e["fuente"]))
+        if o["gov"] is not None or o["opos"] is not None:
+            conn.execute("""
+                INSERT INTO historico_oficial
+                    (eleccion_ref, ambito, nombre, nombre_eleccion, fecha_eleccion,
+                     pct_gov, pct_opos, pct_otros, total_votos, updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,datetime('now'))
+                ON CONFLICT(eleccion_ref, ambito) DO UPDATE SET
+                    nombre=excluded.nombre,
+                    nombre_eleccion=COALESCE(excluded.nombre_eleccion, nombre_eleccion),
+                    fecha_eleccion=COALESCE(excluded.fecha_eleccion, fecha_eleccion),
+                    pct_gov=excluded.pct_gov, pct_opos=excluded.pct_opos,
+                    pct_otros=excluded.pct_otros, total_votos=excluded.total_votos,
+                    updated_at=excluded.updated_at
+            """, (ref, ambito, nombre_amb, ne, fe,
+                  o["gov"] or 0, o["opos"] or 0, o["otros"], o["votos"]))
+
+    # Save turnos
+    for pt in parsed_turnos:
+        conn.execute("""
+            INSERT INTO historico_estudios_turnos
+                (eleccion_ref, turno, hora_label, pct_gov, pct_opos, pct_otros, num_centros, updated_at)
+            VALUES (?,?,?,?,?,?,?,datetime('now'))
+            ON CONFLICT(eleccion_ref, turno) DO UPDATE SET
+                hora_label=excluded.hora_label,
+                pct_gov=excluded.pct_gov, pct_opos=excluded.pct_opos,
+                pct_otros=excluded.pct_otros, num_centros=excluded.num_centros,
+                updated_at=excluded.updated_at
+        """, (ref, pt["turno"], pt["hora_label"], pt["gov"], pt["opos"], pt["otros"], pt["centros"]))
+
+    conn.commit()
+    conn.close()
+    return RedirectResponse(f"/historicos/estudios/{ref}", status_code=303)
+
+
+@app.get("/historicos/estudios/{ref}", response_class=HTMLResponse)
+async def historico_estudio_detalle(request: Request, ref: str):
+    conn = get_db()
+    tiene = (conn.execute("SELECT 1 FROM historico_estudios WHERE eleccion_ref=? LIMIT 1", (ref,)).fetchone()
+             or conn.execute("SELECT 1 FROM historico_oficial WHERE eleccion_ref=? LIMIT 1", (ref,)).fetchone())
+    if not tiene:
+        conn.close()
+        raise HTTPException(404, f"No hay datos para '{ref}'")
+
+    pivot = _estudios_pivot(conn, ref)
+    nac = next((r for r in pivot if r["ambito"] == "NACIONAL"), {})
+    estados_rows = [r for r in pivot if r["ambito"] != "NACIONAL"]
+
+    # Metadatos
+    meta_e = conn.execute(
+        "SELECT nombre_eleccion, fecha_eleccion FROM historico_estudios WHERE eleccion_ref=? AND ambito='NACIONAL'",
+        (ref,)
+    ).fetchone()
+    meta_o = conn.execute(
+        "SELECT nombre_eleccion, fecha_eleccion FROM historico_oficial WHERE eleccion_ref=? AND ambito='NACIONAL'",
+        (ref,)
+    ).fetchone()
+    meta = {}
+    if meta_e:
+        meta.update(dict(meta_e))
+    if meta_o:
+        for k, v in dict(meta_o).items():
+            if not meta.get(k):
+                meta[k] = v
+
+    # Turnos para el gráfico
+    turnos = [dict(r) for r in conn.execute(
+        "SELECT turno, hora_label, pct_gov, pct_opos, pct_otros, num_centros "
+        "FROM historico_estudios_turnos WHERE eleccion_ref=? ORDER BY turno",
+        (ref,)
+    ).fetchall()]
+
+    # Análisis de acertividad
+    analisis = {}
+    if nac.get("e_gov") is not None and nac.get("o_gov") is not None:
+        delta = nac["delta_gov"]
+        ganador_e = "gobierno" if nac["e_gov"] > nac["e_opos"] else "oposición"
+        ganador_o = "gobierno" if nac["o_gov"] > nac["o_opos"] else "oposición"
+        acierto_ganador = ganador_e == ganador_o
+        # RMSE por estado
+        deltas_estado = [r["delta_gov"] for r in estados_rows if r["delta_gov"] is not None]
+        rmse = round((sum(d**2 for d in deltas_estado) / len(deltas_estado)) ** 0.5, 2) if deltas_estado else None
+        analisis = {
+            "delta_gov": delta,
+            "error_abs": abs(delta),
+            "ganador_estudio": ganador_e,
+            "ganador_oficial": ganador_o,
+            "acierto_ganador": acierto_ganador,
+            "rmse_estados": rmse,
+            "n_estados": len(deltas_estado),
+        }
+
+    conn.close()
+    import json as _json
+    return templates.TemplateResponse(request=request, name="historico_estudio_detalle.html", context={
+        "ref": ref, "meta": meta, "nac": nac,
+        "estados_rows": estados_rows,
+        "turnos_json": _json.dumps(turnos),
+        "o_gov_nac": nac.get("o_gov"),
+        "o_opos_nac": nac.get("o_opos"),
+        "analisis": analisis,
+    })
+
+
 @app.get("/historicos/{ref}", response_class=HTMLResponse)
 async def historico_detalle(request: Request, ref: str):
     conn = get_db()

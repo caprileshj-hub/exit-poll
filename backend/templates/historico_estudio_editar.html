@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% set active_page = "estudios" %}
+{% block title %}{{ "Editar" if edit_ref else "Nuevo" }} Estudio{% endblock %}
+
+{% block extra_head %}
+<style>
+    .tbl-form th { font-size: .78rem; white-space: nowrap; }
+    .tbl-form td { vertical-align: middle; }
+    .tbl-form input[type=number] { width: 72px; }
+    .tbl-form input[type=text]   { width: 90px; }
+    .nac-row { background: #f0f4ff; font-weight: 600; }
+    .sum-ok   { color: #198754; font-size: .75rem; }
+    .sum-bad  { color: #dc3545; font-size: .75rem; font-weight: bold; }
+    .section-header { background: #1a3a5c; color: #fff; padding: .4rem .75rem; border-radius: 4px; font-size: .85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/historicos/estudios">Estudios</a></li>
+        <li class="breadcrumb-item active">{{ "Editar &mdash; " + edit_ref if edit_ref else "Nuevo" }}</li>
+    </ol>
+</nav>
+
+<form method="post" action="/historicos/estudios/guardar" id="frm">
+
+<!-- ── Metadatos ─────────────────────────────────────────────────────────── -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3"><i class="bi bi-info-circle me-2"></i>Identificaci&#243;n</h5>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Referencia <small class="text-muted">(slug único)</small></label>
+                <input type="text" name="eleccion_ref" class="form-control font-monospace"
+                       value="{{ meta.ref or '' }}"
+                       placeholder="ej: 2015-asamblea"
+                       {{ 'readonly' if edit_ref }}
+                       required>
+                <div class="form-text">No se puede cambiar despu&#233;s de guardar</div>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label fw-semibold">Nombre de la elecci&#243;n</label>
+                <input type="text" name="nombre_eleccion" class="form-control"
+                       value="{{ meta.nombre_eleccion or '' }}"
+                       placeholder="ej: Asamblea Nacional 2015">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Fecha</label>
+                <input type="date" name="fecha_eleccion" class="form-control"
+                       value="{{ meta.fecha_eleccion or '' }}">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Evolución por turno ────────────────────────────────────────────────── -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-1"><i class="bi bi-clock me-2"></i>Evoluci&#243;n por turno</h5>
+        <p class="text-muted small mb-3">
+            Resultados nacionales acumulados al cierre de cada turno.
+            Rellena solo los turnos que tengas; los vac&#237;os se ignoran.
+        </p>
+        <div class="table-responsive">
+            <table class="table table-sm tbl-form align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Turno</th>
+                        <th>Hora / Etiqueta</th>
+                        <th class="text-danger">Gov%</th>
+                        <th class="text-primary">Opos%</th>
+                        <th class="text-secondary">Otros%</th>
+                        <th>Centros</th>
+                        <th>Suma</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for t in range(1, 13) %}
+                {% set td = turnos.get(t, {}) %}
+                <tr>
+                    <td class="fw-semibold text-center">{{ t }}</td>
+                    <td>
+                        <input type="text" name="t_{{ t }}_hora" class="form-control form-control-sm"
+                               value="{{ td.hora_label or '' }}"
+                               placeholder="08:00–09:00">
+                    </td>
+                    <td>
+                        <input type="number" step="0.01" min="0" max="100"
+                               name="t_{{ t }}_gov" id="t{{ t }}_gov"
+                               class="form-control form-control-sm"
+                               value="{{ td.pct_gov if td.pct_gov else '' }}"
+                               oninput="calcSuma('t{{ t }}')">
+                    </td>
+                    <td>
+                        <input type="number" step="0.01" min="0" max="100"
+                               name="t_{{ t }}_opos" id="t{{ t }}_opos"
+                               class="form-control form-control-sm"
+                               value="{{ td.pct_opos if td.pct_opos else '' }}"
+                               oninput="calcSuma('t{{ t }}')">
+                    </td>
+                    <td>
+                        <input type="number" step="0.01" min="0" max="100"
+                               name="t_{{ t }}_otros" id="t{{ t }}_otros"
+                               class="form-control form-control-sm"
+                               value="{{ td.pct_otros if td.pct_otros else '' }}"
+                               oninput="calcSuma('t{{ t }}')">
+                    </td>
+                    <td>
+                        <input type="number" step="1" min="0"
+                               name="t_{{ t }}_centros"
+                               class="form-control form-control-sm"
+                               value="{{ td.num_centros if td.num_centros else '' }}">
+                    </td>
+                    <td><span id="t{{ t }}_sum" class="sum-ok"></span></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ── Resultados finales por ámbito ─────────────────────────────────────── -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-1"><i class="bi bi-table me-2"></i>Resultados finales por &#225;mbito</h5>
+        <p class="text-muted small mb-3">
+            Resultado al cierre: primero el Nacional, luego cada estado que hayas cubierto.
+            Puedes llenar solo Estudio, solo Oficial, o ambos.
+        </p>
+        <div class="table-responsive">
+            <table class="table table-sm tbl-form">
+                <thead>
+                    <tr>
+                        <th rowspan="2" class="align-middle">&#193;mbito</th>
+                        <th colspan="5" class="text-center section-header">Estudio (Exit Poll)</th>
+                        <th class="align-middle" style="width:8px"></th>
+                        <th colspan="5" class="text-center section-header" style="background:#2980b9">Oficial (CNE)</th>
+                    </tr>
+                    <tr>
+                        <th class="text-danger">Gov%</th>
+                        <th class="text-primary">Opos%</th>
+                        <th class="text-secondary">Otros%</th>
+                        <th>Centros</th>
+                        <th>Suma</th>
+                        <th></th>
+                        <th class="text-danger">Gov%</th>
+                        <th class="text-primary">Opos%</th>
+                        <th class="text-secondary">Otros%</th>
+                        <th>Votos</th>
+                        <th>Suma</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {# Nacional #}
+                {% set ae = "NACIONAL" %}
+                {% set ao = "NACIONAL" %}
+                {% set ed = estudio.get(ae, {}) %}
+                {% set od = oficial.get(ao, {}) %}
+                <tr class="nac-row">
+                    <td>NACIONAL</td>
+                    <td><input type="number" step="0.01" min="0" max="100" name="e_NACIONAL_gov"   id="eNACIONAL_gov"   class="form-control form-control-sm" value="{{ ed.pct_gov  if ed.pct_gov  else '' }}" oninput="calcSuma('eNACIONAL')"></td>
+                    <td><input type="number" step="0.01" min="0" max="100" name="e_NACIONAL_opos"  id="eNACIONAL_opos"  class="form-control form-control-sm" value="{{ ed.pct_opos if ed.pct_opos else '' }}" oninput="calcSuma('eNACIONAL')"></td>
+                    <td><input type="number" step="0.01" min="0" max="100" name="e_NACIONAL_otros" id="eNACIONAL_otros" class="form-control form-control-sm" value="{{ ed.pct_otros if ed.pct_otros else '' }}" oninput="calcSuma('eNACIONAL')"></td>
+                    <td><input type="number" step="1"    min="0"           name="e_NACIONAL_centros" class="form-control form-control-sm" value="{{ ed.num_centros if ed.num_centros else '' }}"></td>
+                    <td><span id="eNACIONAL_sum" class="sum-ok"></span></td>
+                    <td></td>
+                    <td><input type="number" step="0.01" min="0" max="100" name="o_NACIONAL_gov"   id="oNACIONAL_gov"   class="form-control form-control-sm" value="{{ od.pct_gov  if od.pct_gov  else '' }}" oninput="calcSuma('oNACIONAL')"></td>
+                    <td><input type="number" step="0.01" min="0" max="100" name="o_NACIONAL_opos"  id="oNACIONAL_opos"  class="form-control form-control-sm" value="{{ od.pct_opos if od.pct_opos else '' }}" oninput="calcSuma('oNACIONAL')"></td>
+                    <td><input type="number" step="0.01" min="0" max="100" name="o_NACIONAL_otros" id="oNACIONAL_otros" class="form-control form-control-sm" value="{{ od.pct_otros if od.pct_otros else '' }}" oninput="calcSuma('oNACIONAL')"></td>
+                    <td><input type="number" step="1"    min="0"           name="o_NACIONAL_votos" class="form-control form-control-sm" value="{{ od.total_votos if od.total_votos else '' }}"></td>
+                    <td><span id="oNACIONAL_sum" class="sum-ok"></span></td>
+                </tr>
+                {# Estados #}
+                {% for cod, nombre in estados %}
+                {% set ed = estudio.get(cod, {}) %}
+                {% set od = oficial.get(cod, {}) %}
+                <tr>
+                    <td><small>{{ nombre }}</small></td>
+                    <td><input type="number" step="0.01" min="0" max="100" name="e_{{ cod }}_gov"   id="e{{ cod }}_gov"   class="form-control form-control-sm" value="{{ ed.pct_gov  if ed.pct_gov  else '' }}" oninput="calcSuma('e{{ cod }}')"></td>
+                    <td><input type="number" step="0.01" min="0" max="100" name="e_{{ cod }}_opos"  id="e{{ cod }}_opos"  class="form-control form-control-sm" value="{{ ed.pct_opos if ed.pct_opos else '' }}" oninput="calcSuma('e{{ cod }}')"></td>
+                    <td><input type="number" step="0.01" min="0" max="100" name="e_{{ cod }}_otros" id="e{{ cod }}_otros" class="form-control form-control-sm" value="{{ ed.pct_otros if ed.pct_otros else '' }}" oninput="calcSuma('e{{ cod }}')"></td>
+                    <td><input type="number" step="1"    min="0"           name="e_{{ cod }}_centros" class="form-control form-control-sm" value="{{ ed.num_centros if ed.num_centros else '' }}"></td>
+                    <td><span id="e{{ cod }}_sum" class="sum-ok"></span></td>
+                    <td></td>
+                    <td><input type="number" step="0.01" min="0" max="100" name="o_{{ cod }}_gov"   id="o{{ cod }}_gov"   class="form-control form-control-sm" value="{{ od.pct_gov  if od.pct_gov  else '' }}" oninput="calcSuma('o{{ cod }}')"></td>
+                    <td><input type="number" step="0.01" min="0" max="100" name="o_{{ cod }}_opos"  id="o{{ cod }}_opos"  class="form-control form-control-sm" value="{{ od.pct_opos if od.pct_opos else '' }}" oninput="calcSuma('o{{ cod }}')"></td>
+                    <td><input type="number" step="0.01" min="0" max="100" name="o_{{ cod }}_otros" id="o{{ cod }}_otros" class="form-control form-control-sm" value="{{ od.pct_otros if od.pct_otros else '' }}" oninput="calcSuma('o{{ cod }}')"></td>
+                    <td><input type="number" step="1"    min="0"           name="o_{{ cod }}_votos" class="form-control form-control-sm" value="{{ od.total_votos if od.total_votos else '' }}"></td>
+                    <td><span id="o{{ cod }}_sum" class="sum-ok"></span></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex gap-2 mb-5">
+    <button type="submit" class="btn btn-primary px-4">
+        <i class="bi bi-check-lg me-1"></i>Guardar
+    </button>
+    <a href="/historicos/estudios{% if edit_ref %}/{{ edit_ref }}{% endif %}" class="btn btn-outline-secondary">
+        Cancelar
+    </a>
+</div>
+
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function calcSuma(id) {
+    const g = parseFloat(document.getElementById(id + '_gov')?.value)  || 0;
+    const o = parseFloat(document.getElementById(id + '_opos')?.value) || 0;
+    const x = parseFloat(document.getElementById(id + '_otros')?.value)|| 0;
+    const suma = g + o + x;
+    const el = document.getElementById(id + '_sum');
+    if (!el) return;
+    if (g === 0 && o === 0 && x === 0) { el.textContent = ''; return; }
+    if (suma >= 99.5 && suma <= 100.5) {
+        el.textContent = suma.toFixed(1) + '%';
+        el.className = 'sum-ok';
+    } else {
+        el.textContent = suma.toFixed(1) + '% ✗';
+        el.className = 'sum-bad';
+    }
+}
+
+// Recalcular sumas al cargar (por si hay valores pre-rellenados)
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('input[oninput]').forEach(function(inp) {
+        const m = inp.getAttribute('oninput').match(/calcSuma\('(.+?)'\)/);
+        if (m) calcSuma(m[1]);
+    });
+    // Validación antes de enviar
+    document.getElementById('frm').addEventListener('submit', function(e) {
+        const bads = document.querySelectorAll('.sum-bad');
+        if (bads.length > 0) {
+            e.preventDefault();
+            alert('Corrige las sumas fuera de rango (deben estar entre 99.5% y 100.5%) antes de guardar.');
+        }
+    });
+});
+</script>
+{% endblock %}
