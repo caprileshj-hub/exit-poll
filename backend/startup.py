@@ -27,8 +27,8 @@ def main() -> None:
     run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "-q"])
 
     db_path = ROOT / "exitpoll.db"
-    if not db_path.exists():
-        run([sys.executable, "init_db.py"])
+    # Always run migrations — init_db.py uses CREATE TABLE IF NOT EXISTS (idempotente)
+    run([sys.executable, "init_db.py"])
 
     if table_count(db_path, "centros") == 0:
         run([sys.executable, "init_showcase.py"])
