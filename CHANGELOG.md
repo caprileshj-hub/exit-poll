@@ -7,6 +7,22 @@
 
 ## 2026-05-18
 
+### feat — Importación Presidencial 2012 y 2013 desde cores Excel
+
+- `import_2012_2013.py`: importa ambas elecciones en una sola ejecución
+- 2012 (Chávez vs Capriles, 7-Oct):
+  - Estudio: hoja R1 (resultados ponderados por estado, 24 estados) + hoja VZA (13 turnos de tendencia intra-jornada)
+  - Oficial: xlsx mesa-a-mesa; gov=chavez, opos=capriles, otros=chirino+sequera+reyes+bolívar+nulos
+  - Estudio nacional: Chávez 50.94% / Capriles 47.51% · Oficial: 54.02% / 43.49% · Error −3.08 pp
+- 2013 (Maduro vs Capriles, 14-Abr):
+  - Estudio: hoja R1 (conteos crudos por estado) + hoja Venezuela (18 turnos, valores incrementales)
+  - Oficial: xlsx mesa-a-mesa; gov=maduro, opos=capriles, otros=sequera+bolívar+mora+méndez
+  - Estudio nacional: Maduro 55.71% / Capriles 42.16% · Oficial: 50.62% / 49.12% · Error +5.09 pp
+- Exterior (cod_edo=99) excluido de ambas importaciones para consistencia con 2006
+- Archivos: `backend/import_2012_2013.py`, `backend/data/2012/`, `backend/data/2013/`
+- Tests: totales de Entrada verificados contra Venezuela/CORE sheets; exterior depurado manualmente
+- Deploy: requiere redeploy; datos sólo en BD local (no se suben archivos Excel a Azure)
+
 ### feat — Módulo Estudios Históricos con importación automática desde cores Excel
 
 - Tres tablas nuevas (bloque 9 del schema): `historico_estudios`, `historico_oficial`, `historico_estudios_turnos`
