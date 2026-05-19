@@ -905,3 +905,44 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
   - `/historicos/estudios/nuevo`: 404.
   - `/historicos/estudios/2006-presidencial/editar`: 404.
   - El HTML no contiene `Nuevo estudio` ni `bi-pencil`.
+
+---
+
+## 2026-05-18 - Estudio historico Asamblea Nacional 2010
+
+### Contexto
+- Se agrego el estudio `backend/data/2010/aplicacion03.xlsm`.
+- La eleccion parlamentaria 2010 no tiene tabulado oficial local comparable dentro del repo.
+- Es una eleccion legislativa mixta: diputados nominales, diputados lista y representacion indigena.
+
+### Criterio de dashboard
+- Se importa como `2010-asamblea`, no como presidencial.
+- La metrica principal es escanos proyectados, no voto nacional presidencial.
+- No se genera tendencia: el archivo se trata como resultado final del estudio.
+- La referencia oficial nacional se toma del agregado publicado para la eleccion:
+  - 98 escanos PSUV/aliados.
+  - 65 escanos MUD/aliados.
+  - 2 escanos PPT/aliados.
+- No se inventan tabulados oficiales por estado; el detalle por estado muestra la proyeccion del estudio y deja la referencia estatal vacia cuando no existe.
+
+### Cambio
+- Se agrego `backend/import_2010.py` para leer:
+  - `R Nominal`
+  - `R Lista`
+  - `R Indigena`
+  - `ENTRADA` para centros unicos.
+- Se actualizo `backend/data/historico_estudios_seed.json` para incluir 2010 como dato fijo.
+- `backend/templates/historico_estudio_detalle.html` reconoce estudios legislativos:
+  - KPI de escanos estudio vs referencia.
+  - lectura legislativa.
+  - aviso de sin tendencia.
+
+### Validacion
+- `D:\Test\.venv\Scripts\python.exe import_2010.py`: OK.
+  - Estudio: 114 gobierno, 50 oposicion, 1 otros.
+  - Referencia: 98 gobierno, 65 oposicion, 2 otros.
+- `D:\Test\.venv\Scripts\python.exe backend\seed_historico_estudios.py`: OK, 98 estudios, 76 oficiales, 43 turnos.
+- `TestClient`:
+  - `/historicos/debug-json` lista `2010-asamblea`.
+  - `/historicos/estudios/2010-asamblea` responde 200.
+  - El HTML contiene `Asamblea Nacional`, `Sin tendencia`, `114` y `98`.

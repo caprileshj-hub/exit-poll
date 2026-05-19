@@ -3372,7 +3372,7 @@ async def historico_estudio_detalle(request: Request, ref: str):
 
     # Metadatos
     meta_e = conn.execute(
-        "SELECT nombre_eleccion, fecha_eleccion FROM historico_estudios WHERE eleccion_ref=? AND ambito='NACIONAL'",
+        "SELECT nombre_eleccion, fecha_eleccion, notas FROM historico_estudios WHERE eleccion_ref=? AND ambito='NACIONAL'",
         (ref,)
     ).fetchone()
     meta_o = conn.execute(
@@ -3386,6 +3386,15 @@ async def historico_estudio_detalle(request: Request, ref: str):
         for k, v in dict(meta_o).items():
             if not meta.get(k):
                 meta[k] = v
+    notas = meta.pop("notas", None)
+    legislativo = {}
+    if notas:
+        try:
+            parsed_notas = json.loads(notas)
+            if parsed_notas.get("tipo") == "asamblea":
+                legislativo = parsed_notas
+        except Exception:
+            legislativo = {}
 
     # Turnos para el gráfico
     turnos = [dict(r) for r in conn.execute(
@@ -3423,6 +3432,7 @@ async def historico_estudio_detalle(request: Request, ref: str):
         "o_gov_nac": nac.get("o_gov"),
         "o_opos_nac": nac.get("o_opos"),
         "analisis": analisis,
+        "legislativo": legislativo,
     })
 
 

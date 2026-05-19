@@ -25,11 +25,41 @@
     <div>
         <h2 class="mb-0"><i class="bi bi-bar-chart-steps me-2"></i>{{ meta.nombre_eleccion or ref }}</h2>
         {% if meta.fecha_eleccion %}<small class="text-muted">{{ meta.fecha_eleccion }}</small>{% endif %}
+        {% if legislativo %}
+        <span class="badge bg-dark ms-2">Asamblea Nacional</span>
+        <span class="badge bg-secondary ms-1">Sin tendencia</span>
+        {% endif %}
     </div>
 </div>
 
 <!-- ── Resumen nacional ────────────────────────────────────────────────────── -->
 <div class="row g-3 mb-4">
+    {% if legislativo %}
+    <div class="col-6 col-md-3">
+        <div class="card card-kpi p-3 text-center">
+            <div class="val text-danger">{{ legislativo.estudio_escanos.gov }}</div>
+            <small class="text-muted">Estudio Gov esc.</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-kpi p-3 text-center" style="border-color:#2980b9">
+            <div class="val text-primary">{{ legislativo.estudio_escanos.opos }}</div>
+            <small class="text-muted">Estudio Opos esc.</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-kpi p-3 text-center" style="border-color:#198754">
+            <div class="val text-danger">{{ legislativo.oficial_escanos.gov }}</div>
+            <small class="text-muted">Ref. Gov esc.</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-kpi p-3 text-center" style="border-color:#198754">
+            <div class="val text-primary">{{ legislativo.oficial_escanos.opos }}</div>
+            <small class="text-muted">Ref. Opos esc.</small>
+        </div>
+    </div>
+    {% else %}
     <div class="col-6 col-md-3">
         <div class="card card-kpi p-3 text-center">
             <div class="val text-danger">{{ nac.e_gov or '&#8212;' }}{% if nac.e_gov is not none %}%{% endif %}</div>
@@ -54,10 +84,47 @@
             <small class="text-muted">Oficial Opos</small>
         </div>
     </div>
+    {% endif %}
 </div>
 
 <!-- ── Análisis de acertividad ────────────────────────────────────────────── -->
-{% if analisis %}
+{% if legislativo %}
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3"><i class="bi bi-diagram-3 me-2"></i>Lectura legislativa</h5>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="p-3 rounded bg-light text-center">
+                    <div class="fs-4 text-danger">{{ legislativo.estudio_escanos.gov - legislativo.oficial_escanos.gov }}</div>
+                    <small class="text-muted">Diferencia Gov esc.</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 rounded bg-light text-center">
+                    <div class="fs-4 text-primary">{{ legislativo.estudio_escanos.opos - legislativo.oficial_escanos.opos }}</div>
+                    <small class="text-muted">Diferencia Opos esc.</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 rounded bg-light text-center">
+                    <div class="fs-4 {% if legislativo.estudio_escanos.gov >= 83 %}text-success{% else %}text-danger{% endif %}">
+                        {{ legislativo.estudio_escanos.gov }}/83
+                    </div>
+                    <small class="text-muted">Mayor&#237;a absoluta estudio</small>
+                </div>
+            </div>
+        </div>
+        <div class="mt-3 p-3 border rounded small">
+            <strong>Resumen:</strong>
+            El estudio proyect&#243; {{ legislativo.estudio_escanos.gov }} esca&#241;os de gobierno,
+            {{ legislativo.estudio_escanos.opos }} de oposici&#243;n y {{ legislativo.estudio_escanos.otros }} otros.
+            La referencia nacional usada para contraste es {{ legislativo.oficial_fuente }}:
+            {{ legislativo.oficial_escanos.gov }} gobierno, {{ legislativo.oficial_escanos.opos }} oposici&#243;n
+            y {{ legislativo.oficial_escanos.otros }} otros. No hay tendencia intrad&#237;a para este estudio.
+        </div>
+    </div>
+</div>
+{% elif analisis %}
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <h5 class="card-title mb-3"><i class="bi bi-clipboard2-check me-2"></i>An&#225;lisis de acertividad</h5>
@@ -129,8 +196,15 @@
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <h5 class="card-title mb-3"><i class="bi bi-graph-up me-2"></i>Tendencia del estudio por turno</h5>
+        {% if legislativo.sin_tendencia %}
+        <div class="text-center text-muted py-4">
+            <i class="bi bi-dash-circle fs-3 d-block mb-2"></i>
+            Este estudio no tiene serie de tendencia; solo resultados finales.
+        </div>
+        {% else %}
         <div id="chart-turnos" style="height:340px;"></div>
-        {% if not turnos_json or turnos_json == '[]' %}
+        {% endif %}
+        {% if not legislativo.sin_tendencia and (not turnos_json or turnos_json == '[]') %}
         <div class="text-center text-muted py-4">
             <i class="bi bi-clock fs-3 d-block mb-2"></i>
             No hay datos por turno cargados.
@@ -149,10 +223,10 @@
                 <thead class="table-light">
                     <tr>
                         <th>Estado</th>
-                        <th class="text-end text-danger">Est. Gov%</th>
-                        <th class="text-end text-primary">Est. Opos%</th>
-                        <th class="text-end text-danger">Ofic. Gov%</th>
-                        <th class="text-end text-primary">Ofic. Opos%</th>
+                        <th class="text-end text-danger">{% if legislativo %}Est. Gov esc.%{% else %}Est. Gov%{% endif %}</th>
+                        <th class="text-end text-primary">{% if legislativo %}Est. Opos esc.%{% else %}Est. Opos%{% endif %}</th>
+                        <th class="text-end text-danger">{% if legislativo %}Ref. Gov esc.%{% else %}Ofic. Gov%{% endif %}</th>
+                        <th class="text-end text-primary">{% if legislativo %}Ref. Opos esc.%{% else %}Ofic. Opos%{% endif %}</th>
                         <th class="text-end">&#916; gov pp</th>
                         <th class="text-end text-muted">Centros</th>
                     </tr>
