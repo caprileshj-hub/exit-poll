@@ -935,14 +935,16 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - `backend/templates/historico_estudio_detalle.html` reconoce estudios legislativos:
   - KPI de escanos estudio vs referencia.
   - lectura legislativa.
+  - grafico de puntos para distribucion de escanos del estudio y del resultado final.
+  - comparacion por estado con escanos proyectados del estudio vs voto lista oficial por entidad federal publicado por Wikipedia/CNE.
   - aviso de sin tendencia.
 
 ### Validacion
 - `D:\Test\.venv\Scripts\python.exe import_2010.py`: OK.
   - Estudio: 114 gobierno, 50 oposicion, 1 otros.
   - Referencia: 98 gobierno, 65 oposicion, 2 otros.
-- `D:\Test\.venv\Scripts\python.exe backend\seed_historico_estudios.py`: OK, 98 estudios, 76 oficiales, 43 turnos.
+- `D:\Test\.venv\Scripts\python.exe backend\seed_historico_estudios.py`: OK, 98 estudios, 100 oficiales, 43 turnos.
 - `TestClient`:
   - `/historicos/debug-json` lista `2010-asamblea`.
   - `/historicos/estudios/2010-asamblea` responde 200.
-  - El HTML contiene `Asamblea Nacional`, `Sin tendencia`, `114` y `98`.
+  - El HTML contiene `Asamblea Nacional`, `Sin tendencia`, `114`, `98`, `Distribucion de escanos` y `Ofic. Gov lista%`.

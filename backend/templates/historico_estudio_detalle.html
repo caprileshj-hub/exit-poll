@@ -10,6 +10,17 @@
     .delta-bad  { color: #dc3545; font-weight: 600; }
     .card-kpi   { border-left: 4px solid var(--ep-azul); }
     .card-kpi .val { font-size: 1.8rem; font-weight: 700; color: var(--ep-azul); }
+    .seat-chart { display: grid; grid-template-columns: repeat(15, 1fr); gap: 5px; max-width: 420px; margin: 0 auto; }
+    .seat-dot { width: 14px; height: 14px; border-radius: 50%; display: block; }
+    .seat-gov { background: #dc3545; }
+    .seat-opos { background: #0d6efd; }
+    .seat-otros { background: #0dcaf0; }
+    .seat-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+    .seat-legend .seat-dot { display: inline-block; margin-right: 5px; vertical-align: -2px; }
+    @media (max-width: 576px) {
+        .seat-chart { grid-template-columns: repeat(11, 1fr); max-width: 270px; }
+        .seat-dot { width: 12px; height: 12px; }
+    }
 </style>
 {% endblock %}
 
@@ -89,6 +100,43 @@
 
 <!-- ── Análisis de acertividad ────────────────────────────────────────────── -->
 {% if legislativo %}
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3"><i class="bi bi-grid-3x3-gap me-2"></i>Distribuci&#243;n de esca&#241;os</h5>
+        <div class="row g-4 align-items-start">
+            <div class="col-lg-6">
+                <h6 class="text-center text-muted mb-3">Estudio</h6>
+                <div class="seat-chart" aria-label="Distribucion de escanos del estudio">
+                    {% for _ in range(legislativo.estudio_escanos.gov|int) %}<span class="seat-dot seat-gov"></span>{% endfor %}
+                    {% for _ in range(legislativo.estudio_escanos.opos|int) %}<span class="seat-dot seat-opos"></span>{% endfor %}
+                    {% for _ in range(legislativo.estudio_escanos.otros|int) %}<span class="seat-dot seat-otros"></span>{% endfor %}
+                </div>
+                <div class="seat-legend small text-muted mt-3">
+                    <span><span class="seat-dot seat-gov"></span>Gov {{ legislativo.estudio_escanos.gov }}</span>
+                    <span><span class="seat-dot seat-opos"></span>Opos {{ legislativo.estudio_escanos.opos }}</span>
+                    <span><span class="seat-dot seat-otros"></span>Otros {{ legislativo.estudio_escanos.otros }}</span>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <h6 class="text-center text-muted mb-3">Resultado final</h6>
+                <div class="seat-chart" aria-label="Distribucion de escanos del resultado final">
+                    {% for _ in range(legislativo.oficial_escanos.gov|int) %}<span class="seat-dot seat-gov"></span>{% endfor %}
+                    {% for _ in range(legislativo.oficial_escanos.opos|int) %}<span class="seat-dot seat-opos"></span>{% endfor %}
+                    {% for _ in range(legislativo.oficial_escanos.otros|int) %}<span class="seat-dot seat-otros"></span>{% endfor %}
+                </div>
+                <div class="seat-legend small text-muted mt-3">
+                    <span><span class="seat-dot seat-gov"></span>Gov {{ legislativo.oficial_escanos.gov }}</span>
+                    <span><span class="seat-dot seat-opos"></span>Opos {{ legislativo.oficial_escanos.opos }}</span>
+                    <span><span class="seat-dot seat-otros"></span>Otros {{ legislativo.oficial_escanos.otros }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="small text-muted text-center mt-3">
+            Referencia nacional: {{ legislativo.oficial_fuente }}.
+        </div>
+    </div>
+</div>
+
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <h5 class="card-title mb-3"><i class="bi bi-diagram-3 me-2"></i>Lectura legislativa</h5>
@@ -225,10 +273,10 @@
                         <th>Estado</th>
                         <th class="text-end text-danger">{% if legislativo %}Est. Gov esc.%{% else %}Est. Gov%{% endif %}</th>
                         <th class="text-end text-primary">{% if legislativo %}Est. Opos esc.%{% else %}Est. Opos%{% endif %}</th>
-                        <th class="text-end text-danger">{% if legislativo %}Ref. Gov esc.%{% else %}Ofic. Gov%{% endif %}</th>
-                        <th class="text-end text-primary">{% if legislativo %}Ref. Opos esc.%{% else %}Ofic. Opos%{% endif %}</th>
+                        <th class="text-end text-danger">{% if legislativo %}Ofic. Gov lista%{% else %}Ofic. Gov%{% endif %}</th>
+                        <th class="text-end text-primary">{% if legislativo %}Ofic. Opos lista%{% else %}Ofic. Opos%{% endif %}</th>
                         <th class="text-end">&#916; gov pp</th>
-                        <th class="text-end text-muted">Centros</th>
+                        <th class="text-end text-muted">{% if legislativo %}Esca&#241;os est.{% else %}Centros{% endif %}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -266,6 +314,9 @@
             </table>
         </div>
         <div class="mt-2 d-flex gap-3 small text-muted">
+            {% if legislativo %}
+            <span>Estudio: distribuci&#243;n de esca&#241;os proyectados. Oficial: voto lista publicado por Wikipedia/CNE.</span>
+            {% endif %}
             <span><span class="delta-ok">&#9632;</span> &#8804; 0.5 pp</span>
             <span><span class="delta-warn">&#9632;</span> 0.5 &#8211; 2 pp</span>
             <span><span class="delta-bad">&#9632;</span> &gt; 2 pp</span>

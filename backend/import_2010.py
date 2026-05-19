@@ -7,6 +7,7 @@ uses the published aggregate from Wikipedia/CNE summary.
 
 import json
 import sqlite3
+import unicodedata
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -53,6 +54,17 @@ NAME_TO_CODE = {
     "YARACUY": "20",
     "ZULIA": "21",
 }
+
+
+def _norm_name(value: str) -> str:
+    text = unicodedata.normalize("NFKD", value.strip().upper())
+    return "".join(ch for ch in text if not unicodedata.combining(ch))
+
+
+def _state_code(value: str | None) -> str | None:
+    if not value:
+        return None
+    return NAME_TO_CODE.get(value) or NAME_TO_CODE.get(_norm_name(value))
 
 
 def _bando(value) -> str | None:
@@ -104,21 +116,63 @@ def _seat_counts(wb) -> tuple[Counter, dict[str, Counter]]:
     return total, by_state
 
 
-def _study_list_vote_pct(wb) -> dict[str, float]:
+def _study_list_vote_pct(wb) -> dict[str, dict]:
     counts = Counter()
+    by_state: dict[str, Counter] = defaultdict(Counter)
     current_state = None
     for row in wb["LISTA"].iter_rows(values_only=True):
         label = row[2]
         total = row[4]
         if isinstance(label, str) and label.startswith("LISTA "):
-            current_state = label.replace("LISTA ", "").strip()
+            current_state = _state_code(label.replace("LISTA ", "").strip().upper())
             continue
         if not current_state or not isinstance(label, str) or not isinstance(total, (int, float)):
             continue
+        if label.strip().lower() == "total":
+            current_state = None
+            continue
         bando = _bando(label) or "otros"
         counts[bando] += float(total)
+        if current_state:
+            by_state[current_state][bando] += float(total)
     total_votes = sum(counts.values())
-    return {key: round(value * 100.0 / total_votes, 2) for key, value in counts.items()}
+    national = {key: round(value * 100.0 / total_votes, 2) for key, value in counts.items()}
+    states = {}
+    for state_code, state_counts in by_state.items():
+        state_total = sum(state_counts.values())
+        states[state_code] = {
+            key: round(value * 100.0 / state_total, 2)
+            for key, value in state_counts.items()
+        }
+    return {"national": national, "states": states}
+
+
+OFFICIAL_LISTA_ESTADOS = {
+    "AMAZONAS": {"gov": 42.02, "opos": 14.17, "otros": 41.61},
+    "ANZOATEGUI": {"gov": 44.93, "opos": 52.24, "otros": 0.86},
+    "APURE": {"gov": 60.14, "opos": 36.89, "otros": 1.64},
+    "ARAGUA": {"gov": 50.27, "opos": 46.52, "otros": 0.84},
+    "BARINAS": {"gov": 56.36, "opos": 42.17, "otros": 0.89},
+    "BOLIVAR": {"gov": 50.31, "opos": 47.69, "otros": 0.93},
+    "CARABOBO": {"gov": 43.04, "opos": 53.66, "otros": 0.74},
+    "COJEDES": {"gov": 63.89, "opos": 32.57, "otros": 0.85},
+    "DELTA AMACURO": {"gov": 68.70, "opos": 25.15, "otros": 0.89},
+    "DISTRITO CAPITAL": {"gov": 47.73, "opos": 47.80, "otros": 1.11},
+    "FALCON": {"gov": 52.21, "opos": 46.25, "otros": 0.98},
+    "GUARICO": {"gov": 58.27, "opos": 29.21, "otros": 11.49},
+    "LARA": {"gov": 40.77, "opos": 30.11, "otros": 28.43},
+    "MERIDA": {"gov": 48.70, "opos": 50.04, "otros": 0.77},
+    "MIRANDA": {"gov": 41.44, "opos": 57.12, "otros": 0.58},
+    "MONAGAS": {"gov": 58.68, "opos": 35.39, "otros": 0.59},
+    "NUEVA ESPARTA": {"gov": 40.87, "opos": 57.92, "otros": 0.69},
+    "PORTUGUESA": {"gov": 63.05, "opos": 32.22, "otros": 2.18},
+    "SUCRE": {"gov": 51.26, "opos": 47.51, "otros": 0.76},
+    "TACHIRA": {"gov": 42.09, "opos": 56.45, "otros": 0.32},
+    "TRUJILLO": {"gov": 62.69, "opos": 35.27, "otros": 1.00},
+    "VARGAS": {"gov": 54.82, "opos": 43.31, "otros": 0.84},
+    "YARACUY": {"gov": 54.56, "opos": 40.39, "otros": 4.60},
+    "ZULIA": {"gov": 44.42, "opos": 54.82, "otros": 0.46},
+}
 
 
 def seed_2010(conn: sqlite3.Connection) -> dict[str, int]:
@@ -141,13 +195,13 @@ def seed_2010(conn: sqlite3.Connection) -> dict[str, int]:
         "sin_tendencia": True,
         "estudio_escanos": dict(study_seats),
         "estudio_total_escanos": sum(study_seats.values()),
-        "estudio_voto_lista_pct": list_vote_pct,
+        "estudio_voto_lista_pct": list_vote_pct["national"],
         "oficial_escanos": official_seats,
         "oficial_total_escanos": TOTAL_ESCANOS,
         "oficial_votos": official_votes,
         "oficial_voto_pct": official_vote_pct,
         "oficial_fuente": "Wikipedia/CNE agregado nacional",
-        "nota": "Eleccion parlamentaria con votos nominales, lista e indigenas; sin tabulado oficial local por estado.",
+        "nota": "Eleccion parlamentaria con votos nominales, lista e indigenas; comparacion estadal basada en voto lista publicado por Wikipedia/CNE.",
     }
 
     conn.execute("""
@@ -202,10 +256,11 @@ def seed_2010(conn: sqlite3.Connection) -> dict[str, int]:
 
     state_rows = 0
     for state_name, counts in state_seats.items():
-        code = NAME_TO_CODE.get(state_name)
+        code = _state_code(state_name)
         if not code or code not in estados:
             continue
         total_state = sum(counts.values())
+        state_vote_pct = list_vote_pct["states"].get(code, {})
         conn.execute("""
             INSERT INTO historico_estudios
                 (eleccion_ref, ambito, nombre, nombre_eleccion, fecha_eleccion,
@@ -229,14 +284,48 @@ def seed_2010(conn: sqlite3.Connection) -> dict[str, int]:
             _pct(counts["otros"], total_state),
             total_state,
             "aplicacion03.xlsm",
-            json.dumps({"tipo": "asamblea", "metrica": "escanos", "estudio_escanos": dict(counts)}, ensure_ascii=False),
+            json.dumps({
+                "tipo": "asamblea",
+                "metrica": "escanos",
+                "estudio_escanos": dict(counts),
+                "estudio_total_escanos_estado": total_state,
+                "estudio_voto_lista_pct": state_vote_pct,
+            }, ensure_ascii=False),
         ))
         state_rows += 1
+
+    official_state_rows = 0
+    for state_name, pct in OFFICIAL_LISTA_ESTADOS.items():
+        code = _state_code(state_name)
+        if not code or code not in estados:
+            continue
+        conn.execute("""
+            INSERT INTO historico_oficial
+                (eleccion_ref, ambito, nombre, nombre_eleccion, fecha_eleccion,
+                 pct_gov, pct_opos, pct_otros, total_votos, fuente)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(eleccion_ref, ambito) DO UPDATE SET
+                nombre=excluded.nombre,
+                nombre_eleccion=excluded.nombre_eleccion,
+                fecha_eleccion=excluded.fecha_eleccion,
+                pct_gov=excluded.pct_gov,
+                pct_opos=excluded.pct_opos,
+                pct_otros=excluded.pct_otros,
+                total_votos=excluded.total_votos,
+                fuente=excluded.fuente,
+                updated_at=datetime('now')
+        """, (
+            REF, code, estados[code], NOMBRE, FECHA,
+            pct["gov"], pct["opos"], pct["otros"],
+            0,
+            "Wikipedia/CNE voto lista por entidad federal",
+        ))
+        official_state_rows += 1
 
     conn.commit()
     return {
         "estudio_filas": state_rows + 1,
-        "oficial_filas": 1,
+        "oficial_filas": official_state_rows + 1,
         "estudio_escanos_gov": study_seats["gov"],
         "estudio_escanos_opos": study_seats["opos"],
         "estudio_escanos_otros": study_seats["otros"],
