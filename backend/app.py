@@ -2959,6 +2959,44 @@ async def db_status():
     return out
 
 
+@app.get("/historicos/debug-json", response_class=JSONResponse)
+async def historicos_debug():
+    """Devuelve el estado crudo del route /historicos para diagnóstico."""
+    conn = get_db()
+    out = {"est_rows": [], "rh_rows": [], "est_error": None, "rh_error": None}
+    try:
+        rows = conn.execute("""
+            SELECT eleccion_ref,
+                   MAX(CASE WHEN f='e' THEN pct_gov END) AS e_gov,
+                   MAX(CASE WHEN f='o' THEN pct_gov END) AS o_gov
+            FROM (
+                SELECT eleccion_ref, pct_gov, pct_opos, 'e' AS f
+                FROM historico_estudios WHERE ambito='NACIONAL'
+                UNION ALL
+                SELECT eleccion_ref, pct_gov, pct_opos, 'o'
+                FROM historico_oficial WHERE ambito='NACIONAL'
+            )
+            GROUP BY eleccion_ref
+        """).fetchall()
+        out["est_rows"] = [dict(r) for r in rows]
+    except Exception as e:
+        out["est_error"] = str(e)
+    try:
+        rows = conn.execute("""
+            SELECT eleccion_ref, COUNT(*) AS n,
+                   SUM(votos_validos) AS total,
+                   ROUND(SUM(votos_gobierno)*100.0/NULLIF(SUM(votos_validos),0),1) AS o_gov,
+                   ROUND(SUM(votos_oposicion)*100.0/NULLIF(SUM(votos_validos),0),1) AS o_opos
+            FROM resultados_historicos
+            GROUP BY eleccion_ref
+        """).fetchall()
+        out["rh_rows"] = [dict(r) for r in rows]
+    except Exception as e:
+        out["rh_error"] = str(e)
+    conn.close()
+    return out
+
+
 @app.get("/historicos", response_class=HTMLResponse)
 async def historicos_index(request: Request):
     conn = get_db()
