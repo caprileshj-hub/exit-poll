@@ -882,6 +882,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - `/historicos` ahora recibe la misma lista `elections` que expone el diagnostico; si `resultados_historicos` tiene filas sin estudio, debe renderizar tarjeta "Solo resultados".
 - Se agrego `Cache-Control: no-store` a `/historicos` y `/historicos/debug-json` para reducir falsos positivos por cache del navegador o proxy.
 - La plantilla `backend/templates/historicos.html` incluye un comentario HTML con conteos (`elections`, `rh`, `est`) para diagnostico rapido en Azure sin exponer UI adicional.
+- `backend/startup.sh` ahora importa los estudios versionados 2006, 2012 y 2013 cuando faltan en la BD persistida de Azure; los importadores usan `ON CONFLICT`, asi que la carga es idempotente.
 
 ### Validacion
 - `D:\Test\.venv\Scripts\python.exe -m py_compile backend\app.py`: OK.
@@ -890,3 +891,6 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
   - `/historicos` responde 200.
   - El HTML contiene "Solo resultados".
   - El HTML no contiene el estado vacio "No hay datos historicos cargados".
+- Reejecucion local idempotente:
+  - `D:\Test\.venv\Scripts\python.exe import_2006.py`: OK.
+  - `D:\Test\.venv\Scripts\python.exe import_2012_2013.py`: OK.
