@@ -868,3 +868,25 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
   - Incluye `AI Electoral Analyst`.
   - Incluye `Datos de referencia del dashboard`.
   - Ya no muestra `Corre: python backend/simulador_showcase.py --reset` cuando hay referencia disponible.
+
+---
+
+## 2026-05-18 - Historicos unificados en Azure
+
+### Problema
+- `/historicos/debug-json` confirmaba que Azure tenia `resultados_historicos` con `2024-presidencial`, pero `/historicos` podia mostrar el estado vacio.
+- La pagina y el endpoint de diagnostico construian sus datos con logica separada, lo que hacia mas dificil comprobar si el problema era cache, consulta o render.
+
+### Cambio
+- Se agrego `_historicos_unificados()` en `backend/app.py` como fuente unica para `/historicos` y `/historicos/debug-json`.
+- `/historicos` ahora recibe la misma lista `elections` que expone el diagnostico; si `resultados_historicos` tiene filas sin estudio, debe renderizar tarjeta "Solo resultados".
+- Se agrego `Cache-Control: no-store` a `/historicos` y `/historicos/debug-json` para reducir falsos positivos por cache del navegador o proxy.
+- La plantilla `backend/templates/historicos.html` incluye un comentario HTML con conteos (`elections`, `rh`, `est`) para diagnostico rapido en Azure sin exponer UI adicional.
+
+### Validacion
+- `D:\Test\.venv\Scripts\python.exe -m py_compile backend\app.py`: OK.
+- `TestClient` local:
+  - `/historicos/debug-json` responde 200 con `deploy_ts=2026-05-18T09e0890-unified`.
+  - `/historicos` responde 200.
+  - El HTML contiene "Solo resultados".
+  - El HTML no contiene el estado vacio "No hay datos historicos cargados".

@@ -2916,6 +2916,88 @@ def _datos_ventaja_historico_ref(conn, eleccion_ref: str) -> dict:
     return datos
 
 
+def _historicos_unificados(conn: sqlite3.Connection) -> tuple[list[dict], dict[str, Any]]:
+    """Construye la lista comun que consumen /historicos y debug-json."""
+    diag: dict[str, Any] = {
+        "est_rows": [],
+        "rh_rows": [],
+        "est_error": None,
+        "rh_error": None,
+    }
+
+    try:
+        est_rows = conn.execute("""
+            SELECT eleccion_ref,
+                   COALESCE(MAX(CASE WHEN f='e' THEN nombre_eleccion END),
+                            MAX(CASE WHEN f='o' THEN nombre_eleccion END)) AS nombre_eleccion,
+                   COALESCE(MAX(CASE WHEN f='e' THEN fecha_eleccion END),
+                            MAX(CASE WHEN f='o' THEN fecha_eleccion END))  AS fecha_eleccion,
+                   MAX(CASE WHEN f='e' THEN pct_gov   END) AS e_gov,
+                   MAX(CASE WHEN f='e' THEN pct_opos  END) AS e_opos,
+                   MAX(CASE WHEN f='o' THEN pct_gov   END) AS o_gov,
+                   MAX(CASE WHEN f='o' THEN pct_opos  END) AS o_opos,
+                   MAX(CASE WHEN f='e' THEN num_centros END) AS e_centros
+            FROM (
+                SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos,
+                       num_centros, 'e' AS f
+                FROM historico_estudios WHERE ambito='NACIONAL'
+                UNION ALL
+                SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos,
+                       NULL, 'o'
+                FROM historico_oficial WHERE ambito='NACIONAL'
+            )
+            GROUP BY eleccion_ref
+            ORDER BY fecha_eleccion DESC, eleccion_ref DESC
+        """).fetchall()
+        diag["est_rows"] = [dict(r) for r in est_rows]
+    except Exception as exc:
+        est_rows = []
+        diag["est_error"] = str(exc)
+
+    est_refs = {r["eleccion_ref"] for r in est_rows}
+
+    try:
+        rh_rows = conn.execute("""
+            SELECT eleccion_ref,
+                   COUNT(*)                                                             AS num_centros,
+                   SUM(votos_validos)                                                   AS total_votos,
+                   ROUND(SUM(votos_gobierno)*100.0  / NULLIF(SUM(votos_validos),0), 1) AS o_gov,
+                   ROUND(SUM(votos_oposicion)*100.0 / NULLIF(SUM(votos_validos),0), 1) AS o_opos
+            FROM resultados_historicos
+            GROUP BY eleccion_ref
+            ORDER BY eleccion_ref DESC
+        """).fetchall()
+        diag["rh_rows"] = [dict(r) for r in rh_rows]
+    except Exception as exc:
+        rh_rows = []
+        diag["rh_error"] = str(exc)
+
+    elections: list[dict] = []
+    for r in est_rows:
+        d = dict(r)
+        d["tipo"] = "con_estudio"
+        if d["e_gov"] is not None and d["o_gov"] is not None:
+            d["delta"] = round(d["e_gov"] - d["o_gov"], 1)
+            d["ganador_ok"] = (d["e_gov"] > d["e_opos"]) == (d["o_gov"] > d["o_opos"])
+        else:
+            d["delta"] = None
+            d["ganador_ok"] = None
+        elections.append(d)
+
+    for r in rh_rows:
+        if r["eleccion_ref"] in est_refs:
+            continue
+        d = dict(r)
+        d["tipo"] = "resultados"
+        d["nombre_eleccion"] = None
+        d["fecha_eleccion"] = None
+        d["e_gov"] = d["e_opos"] = d["delta"] = d["ganador_ok"] = None
+        elections.append(d)
+
+    diag["elections"] = elections
+    return elections, diag
+
+
 @app.get("/api/db-status", response_class=JSONResponse)
 async def db_status():
     """Diagnóstico: conteo de filas por tabla relevante."""
@@ -2963,119 +3045,27 @@ async def db_status():
 async def historicos_debug():
     """Devuelve el estado crudo del route /historicos para diagnóstico."""
     conn = get_db()
-    out = {
-        "deploy_ts": "2026-05-18T09e0890",
-        "est_rows": [], "rh_rows": [], "est_error": None, "rh_error": None,
-    }
-    try:
-        rows = conn.execute("""
-            SELECT eleccion_ref,
-                   MAX(CASE WHEN f='e' THEN pct_gov END) AS e_gov,
-                   MAX(CASE WHEN f='o' THEN pct_gov END) AS o_gov
-            FROM (
-                SELECT eleccion_ref, pct_gov, pct_opos, 'e' AS f
-                FROM historico_estudios WHERE ambito='NACIONAL'
-                UNION ALL
-                SELECT eleccion_ref, pct_gov, pct_opos, 'o'
-                FROM historico_oficial WHERE ambito='NACIONAL'
-            )
-            GROUP BY eleccion_ref
-        """).fetchall()
-        out["est_rows"] = [dict(r) for r in rows]
-    except Exception as e:
-        out["est_error"] = str(e)
-    try:
-        rows = conn.execute("""
-            SELECT eleccion_ref, COUNT(*) AS n,
-                   SUM(votos_validos) AS total,
-                   ROUND(SUM(votos_gobierno)*100.0/NULLIF(SUM(votos_validos),0),1) AS o_gov,
-                   ROUND(SUM(votos_oposicion)*100.0/NULLIF(SUM(votos_validos),0),1) AS o_opos
-            FROM resultados_historicos
-            GROUP BY eleccion_ref
-        """).fetchall()
-        out["rh_rows"] = [dict(r) for r in rows]
-    except Exception as e:
-        out["rh_error"] = str(e)
+    _, out = _historicos_unificados(conn)
+    out["deploy_ts"] = "2026-05-18T09e0890-unified"
     conn.close()
-    return out
+    return JSONResponse(out, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/historicos", response_class=HTMLResponse)
 async def historicos_index(request: Request):
     conn = get_db()
-
-    # Elecciones con datos de estudio (exit poll) ─────────────────────────────
-    try:
-        est_rows = conn.execute("""
-            SELECT eleccion_ref,
-                   COALESCE(MAX(CASE WHEN f='e' THEN nombre_eleccion END),
-                            MAX(CASE WHEN f='o' THEN nombre_eleccion END)) AS nombre_eleccion,
-                   COALESCE(MAX(CASE WHEN f='e' THEN fecha_eleccion END),
-                            MAX(CASE WHEN f='o' THEN fecha_eleccion END))  AS fecha_eleccion,
-                   MAX(CASE WHEN f='e' THEN pct_gov   END) AS e_gov,
-                   MAX(CASE WHEN f='e' THEN pct_opos  END) AS e_opos,
-                   MAX(CASE WHEN f='o' THEN pct_gov   END) AS o_gov,
-                   MAX(CASE WHEN f='o' THEN pct_opos  END) AS o_opos,
-                   MAX(CASE WHEN f='e' THEN num_centros END) AS e_centros
-            FROM (
-                SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos,
-                       num_centros, 'e' AS f
-                FROM historico_estudios WHERE ambito='NACIONAL'
-                UNION ALL
-                SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos,
-                       NULL, 'o'
-                FROM historico_oficial WHERE ambito='NACIONAL'
-            )
-            GROUP BY eleccion_ref
-            ORDER BY fecha_eleccion DESC, eleccion_ref DESC
-        """).fetchall()
-    except Exception:
-        est_rows = []
-
-    est_refs = {r["eleccion_ref"] for r in est_rows}
-
-    # Elecciones solo en resultados_historicos (sin estudio) ──────────────────
-    try:
-        rh_rows = conn.execute("""
-            SELECT eleccion_ref,
-                   COUNT(*)                                                             AS num_centros,
-                   SUM(votos_validos)                                                   AS total_votos,
-                   ROUND(SUM(votos_gobierno)*100.0  / NULLIF(SUM(votos_validos),0), 1) AS o_gov,
-                   ROUND(SUM(votos_oposicion)*100.0 / NULLIF(SUM(votos_validos),0), 1) AS o_opos
-            FROM resultados_historicos
-            GROUP BY eleccion_ref
-            ORDER BY eleccion_ref DESC
-        """).fetchall()
-    except Exception:
-        rh_rows = []
-
-    # Construir lista unificada: estudios primero, luego rh sin duplicados
-    elections = []
-    for r in est_rows:
-        d = dict(r)
-        d["tipo"] = "con_estudio"
-        if d["e_gov"] is not None and d["o_gov"] is not None:
-            d["delta"] = round(d["e_gov"] - d["o_gov"], 1)
-            d["ganador_ok"] = (d["e_gov"] > d["e_opos"]) == (d["o_gov"] > d["o_opos"])
-        else:
-            d["delta"] = None
-            d["ganador_ok"] = None
-        elections.append(d)
-
-    for r in rh_rows:
-        if r["eleccion_ref"] in est_refs:
-            continue  # ya cubierto por estudios
-        d = dict(r)
-        d["tipo"] = "resultados"
-        d["nombre_eleccion"] = None
-        d["fecha_eleccion"] = None
-        d["e_gov"] = d["e_opos"] = d["delta"] = d["ganador_ok"] = None
-        elections.append(d)
-
+    elections, diag = _historicos_unificados(conn)
     conn.close()
-    return templates.TemplateResponse(request=request, name="historicos.html", context={
-        "elections": elections
+    response = templates.TemplateResponse(request=request, name="historicos.html", context={
+        "elections": elections,
+        "debug_counts": {
+            "elections": len(elections),
+            "est_rows": len(diag["est_rows"]),
+            "rh_rows": len(diag["rh_rows"]),
+        },
     })
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.get("/historicos/comparar", response_class=HTMLResponse)
