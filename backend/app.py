@@ -2938,6 +2938,23 @@ async def db_status():
             "SELECT DISTINCT eleccion_ref FROM historico_estudios").fetchall()]
     except Exception as e:
         out["refs_error"] = str(e)
+    # Columnas reales de resultados_historicos (para detectar schema viejo)
+    try:
+        out["rh_columns"] = [r[1] for r in conn.execute(
+            "PRAGMA table_info(resultados_historicos)").fetchall()]
+    except Exception as e:
+        out["rh_columns"] = f"ERROR: {e}"
+    # Prueba la query de agregación que usa el route /historicos
+    try:
+        row = conn.execute("""
+            SELECT COUNT(*) AS n,
+                   ROUND(SUM(votos_gobierno)*100.0 / NULLIF(SUM(votos_validos),0), 1) AS o_gov,
+                   ROUND(SUM(votos_oposicion)*100.0 / NULLIF(SUM(votos_validos),0), 1) AS o_opos
+            FROM resultados_historicos
+        """).fetchone()
+        out["rh_agg_test"] = dict(row)
+    except Exception as e:
+        out["rh_agg_test"] = f"ERROR: {e}"
     conn.close()
     return out
 
