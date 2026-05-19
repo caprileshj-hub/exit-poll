@@ -2963,7 +2963,10 @@ async def db_status():
 async def historicos_debug():
     """Devuelve el estado crudo del route /historicos para diagnóstico."""
     conn = get_db()
-    out = {"est_rows": [], "rh_rows": [], "est_error": None, "rh_error": None}
+    out = {
+        "deploy_ts": "2026-05-18T09e0890",
+        "est_rows": [], "rh_rows": [], "est_error": None, "rh_error": None,
+    }
     try:
         rows = conn.execute("""
             SELECT eleccion_ref,
