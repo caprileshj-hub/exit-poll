@@ -2936,6 +2936,17 @@ def _historicos_unificados(conn: sqlite3.Connection) -> tuple[list[dict], dict[s
         "rh_error": None,
     }
 
+    def titulo_ref(ref: str) -> str:
+        partes = ref.split("-", 1)
+        if len(partes) == 2 and partes[0].isdigit():
+            return f"{partes[1].replace('-', ' ').title()} {partes[0]}"
+        return ref
+
+    def orden_eleccion(row: dict) -> tuple[str, str]:
+        ref = row.get("eleccion_ref") or ""
+        year = ref.split("-", 1)[0] if ref[:4].isdigit() else "0000"
+        return (row.get("fecha_eleccion") or year, ref)
+
     try:
         est_rows = conn.execute("""
             SELECT eleccion_ref,
@@ -2947,14 +2958,16 @@ def _historicos_unificados(conn: sqlite3.Connection) -> tuple[list[dict], dict[s
                    MAX(CASE WHEN f='e' THEN pct_opos  END) AS e_opos,
                    MAX(CASE WHEN f='o' THEN pct_gov   END) AS o_gov,
                    MAX(CASE WHEN f='o' THEN pct_opos  END) AS o_opos,
-                   MAX(CASE WHEN f='e' THEN num_centros END) AS e_centros
+                   MAX(CASE WHEN f='o' THEN pct_otros END) AS o_otros,
+                   MAX(CASE WHEN f='e' THEN num_centros END) AS e_centros,
+                   MAX(CASE WHEN f='o' THEN total_votos END) AS total_votos
             FROM (
                 SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos,
-                       num_centros, 'e' AS f
+                       NULL AS pct_otros, num_centros, NULL AS total_votos, 'e' AS f
                 FROM historico_estudios WHERE ambito='NACIONAL'
                 UNION ALL
                 SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos,
-                       NULL, 'o'
+                       pct_otros, NULL, total_votos, 'o'
                 FROM historico_oficial WHERE ambito='NACIONAL'
             )
             GROUP BY eleccion_ref
@@ -2986,7 +2999,8 @@ def _historicos_unificados(conn: sqlite3.Connection) -> tuple[list[dict], dict[s
     elections: list[dict] = []
     for r in est_rows:
         d = dict(r)
-        d["tipo"] = "con_estudio"
+        d["tipo"] = "con_estudio" if d["e_gov"] is not None else "oficial"
+        d["nombre_eleccion"] = d.get("nombre_eleccion") or titulo_ref(d["eleccion_ref"])
         if d["e_gov"] is not None and d["o_gov"] is not None:
             d["delta"] = round(d["e_gov"] - d["o_gov"], 1)
             d["ganador_ok"] = (d["e_gov"] > d["e_opos"]) == (d["o_gov"] > d["o_opos"])
@@ -3000,11 +3014,13 @@ def _historicos_unificados(conn: sqlite3.Connection) -> tuple[list[dict], dict[s
             continue
         d = dict(r)
         d["tipo"] = "resultados"
-        d["nombre_eleccion"] = None
+        d["nombre_eleccion"] = titulo_ref(d["eleccion_ref"])
         d["fecha_eleccion"] = None
+        d["o_otros"] = None
         d["e_gov"] = d["e_opos"] = d["delta"] = d["ganador_ok"] = None
         elections.append(d)
 
+    elections.sort(key=orden_eleccion, reverse=True)
     diag["elections"] = elections
     return elections, diag
 
@@ -3057,7 +3073,7 @@ async def historicos_debug():
     """Devuelve el estado crudo del route /historicos para diagnóstico."""
     conn = get_db()
     _, out = _historicos_unificados(conn)
-    out["deploy_ts"] = "2026-05-18Tfixed-seed-readonly"
+    out["deploy_ts"] = "2026-05-18T2018-presidencial"
     conn.close()
     return JSONResponse(out, headers={"Cache-Control": "no-store"})
 

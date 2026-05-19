@@ -84,6 +84,46 @@
     </div>
 </div>
 
+{% elif e.tipo == 'oficial' %}
+{# Solo oficial en historico_oficial #}
+<div class="col-md-6 col-lg-4">
+    <div class="card shadow-sm h-100" style="border-left:4px solid #2980b9">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+                <h5 class="card-title fw-bold mb-0" style="font-size:1rem">
+                    {{ e.nombre_eleccion or e.eleccion_ref }}
+                </h5>
+                <span class="badge ms-2 text-nowrap" style="background:#2980b9">Solo resultados</span>
+            </div>
+            {% if e.fecha_eleccion %}
+            <small class="text-muted d-block mb-3">{{ e.fecha_eleccion }}</small>
+            {% endif %}
+            <div class="row text-center mt-3">
+                <div class="col-4">
+                    <div class="fw-bold text-danger fs-5">{{ e.o_gov }}%</div>
+                    <small class="text-muted">Gobierno</small>
+                </div>
+                <div class="col-4">
+                    <div class="fw-bold text-primary fs-5">{{ e.o_opos }}%</div>
+                    <small class="text-muted">Oposici&#243;n</small>
+                </div>
+                <div class="col-4">
+                    <div class="fw-bold text-secondary fs-5">{% if e.o_otros is not none %}{{ e.o_otros }}%{% else %}&#8212;{% endif %}</div>
+                    <small class="text-muted">Otros</small>
+                </div>
+            </div>
+            {% if e.total_votos %}
+            <div class="small text-muted text-center mt-3">{{ "{:,}".format(e.total_votos) }} votos v&#225;lidos</div>
+            {% endif %}
+        </div>
+        <div class="card-footer bg-transparent d-flex gap-2">
+            <a href="/historicos/estudios/{{ e.eleccion_ref }}" class="btn btn-sm btn-primary w-100">
+                <i class="bi bi-table me-1"></i>Detalle
+            </a>
+        </div>
+    </div>
+</div>
+
 {% else %}
 {# ── Tarjeta SOLO RESULTADOS ──────────────────────────────────────────────── #}
 <div class="col-md-6 col-lg-4">
@@ -91,10 +131,13 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-start mb-1">
                 <h5 class="card-title fw-bold mb-0" style="font-size:1rem">
-                    {{ e.eleccion_ref }}
+                    {{ e.nombre_eleccion or e.eleccion_ref }}
                 </h5>
                 <span class="badge ms-2 text-nowrap" style="background:#2980b9">Solo resultados</span>
             </div>
+            {% if e.fecha_eleccion %}
+            <small class="text-muted d-block mb-3">{{ e.fecha_eleccion }}</small>
+            {% endif %}
             <div class="row text-center mt-3">
                 <div class="col-4">
                     <div class="fw-bold text-danger fs-5">{{ e.o_gov }}%</div>

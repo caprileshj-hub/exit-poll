@@ -948,3 +948,25 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
   - `/historicos/debug-json` lista `2010-asamblea`.
   - `/historicos/estudios/2010-asamblea` responde 200.
   - El HTML contiene `Asamblea Nacional`, `Sin tendencia`, `114`, `98`, `Distribucion de escanos` y `Ofic. Gov lista%`.
+
+---
+
+## 2026-05-18 - Resultado oficial Presidencial 2018
+
+### Contexto
+- No hubo estudio historico cargado para la eleccion presidencial 2018.
+- Se agrego como resultado oficial nacional fijo, con fuente Wikipedia/CNE, para que aparezca en `/historicos` como tarjeta `Solo resultados`.
+
+### Cambio
+- Se agrego `2018-presidencial` a `backend/data/historico_estudios_seed.json` dentro de `historico_oficial`.
+- `_historicos_unificados()` ahora diferencia estudios con comparacion (`con_estudio`) de registros oficiales sin estudio (`oficial`).
+- Las tarjetas sin estudio usan titulo legible (`Presidencial 2018`, `Presidencial 2024`) en vez del `eleccion_ref` crudo cuando hay formato inferible.
+- Se ordena la lista combinada por fecha o anio descendente, dejando 2024 antes de 2018.
+
+### Validacion
+- `D:\Test\.venv\Scripts\python.exe -m py_compile backend\app.py backend\seed_historico_estudios.py`: OK.
+- `D:\Test\.venv\Scripts\python.exe backend\seed_historico_estudios.py`: OK, 98 estudios, 101 oficiales, 43 turnos.
+- `TestClient`:
+  - `/historicos`, `/historicos/debug-json` y `/historicos/estudios/2018-presidencial` responden 200.
+  - `debug-json` lista: 2024, 2018, 2013, 2012, 2010, 2006.
+  - El HTML contiene `Presidencial 2024` y `Presidencial 2018`.

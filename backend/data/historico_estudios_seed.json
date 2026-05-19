@@ -1877,6 +1877,18 @@
       "fuente": "Wikipedia/CNE agregado nacional"
     },
     {
+      "eleccion_ref": "2018-presidencial",
+      "ambito": "NACIONAL",
+      "nombre": "Nacional",
+      "nombre_eleccion": "Presidencial 2018",
+      "fecha_eleccion": "2018-05-20",
+      "pct_gov": 67.84,
+      "pct_opos": 20.93,
+      "pct_otros": 11.21,
+      "total_votos": 9209277,
+      "fuente": "Wikipedia/CNE agregado nacional"
+    },
+    {
       "eleccion_ref": "2012-presidencial",
       "ambito": "01",
       "nombre": "DTTO. CAPITAL",
