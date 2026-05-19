@@ -260,6 +260,85 @@ def set_peso(id_muestra: int, asignaciones: list[str]):
 
 
 # ------------------------------------------------------------------
+# Diagnóstico de cobertura y DEFF (para elecciones activas)
+# ------------------------------------------------------------------
+
+def diagnosticar_cobertura(id_eleccion: int) -> dict:
+    """
+    Compara la cobertura de la muestra vs el universo de centros por estado.
+    Estima el DEFF usando la fórmula de Kish con ICC=0.04.
+
+    Retorna:
+        estados: lista de dicts con cobertura por estado
+        deff_estimado: estimación del efecto de diseño global
+        alertas: estados con cobertura < 10% (riesgo de afijación)
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+
+    muestra = conn.execute('''
+        SELECT c.id_estado, e.nombre AS nombre_estado,
+               COUNT(m.id) AS n_muestra, SUM(c.num_electores) AS elec_muestra
+        FROM muestra m
+        JOIN centros c ON c.codigo_cne = m.codigo_centro
+        JOIN estados e ON e.id = c.id_estado
+        WHERE m.id_eleccion = ? AND m.activo = 1 AND c.activo = 1
+        GROUP BY c.id_estado
+    ''', (id_eleccion,)).fetchall()
+
+    universo = conn.execute('''
+        SELECT id_estado, COUNT(*) AS n_total, SUM(num_electores) AS elec_total
+        FROM centros WHERE activo = 1
+        GROUP BY id_estado
+    ''').fetchall()
+    conn.close()
+
+    u_map = {r['id_estado']: dict(r) for r in universo}
+    total_muestra_centros  = sum(r['n_muestra']  for r in muestra)
+    total_universo_electores = sum(r['elec_total'] for r in u_map.values())
+    total_muestra_electores  = sum(r['elec_muestra'] for r in muestra)
+
+    estados_diag = []
+    alertas = []
+    for r in muestra:
+        u = u_map.get(r['id_estado'], {})
+        n_tot = u.get('n_total', 0)
+        e_tot = u.get('elec_total', 0)
+        cobertura_centros = round(r['n_muestra'] / n_tot * 100, 1) if n_tot else None
+        peso_universo = round(e_tot / total_universo_electores * 100, 1) if total_universo_electores else None
+        peso_muestra  = round(r['elec_muestra'] / total_muestra_electores * 100, 1) if total_muestra_electores else None
+        desbalance    = round(peso_muestra - peso_universo, 2) if (peso_muestra and peso_universo) else None
+        d = {
+            'estado': r['nombre_estado'],
+            'centros_muestra': r['n_muestra'],
+            'centros_universo': n_tot,
+            'cobertura_pct': cobertura_centros,
+            'peso_universo_pct': peso_universo,
+            'peso_muestra_pct': peso_muestra,
+            'desbalance_pp': desbalance,
+        }
+        estados_diag.append(d)
+        if cobertura_centros is not None and cobertura_centros < 10:
+            alertas.append({'estado': r['nombre_estado'], 'cobertura_pct': cobertura_centros})
+
+    # DEFF estimado: usa ICC=0.04 con tamaño de cluster promedio de la muestra
+    icc = 0.04
+    if total_muestra_centros > 0:
+        m_bar = total_muestra_electores / total_muestra_centros if total_muestra_centros else 0
+        deff = round(1.0 + (m_bar - 1) * icc, 3)
+    else:
+        deff = None
+
+    return {
+        'id_eleccion': id_eleccion,
+        'n_centros_muestra': total_muestra_centros,
+        'deff_estimado': deff,
+        'estados': sorted(estados_diag, key=lambda x: abs(x['desbalance_pp'] or 0), reverse=True),
+        'alertas_cobertura': alertas,
+    }
+
+
+# ------------------------------------------------------------------
 # Main
 # ------------------------------------------------------------------
 

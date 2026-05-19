@@ -51,6 +51,50 @@
 
 ---
 
+## 2026-05-19
+
+### feat — Auditoría estadística rigurosa en tarjetas de estudios históricos
+
+Implementa análisis metodológico completo dentro de cada tarjeta de estudio histórico individual (no un resumen cruzado). Cubre los 4 estudios disponibles: Presidencial 2006, 2012, 2013 y Asamblea Nacional 2010.
+
+#### Nuevo módulo `backend/auditor_sesgo.py`
+- Diagnóstico TSE (Total Survey Error) por estudio: no-respuesta diferencial (espiral del silencio), sesgo asimétrico estructural (errores de signo opuesto), DEFF estimado (Kish 1965: ICC=0.04)
+- MoE SRSWOR vs MoE ajustado por DEFF por estudio
+- Detección automática de patrón histórico esperado (gov subestimado)
+- Nivel de riesgo metodológico: bajo / moderado / severo / crítico con puntaje compuesto
+- Recomendaciones accionables según nivel de error y disponibilidad de datos
+
+#### `backend/app.py` — ruta `GET /historicos/estudios/{ref}`
+- `analisis` enriquecido: `delta_gov`, `delta_opos`, `delta_brecha`, `mae_mosteller` (Medida 3 Mosteller), `errores_opuestos` (flag de sesgo estructural), `rmse_estados`, `bias_std`, `pct_estados_gov_neg`, `ganador_estudio`, `ganador_oficial`, `acierto_ganador`, `magnitud`
+- `analisis_leg` para legislativas: `delta_gov_esc`, `delta_opos_esc`, `acierto_mayoria`, `mae_voto_lista`, `capa2` (descomposición Capa 1 + Capa 2)
+- Capa 2 (2010): `err_esc_proporcional`, `err_esc_algoritmo`, `factor_amplificacion`, `pct_error_por_algoritmo`
+- Badge de sesgo en listado `/historicos`: nivel crítico/alto/moderado por desviación de gov
+
+#### `backend/templates/historico_estudio_detalle.html`
+- Panel "Diagnóstico de Sesgo Sistémico (TSE)" con componentes coloreados por probabilidad
+- **Presidenciales**: tabla comparativa Proyectado vs Oficial vs Desviación (gov, opos, otros, brecha), KPIs MAE M3 Mosteller + error de brecha + ganador correcto + sesgo estructural, RMSE±σ estadal, % estados con gov subestimado, texto de conclusiones técnico
+- **Asamblea 2010**: visualización escaños, tabla voto lista vs oficial, alerta Capa 2 con factor de amplificación del algoritmo electoral, conclusiones Capa 1/Capa 2 diferenciadas
+
+#### `backend/templates/historicos.html`
+- Badge de nivel de sesgo (crítico/alto/moderado) en tarjetas con estudio, solo si `sesgo_nivel != 'bajo'`
+
+#### `backend/ai_prompts.py` y `backend/ai_validation.py` — versión 2.4
+- Prompt v2.4: cláusula obligatoria de espiral del silencio cuando `SESGO_NO_RESPUESTA_NO_CUANTIFICADO`; cláusula DEFF cuando `MOE_AJUSTADO_POR_DEFF`; prohibición de ajustar porcentajes por sesgo (solo advertir)
+- Validación v2.4: flag `SESGO_NO_RESPUESTA_NO_CUANTIFICADO` cuando `tasa_no_respuesta=None`; corrección de MoE con DEFF cuando `design_effect_estimado > 1.0`
+
+#### `backend/calculador_pesos.py`
+- Nueva función `diagnosticar_cobertura(id_eleccion)`: compara cobertura muestral vs universo por estado, estima DEFF desde tamaños de clúster, señala estados < 10% como alertas
+
+#### Métricas verificadas para los 4 estudios
+| Estudio | MAE M3 | Δ Brecha | Sesgo estructural |
+|---|---|---|---|
+| Presidencial 2006 | 1.59 pp | +0.31 pp | No |
+| Presidencial 2012 | 2.82 pp | −7.52 pp | Sí (errores opuestos) |
+| Presidencial 2013 | 4.53 pp | +11.71 pp | Sí (errores opuestos) |
+| Asamblea 2010 | MAE voto lista 3.40 pp | — | Capa 2: factor ×1.80, 44.4 % por algoritmo |
+
+---
+
 ## [Unreleased]
 
 <!-- Codex: agregar aquí los cambios del próximo commit antes de pushear -->

@@ -2,7 +2,7 @@
 
 > Estado actual del proyecto: qué funciona, qué está pendiente, qué bugs hay abiertos.
 > Actualizar al cierre de cada sesión de trabajo significativa.
-> Última actualización: 2026-05-18
+> Última actualización: 2026-05-19
 
 ---
 
@@ -65,6 +65,9 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
   - Tablas: `historico_estudios`, `historico_oficial`, `historico_estudios_turnos` (bloque 9 schema)
   - Importador `import_2006.py`: Presidencial 2006 — 22 estados, 12 turnos, 24 estados oficial
   - Error nacional −1.04 pp (Chávez 61.06% vs 62.10% oficial); ganador correcto
+  - **Auditoría estadística por tarjeta** (2026-05-19): MAE Mosteller M3, error de brecha, sesgo estructural, RMSE±σ estadal, panel TSE, Capa 1+2 para legislativo 2010
+  - `auditor_sesgo.py`: DEFF (Kish ICC=0.04), espiral del silencio, nivel de riesgo metodológico
+  - AI v2.4: `SESGO_NO_RESPUESTA_NO_CUANTIFICADO`, corrección MoE por DEFF, prompt con cláusulas de sesgo
 
 ### Dashboard de configuración FastAPI
 - [x] Gestión de elecciones y candidatos (con fotos, ámbito geográfico, circuitos)

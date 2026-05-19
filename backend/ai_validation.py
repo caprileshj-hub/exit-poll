@@ -186,6 +186,20 @@ def _apply_methodological_flags(context: dict[str, Any]) -> None:
     if tasa_no_respuesta is not None and _as_float(tasa_no_respuesta) > 15:
         _add_flag(context, "ALTA_NO_RESPUESTA")
 
+    # Corregir MoE con DEFF cuando está disponible
+    deff = _as_float(metadata.get("design_effect_estimado"), 0.0)
+    n = _as_int(context.get("tamano_muestra_actual"), 0)
+    if deff > 1.0 and n > 0:
+        import math as _math
+        moe_adj = round(1.96 * _math.sqrt(deff * 0.25 / n) * 100, 2)
+        context["margen_error_global"] = moe_adj
+        context["margen_error_ajustado_por_deff"] = True
+        _add_flag(context, "MOE_AJUSTADO_POR_DEFF")
+
+    # Flag sesgo direccional: tasa desconocida + contexto de voto oculto
+    if tasa_no_respuesta is None:
+        _add_flag(context, "SESGO_NO_RESPUESTA_NO_CUANTIFICADO")
+
     margin = context.get("margen_error_global")
     if margin is None:
         return

@@ -49,14 +49,24 @@
                     <div class="text-primary">{{ e.o_opos }}%</div>
                 </div>
             </div>
-            <div class="text-center">
+            <div class="text-center d-flex flex-wrap justify-content-center gap-1 align-items-center">
                 <span class="badge {% if e.delta | abs <= 0.5 %}bg-success{% elif e.delta | abs <= 2 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
                     &#916; {{ '%+.1f'|format(e.delta) }} pp
                 </span>
                 {% if e.ganador_ok is not none %}
-                <span class="ms-2 small {% if e.ganador_ok %}text-success{% else %}text-danger{% endif %}">
+                <span class="small {% if e.ganador_ok %}text-success{% else %}text-danger{% endif %}">
                     {% if e.ganador_ok %}<i class="bi bi-check-circle-fill"></i> Ganador correcto
                     {% else %}<i class="bi bi-x-circle-fill"></i> Ganador incorrecto{% endif %}
+                </span>
+                {% endif %}
+                {% if e.sesgo_nivel and e.sesgo_nivel != 'bajo' %}
+                <span class="badge
+                    {% if e.sesgo_nivel == 'critico' %}bg-danger
+                    {% elif e.sesgo_nivel == 'alto' %}bg-danger bg-opacity-75
+                    {% else %}bg-warning text-dark{% endif %}"
+                    title="Riesgo de sesgo sistémico detectado. Ver análisis completo."
+                    style="font-size:0.68rem">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Sesgo {{ e.sesgo_nivel }}
                 </span>
                 {% endif %}
             </div>

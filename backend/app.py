@@ -3004,9 +3004,22 @@ def _historicos_unificados(conn: sqlite3.Connection) -> tuple[list[dict], dict[s
         if d["e_gov"] is not None and d["o_gov"] is not None:
             d["delta"] = round(d["e_gov"] - d["o_gov"], 1)
             d["ganador_ok"] = (d["e_gov"] > d["e_opos"]) == (d["o_gov"] > d["o_opos"])
+            # Indicador de riesgo de sesgo para la tarjeta (sin cálculo completo)
+            delta_g = d["delta"]
+            delta_o = round(d["e_opos"] - d["o_opos"], 1) if (d["e_opos"] is not None and d["o_opos"] is not None) else None
+            errores_opuestos = (delta_g is not None and delta_o is not None and delta_g * delta_o < 0)
+            if abs(delta_g) > 5:
+                d["sesgo_nivel"] = "critico"
+            elif abs(delta_g) > 2.5:
+                d["sesgo_nivel"] = "alto" if errores_opuestos else "moderado"
+            elif abs(delta_g) > 1:
+                d["sesgo_nivel"] = "moderado" if errores_opuestos else "bajo"
+            else:
+                d["sesgo_nivel"] = "bajo"
         else:
             d["delta"] = None
             d["ganador_ok"] = None
+            d["sesgo_nivel"] = None
         elections.append(d)
 
     for r in rh_rows:
@@ -3421,23 +3434,108 @@ async def historico_estudio_detalle(request: Request, ref: str):
 
     # Análisis de acertividad
     analisis = {}
+    analisis_leg: dict = {}
     if nac.get("e_gov") is not None and nac.get("o_gov") is not None:
-        delta = nac["delta_gov"]
-        ganador_e = "gobierno" if nac["e_gov"] > nac["e_opos"] else "oposición"
-        ganador_o = "gobierno" if nac["o_gov"] > nac["o_opos"] else "oposición"
+        e_g  = nac["e_gov"];  e_o = nac.get("e_opos") or 0
+        o_g  = nac["o_gov"];  o_o = nac.get("o_opos") or 0
+        delta     = round(e_g - o_g, 2)
+        d_opos    = round(e_o - o_o, 2)
+        e_brecha  = round(e_g - e_o, 2)
+        o_brecha  = round(o_g - o_o, 2)
+        d_brecha  = round(e_brecha - o_brecha, 2)
+        error_abs = abs(delta)
+        magnitud  = ("leve" if error_abs <= 1.0
+                     else "moderado" if error_abs <= 2.5
+                     else "severo"   if error_abs <= 5.0
+                     else "critico")
+        ganador_e = "gobierno" if e_g > e_o else "oposición"
+        ganador_o = "gobierno" if o_g > o_o else "oposición"
         acierto_ganador = ganador_e == ganador_o
-        # RMSE por estado
         deltas_estado = [r["delta_gov"] for r in estados_rows if r["delta_gov"] is not None]
-        rmse = round((sum(d**2 for d in deltas_estado) / len(deltas_estado)) ** 0.5, 2) if deltas_estado else None
+        n_est = len(deltas_estado)
+        rmse = round((sum(d**2 for d in deltas_estado) / n_est) ** 0.5, 2) if n_est else None
+        bias_std = round((sum((d - (sum(deltas_estado)/n_est))**2 for d in deltas_estado) / n_est) ** 0.5, 2) if n_est > 1 else None
+        n_neg = sum(1 for d in deltas_estado if d < -0.5)
+        pct_neg = round(n_neg / n_est * 100, 1) if n_est else None
+        # MAE Mosteller Medida 3: media aritmética de |Δ| por cada opción
+        e_ot = nac.get("e_otros"); o_ot = nac.get("o_otros")
+        mae_partes = [error_abs, abs(d_opos)]
+        if e_ot is not None and o_ot is not None:
+            mae_partes.append(abs(round(e_ot - o_ot, 2)))
+        mae_mosteller = round(sum(mae_partes) / len(mae_partes), 2)
+
         analisis = {
-            "delta_gov": delta,
-            "error_abs": abs(delta),
-            "ganador_estudio": ganador_e,
-            "ganador_oficial": ganador_o,
+            "delta_gov":   delta,    "delta_opos":  d_opos,
+            "e_brecha":    e_brecha, "o_brecha":    o_brecha, "delta_brecha": d_brecha,
+            "error_abs":   error_abs, "magnitud":   magnitud,
+            "mae_mosteller": mae_mosteller, "mae_n_opciones": len(mae_partes),
+            "ganador_estudio": ganador_e, "ganador_oficial": ganador_o,
             "acierto_ganador": acierto_ganador,
-            "rmse_estados": rmse,
-            "n_estados": len(deltas_estado),
+            "errores_opuestos": (delta * d_opos < 0) if d_opos != 0 else False,
+            "rmse_estados": rmse, "bias_std": bias_std,
+            "n_estados": n_est, "n_estados_gov_neg": n_neg, "pct_estados_gov_neg": pct_neg,
+            "n_centros": int(nac.get("e_centros") or 0),
         }
+        # Para legislativo: métricas adicionales sobre escaños + Capa 2 conversión votos→escaños
+        if legislativo and legislativo.get("estudio_escanos") and legislativo.get("oficial_escanos"):
+            es  = legislativo["estudio_escanos"]
+            os_ = legislativo["oficial_escanos"]
+            total_esc = os_.get("gov", 0) + os_.get("opos", 0) + os_.get("otros", 0)
+            dg_esc = es.get("gov", 0) - os_.get("gov", 0)
+            do_esc = es.get("opos", 0) - os_.get("opos", 0)
+            err_rel_gov = round(abs(dg_esc) / total_esc * 100, 1) if total_esc else None
+            acierto_may = (es.get("gov", 0) >= 83) == (os_.get("gov", 0) >= 83)
+            ev = legislativo.get("estudio_voto_lista_pct") or {}
+            ov = legislativo.get("oficial_voto_pct") or {}
+            d_voto_g = round(ev.get("gov", 0) - ov.get("gov", 0), 2) if ev.get("gov") and ov.get("gov") else None
+            d_voto_o = round(ev.get("opos", 0) - ov.get("opos", 0), 2) if ev.get("opos") and ov.get("opos") else None
+            mag_esc = ("leve" if abs(dg_esc) <= 5 else "moderado" if abs(dg_esc) <= 15 else "severo")
+            # MAE Mosteller M3 para voto lista (Capa 1)
+            mae_lista_partes = []
+            if d_voto_g is not None: mae_lista_partes.append(abs(d_voto_g))
+            if d_voto_o is not None: mae_lista_partes.append(abs(d_voto_o))
+            d_voto_ot = round(ev.get("otros", 0) - ov.get("otros", 0), 2) if ev.get("otros") and ov.get("otros") else None
+            if d_voto_ot is not None: mae_lista_partes.append(abs(d_voto_ot))
+            mae_voto_lista = round(sum(mae_lista_partes) / len(mae_lista_partes), 2) if mae_lista_partes else None
+            # Capa 2: descomposición del error de conversión votos → escaños
+            # Error proporcional esperado: qué error de escaños produciría puro sesgo de voto
+            # Error de algoritmo: el excedente que el sistema electoral añade
+            capa2: dict = {}
+            if d_voto_g is not None and total_esc > 0:
+                err_esc_proporcional = round(abs(d_voto_g) / 100 * total_esc, 1)
+                err_esc_algoritmo   = round(abs(dg_esc) - err_esc_proporcional, 1)
+                factor_amplif       = round(abs(dg_esc) / err_esc_proporcional, 2) if err_esc_proporcional else None
+                capa2 = {
+                    "err_esc_real": abs(dg_esc),
+                    "err_esc_proporcional": err_esc_proporcional,
+                    "err_esc_algoritmo": err_esc_algoritmo,
+                    "factor_amplificacion": factor_amplif,
+                    "pct_error_por_algoritmo": round(err_esc_algoritmo / abs(dg_esc) * 100, 1) if dg_esc else None,
+                }
+            analisis_leg = {
+                "delta_gov_esc": dg_esc, "delta_opos_esc": do_esc,
+                "total_esc": total_esc, "error_rel_gov_pct": err_rel_gov,
+                "acierto_mayoria": acierto_may, "magnitud": mag_esc,
+                "delta_voto_lista_gov": d_voto_g, "delta_voto_lista_opos": d_voto_o,
+                "mae_voto_lista": mae_voto_lista,
+                "capa2": capa2,
+            }
+
+    # Diagnóstico de sesgo sistémico (solo para tarjetas con estudio)
+    sesgo_audit: dict = {}
+    if nac.get("e_gov") is not None:
+        try:
+            from auditor_sesgo import diagnosticar_estudio as _diag
+            sesgo_audit = _diag(
+                e_gov=nac.get("e_gov"),
+                e_opos=nac.get("e_opos"),
+                o_gov=nac.get("o_gov"),
+                o_opos=nac.get("o_opos"),
+                n_centros=int(nac.get("e_centros") or 0),
+                estados_rows=estados_rows,
+            )
+        except Exception:
+            sesgo_audit = {"disponible": False, "razon": "error_al_diagnosticar"}
 
     conn.close()
     import json as _json
@@ -3448,7 +3546,9 @@ async def historico_estudio_detalle(request: Request, ref: str):
         "o_gov_nac": nac.get("o_gov"),
         "o_opos_nac": nac.get("o_opos"),
         "analisis": analisis,
+        "analisis_leg": analisis_leg,
         "legislativo": legislativo,
+        "sesgo_audit": sesgo_audit,
     })
 
 
