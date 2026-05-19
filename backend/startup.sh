@@ -5,15 +5,11 @@ set -e
 
 cd /home/site/wwwroot
 
-if ! command -v uvicorn >/dev/null 2>&1; then
-    echo "[startup] Installing dependencies..."
-    pip install -r requirements.txt -q
-fi
+pip install -r requirements.txt -q
 
-if [ ! -f exitpoll.db ]; then
-    echo "[startup] Initializing database..."
-    python init_db.py
-fi
+# Siempre correr migraciones — init_db.py usa CREATE TABLE IF NOT EXISTS (idempotente)
+echo "[startup] Aplicando migraciones..."
+python init_db.py
 
 # Sembrar datos si centros está vacía (BD recién creada o reseteada)
 CENTROS=$(python -c "import sqlite3; c=sqlite3.connect('exitpoll.db'); print(c.execute('SELECT COUNT(*) FROM centros').fetchone()[0])")

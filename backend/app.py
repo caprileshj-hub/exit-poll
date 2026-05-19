@@ -2916,48 +2916,80 @@ def _datos_ventaja_historico_ref(conn, eleccion_ref: str) -> dict:
     return datos
 
 
+@app.get("/api/db-status", response_class=JSONResponse)
+async def db_status():
+    """Diagnóstico: conteo de filas por tabla relevante."""
+    conn = get_db()
+    tablas = [
+        "resultados_historicos", "historico_estudios",
+        "historico_oficial", "historico_estudios_turnos",
+        "centros", "elecciones",
+    ]
+    out = {}
+    for t in tablas:
+        try:
+            out[t] = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+        except Exception as e:
+            out[t] = f"ERROR: {e}"
+    try:
+        out["rh_refs"] = [r[0] for r in conn.execute(
+            "SELECT DISTINCT eleccion_ref FROM resultados_historicos").fetchall()]
+        out["he_refs"] = [r[0] for r in conn.execute(
+            "SELECT DISTINCT eleccion_ref FROM historico_estudios").fetchall()]
+    except Exception as e:
+        out["refs_error"] = str(e)
+    conn.close()
+    return out
+
+
 @app.get("/historicos", response_class=HTMLResponse)
 async def historicos_index(request: Request):
     conn = get_db()
 
-    # ── Elecciones con datos de estudio (exit poll) ───────────────────────────
-    est_rows = conn.execute("""
-        SELECT eleccion_ref,
-               COALESCE(MAX(CASE WHEN f='e' THEN nombre_eleccion END),
-                        MAX(CASE WHEN f='o' THEN nombre_eleccion END)) AS nombre_eleccion,
-               COALESCE(MAX(CASE WHEN f='e' THEN fecha_eleccion END),
-                        MAX(CASE WHEN f='o' THEN fecha_eleccion END))  AS fecha_eleccion,
-               MAX(CASE WHEN f='e' THEN pct_gov   END) AS e_gov,
-               MAX(CASE WHEN f='e' THEN pct_opos  END) AS e_opos,
-               MAX(CASE WHEN f='o' THEN pct_gov   END) AS o_gov,
-               MAX(CASE WHEN f='o' THEN pct_opos  END) AS o_opos,
-               MAX(CASE WHEN f='e' THEN num_centros END) AS e_centros
-        FROM (
-            SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos,
-                   num_centros, 'e' AS f
-            FROM historico_estudios WHERE ambito='NACIONAL'
-            UNION ALL
-            SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos,
-                   NULL, 'o'
-            FROM historico_oficial WHERE ambito='NACIONAL'
-        )
-        GROUP BY eleccion_ref
-        ORDER BY fecha_eleccion DESC, eleccion_ref DESC
-    """).fetchall()
+    # Elecciones con datos de estudio (exit poll) ─────────────────────────────
+    try:
+        est_rows = conn.execute("""
+            SELECT eleccion_ref,
+                   COALESCE(MAX(CASE WHEN f='e' THEN nombre_eleccion END),
+                            MAX(CASE WHEN f='o' THEN nombre_eleccion END)) AS nombre_eleccion,
+                   COALESCE(MAX(CASE WHEN f='e' THEN fecha_eleccion END),
+                            MAX(CASE WHEN f='o' THEN fecha_eleccion END))  AS fecha_eleccion,
+                   MAX(CASE WHEN f='e' THEN pct_gov   END) AS e_gov,
+                   MAX(CASE WHEN f='e' THEN pct_opos  END) AS e_opos,
+                   MAX(CASE WHEN f='o' THEN pct_gov   END) AS o_gov,
+                   MAX(CASE WHEN f='o' THEN pct_opos  END) AS o_opos,
+                   MAX(CASE WHEN f='e' THEN num_centros END) AS e_centros
+            FROM (
+                SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos,
+                       num_centros, 'e' AS f
+                FROM historico_estudios WHERE ambito='NACIONAL'
+                UNION ALL
+                SELECT eleccion_ref, nombre_eleccion, fecha_eleccion, pct_gov, pct_opos,
+                       NULL, 'o'
+                FROM historico_oficial WHERE ambito='NACIONAL'
+            )
+            GROUP BY eleccion_ref
+            ORDER BY fecha_eleccion DESC, eleccion_ref DESC
+        """).fetchall()
+    except Exception:
+        est_rows = []
 
     est_refs = {r["eleccion_ref"] for r in est_rows}
 
-    # ── Elecciones solo en resultados_historicos (sin estudio) ───────────────
-    rh_rows = conn.execute("""
-        SELECT eleccion_ref,
-               COUNT(*)                                                             AS num_centros,
-               SUM(votos_validos)                                                   AS total_votos,
-               ROUND(SUM(votos_gobierno)*100.0  / NULLIF(SUM(votos_validos),0), 1) AS o_gov,
-               ROUND(SUM(votos_oposicion)*100.0 / NULLIF(SUM(votos_validos),0), 1) AS o_opos
-        FROM resultados_historicos
-        GROUP BY eleccion_ref
-        ORDER BY eleccion_ref DESC
-    """).fetchall()
+    # Elecciones solo en resultados_historicos (sin estudio) ──────────────────
+    try:
+        rh_rows = conn.execute("""
+            SELECT eleccion_ref,
+                   COUNT(*)                                                             AS num_centros,
+                   SUM(votos_validos)                                                   AS total_votos,
+                   ROUND(SUM(votos_gobierno)*100.0  / NULLIF(SUM(votos_validos),0), 1) AS o_gov,
+                   ROUND(SUM(votos_oposicion)*100.0 / NULLIF(SUM(votos_validos),0), 1) AS o_opos
+            FROM resultados_historicos
+            GROUP BY eleccion_ref
+            ORDER BY eleccion_ref DESC
+        """).fetchall()
+    except Exception:
+        rh_rows = []
 
     # Construir lista unificada: estudios primero, luego rh sin duplicados
     elections = []
