@@ -883,6 +883,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - Se agrego `Cache-Control: no-store` a `/historicos` y `/historicos/debug-json` para reducir falsos positivos por cache del navegador o proxy.
 - La plantilla `backend/templates/historicos.html` incluye un comentario HTML con conteos (`elections`, `rh`, `est`) para diagnostico rapido en Azure sin exponer UI adicional.
 - `backend/startup.sh` ahora importa los estudios versionados 2006, 2012 y 2013 cuando faltan en la BD persistida de Azure; los importadores usan `ON CONFLICT`, asi que la carga es idempotente.
+- Como respaldo adicional, `/historicos` y `/historicos/debug-json` ejecutan la misma siembra desde FastAPI si detectan que faltan los estudios; esto cubre el caso en que Azure no ejecute `startup.sh`.
 
 ### Validacion
 - `D:\Test\.venv\Scripts\python.exe -m py_compile backend\app.py`: OK.
@@ -894,3 +895,6 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - Reejecucion local idempotente:
   - `D:\Test\.venv\Scripts\python.exe import_2006.py`: OK.
   - `D:\Test\.venv\Scripts\python.exe import_2012_2013.py`: OK.
+- `TestClient` despues del respaldo en FastAPI:
+  - `seed_ran=False` cuando los estudios ya existen localmente.
+  - `elections` lista `2013-presidencial`, `2012-presidencial`, `2006-presidencial` y `2024-presidencial`.

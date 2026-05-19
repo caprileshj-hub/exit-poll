@@ -13,6 +13,7 @@ import json
 import asyncio
 import sqlite3
 import shutil
+import subprocess
 import tempfile
 import uuid
 import io
@@ -2916,6 +2917,56 @@ def _datos_ventaja_historico_ref(conn, eleccion_ref: str) -> dict:
     return datos
 
 
+def _seed_historicos_si_faltan(conn: sqlite3.Connection, diag: dict[str, Any]) -> None:
+    refs = ("2006-presidencial", "2012-presidencial", "2013-presidencial")
+    try:
+        presentes = {
+            r[0]
+            for r in conn.execute(
+                "SELECT DISTINCT eleccion_ref FROM historico_estudios WHERE eleccion_ref IN (?,?,?)",
+                refs,
+            ).fetchall()
+        }
+    except Exception as exc:
+        diag["seed_error"] = f"check failed: {exc}"
+        return
+
+    faltantes = [ref for ref in refs if ref not in presentes]
+    diag["seed_missing"] = faltantes
+    if not faltantes:
+        diag["seed_ran"] = False
+        return
+
+    scripts = ("import_2006.py", "import_2012_2013.py")
+    resultados = []
+    for script in scripts:
+        script_path = BASE_DIR / script
+        if not script_path.exists():
+            resultados.append({"script": script, "ok": False, "error": "missing script"})
+            continue
+        try:
+            proc = subprocess.run(
+                [sys.executable, script],
+                cwd=str(BASE_DIR),
+                text=True,
+                capture_output=True,
+                timeout=300,
+                check=False,
+            )
+            resultados.append({
+                "script": script,
+                "ok": proc.returncode == 0,
+                "returncode": proc.returncode,
+                "stdout_tail": proc.stdout[-1000:],
+                "stderr_tail": proc.stderr[-1000:],
+            })
+        except Exception as exc:
+            resultados.append({"script": script, "ok": False, "error": str(exc)})
+
+    diag["seed_ran"] = True
+    diag["seed_results"] = resultados
+
+
 def _historicos_unificados(conn: sqlite3.Connection) -> tuple[list[dict], dict[str, Any]]:
     """Construye la lista comun que consumen /historicos y debug-json."""
     diag: dict[str, Any] = {
@@ -2924,6 +2975,8 @@ def _historicos_unificados(conn: sqlite3.Connection) -> tuple[list[dict], dict[s
         "est_error": None,
         "rh_error": None,
     }
+
+    _seed_historicos_si_faltan(conn, diag)
 
     try:
         est_rows = conn.execute("""
