@@ -882,8 +882,12 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - `/historicos` ahora recibe la misma lista `elections` que expone el diagnostico; si `resultados_historicos` tiene filas sin estudio, debe renderizar tarjeta "Solo resultados".
 - Se agrego `Cache-Control: no-store` a `/historicos` y `/historicos/debug-json` para reducir falsos positivos por cache del navegador o proxy.
 - La plantilla `backend/templates/historicos.html` incluye un comentario HTML con conteos (`elections`, `rh`, `est`) para diagnostico rapido en Azure sin exponer UI adicional.
-- `backend/startup.sh` ahora importa los estudios versionados 2006, 2012 y 2013 cuando faltan en la BD persistida de Azure; los importadores usan `ON CONFLICT`, asi que la carga es idempotente.
-- Como respaldo adicional, `/historicos` y `/historicos/debug-json` ejecutan la misma siembra desde FastAPI si detectan que faltan los estudios; esto cubre el caso en que Azure no ejecute `startup.sh`.
+- Se reemplazo la importacion pesada de Excel en Azure por una semilla fija versionada:
+  - `backend/data/historico_estudios_seed.json`
+  - `backend/seed_historico_estudios.py`
+- `backend/startup.sh` y el evento `startup` de FastAPI aplican esa semilla idempotente para 2006, 2012 y 2013.
+- `/historicos` y `/historicos/debug-json` vuelven a ser solo lectura contra SQLite; no ejecutan importaciones ni procesos pesados durante la carga de pagina.
+- Se quitaron las opciones visibles de crear/editar estudios historicos y se bloquearon las rutas de edicion con 404 porque esos datos son historicos fijos.
 
 ### Validacion
 - `D:\Test\.venv\Scripts\python.exe -m py_compile backend\app.py`: OK.
@@ -892,9 +896,12 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
   - `/historicos` responde 200.
   - El HTML contiene "Solo resultados".
   - El HTML no contiene el estado vacio "No hay datos historicos cargados".
-- Reejecucion local idempotente:
-  - `D:\Test\.venv\Scripts\python.exe import_2006.py`: OK.
-  - `D:\Test\.venv\Scripts\python.exe import_2012_2013.py`: OK.
-- `TestClient` despues del respaldo en FastAPI:
-  - `seed_ran=False` cuando los estudios ya existen localmente.
+- Semilla fija:
+  - `D:\Test\.venv\Scripts\python.exe backend\seed_historico_estudios.py`: OK, 73 estudios, 75 oficiales, 43 turnos.
+  - Prueba contra BD temporal creada desde `backend/schema.sql`: OK, refs nacionales 2006, 2012 y 2013 cargadas.
+- `TestClient` despues de la semilla fija:
+  - `/historicos/debug-json` responde con `deploy_ts=2026-05-18Tfixed-seed-readonly`.
   - `elections` lista `2013-presidencial`, `2012-presidencial`, `2006-presidencial` y `2024-presidencial`.
+  - `/historicos/estudios/nuevo`: 404.
+  - `/historicos/estudios/2006-presidencial/editar`: 404.
+  - El HTML no contiene `Nuevo estudio` ni `bi-pencil`.

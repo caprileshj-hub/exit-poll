@@ -26,9 +26,6 @@
         <h2 class="mb-0"><i class="bi bi-bar-chart-steps me-2"></i>{{ meta.nombre_eleccion or ref }}</h2>
         {% if meta.fecha_eleccion %}<small class="text-muted">{{ meta.fecha_eleccion }}</small>{% endif %}
     </div>
-    <a href="/historicos/estudios/{{ ref }}/editar" class="btn btn-outline-secondary">
-        <i class="bi bi-pencil me-1"></i>Editar datos
-    </a>
 </div>
 
 <!-- ── Resumen nacional ────────────────────────────────────────────────────── -->
@@ -137,7 +134,6 @@
         <div class="text-center text-muted py-4">
             <i class="bi bi-clock fs-3 d-block mb-2"></i>
             No hay datos por turno cargados.
-            <a href="/historicos/estudios/{{ ref }}/editar" class="d-block mt-1">Agregar datos de turnos</a>
         </div>
         {% endif %}
     </div>

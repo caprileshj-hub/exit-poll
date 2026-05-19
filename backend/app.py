@@ -13,7 +13,6 @@ import json
 import asyncio
 import sqlite3
 import shutil
-import subprocess
 import tempfile
 import uuid
 import io
@@ -38,6 +37,17 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 app = FastAPI(title="Exit Poll — Configuración")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+
+@app.on_event("startup")
+def seed_historicos_startup() -> None:
+    try:
+        sys.path.insert(0, str(BASE_DIR))
+        import seed_historico_estudios
+
+        seed_historico_estudios.seed_historico_estudios(DB_PATH)
+    except Exception as exc:
+        print(f"[startup] WARN: no se pudieron sembrar estudios historicos: {exc}")
 
 
 # ── helpers ──────────────────────────────────────────────────────
@@ -2917,56 +2927,6 @@ def _datos_ventaja_historico_ref(conn, eleccion_ref: str) -> dict:
     return datos
 
 
-def _seed_historicos_si_faltan(conn: sqlite3.Connection, diag: dict[str, Any]) -> None:
-    refs = ("2006-presidencial", "2012-presidencial", "2013-presidencial")
-    try:
-        presentes = {
-            r[0]
-            for r in conn.execute(
-                "SELECT DISTINCT eleccion_ref FROM historico_estudios WHERE eleccion_ref IN (?,?,?)",
-                refs,
-            ).fetchall()
-        }
-    except Exception as exc:
-        diag["seed_error"] = f"check failed: {exc}"
-        return
-
-    faltantes = [ref for ref in refs if ref not in presentes]
-    diag["seed_missing"] = faltantes
-    if not faltantes:
-        diag["seed_ran"] = False
-        return
-
-    scripts = ("import_2006.py", "import_2012_2013.py")
-    resultados = []
-    for script in scripts:
-        script_path = BASE_DIR / script
-        if not script_path.exists():
-            resultados.append({"script": script, "ok": False, "error": "missing script"})
-            continue
-        try:
-            proc = subprocess.run(
-                [sys.executable, script],
-                cwd=str(BASE_DIR),
-                text=True,
-                capture_output=True,
-                timeout=300,
-                check=False,
-            )
-            resultados.append({
-                "script": script,
-                "ok": proc.returncode == 0,
-                "returncode": proc.returncode,
-                "stdout_tail": proc.stdout[-1000:],
-                "stderr_tail": proc.stderr[-1000:],
-            })
-        except Exception as exc:
-            resultados.append({"script": script, "ok": False, "error": str(exc)})
-
-    diag["seed_ran"] = True
-    diag["seed_results"] = resultados
-
-
 def _historicos_unificados(conn: sqlite3.Connection) -> tuple[list[dict], dict[str, Any]]:
     """Construye la lista comun que consumen /historicos y debug-json."""
     diag: dict[str, Any] = {
@@ -2975,8 +2935,6 @@ def _historicos_unificados(conn: sqlite3.Connection) -> tuple[list[dict], dict[s
         "est_error": None,
         "rh_error": None,
     }
-
-    _seed_historicos_si_faltan(conn, diag)
 
     try:
         est_rows = conn.execute("""
@@ -3099,7 +3057,7 @@ async def historicos_debug():
     """Devuelve el estado crudo del route /historicos para diagnóstico."""
     conn = get_db()
     _, out = _historicos_unificados(conn)
-    out["deploy_ts"] = "2026-05-18T09e0890-unified"
+    out["deploy_ts"] = "2026-05-18Tfixed-seed-readonly"
     conn.close()
     return JSONResponse(out, headers={"Cache-Control": "no-store"})
 
@@ -3237,6 +3195,7 @@ async def historico_estudios_index(request: Request):
 
 @app.get("/historicos/estudios/nuevo", response_class=HTMLResponse)
 async def historico_estudio_nuevo_get(request: Request, ref: str = ""):
+    raise HTTPException(404, "Los estudios historicos son de solo lectura")
     conn = get_db()
     estados = _estados_para_form(conn)
     conn.close()
@@ -3248,6 +3207,7 @@ async def historico_estudio_nuevo_get(request: Request, ref: str = ""):
 
 @app.get("/historicos/estudios/{ref}/editar", response_class=HTMLResponse)
 async def historico_estudio_editar_get(request: Request, ref: str):
+    raise HTTPException(404, "Los estudios historicos son de solo lectura")
     conn = get_db()
     estados = _estados_para_form(conn)
     estudio = {r["ambito"]: dict(r) for r in
@@ -3275,6 +3235,7 @@ async def historico_estudio_editar_get(request: Request, ref: str):
 
 @app.post("/historicos/estudios/guardar", response_class=RedirectResponse)
 async def historico_estudio_guardar(request: Request):
+    raise HTTPException(404, "Los estudios historicos son de solo lectura")
     form = await request.form()
     ref             = (form.get("eleccion_ref") or "").strip()
     nombre_eleccion = (form.get("nombre_eleccion") or "").strip()

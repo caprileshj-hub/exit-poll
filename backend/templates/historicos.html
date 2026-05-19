@@ -12,9 +12,6 @@
             <i class="bi bi-arrow-left-right me-1"></i>Comparar
         </a>
         {% endif %}
-        <a href="/historicos/estudios/nuevo" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-1"></i>Nuevo estudio
-        </a>
     </div>
 </div>
 
@@ -83,9 +80,6 @@
             <a href="/historicos/estudios/{{ e.eleccion_ref }}" class="btn btn-sm btn-success w-100">
                 <i class="bi bi-bar-chart me-1"></i>Ver an&#225;lisis
             </a>
-            <a href="/historicos/estudios/{{ e.eleccion_ref }}/editar" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-pencil"></i>
-            </a>
         </div>
     </div>
 </div>
@@ -123,10 +117,6 @@
             <a href="/historicos/{{ e.eleccion_ref }}/mapa" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-map"></i>
             </a>
-            <a href="/historicos/estudios/nuevo?ref={{ e.eleccion_ref }}" class="btn btn-sm btn-outline-success"
-               title="Agregar estudio">
-                <i class="bi bi-plus-lg"></i>
-            </a>
         </div>
     </div>
 </div>
@@ -139,11 +129,6 @@
 <div class="text-center text-muted py-5">
     <i class="bi bi-clock-history fs-1 d-block mb-2"></i>
     No hay datos hist&#243;ricos cargados.
-    <div class="mt-2">
-        <a href="/historicos/estudios/nuevo" class="btn btn-primary mt-2">
-            <i class="bi bi-plus-lg me-1"></i>Cargar primer estudio
-        </a>
-    </div>
 </div>
 {% endif %}
 {% endblock %}
