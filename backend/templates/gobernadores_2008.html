@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% set active_page = "historicos" %}
+{% block title %}Elecciones Regionales 2008 &mdash; 25 Exit Polls{% endblock %}
+
+{% block extra_head %}
+<style>
+    .card-estado { transition: box-shadow .15s; cursor: pointer; }
+    .card-estado:hover { box-shadow: 0 4px 16px rgba(0,0,0,.18) !important; }
+    .bar-gov  { background: #c0392b; height: 6px; border-radius: 2px; }
+    .bar-opos { background: #2980b9; height: 6px; border-radius: 2px; }
+    .region-header { background: var(--ep-azul); color: #fff; padding: .4rem 1rem;
+                     border-radius: 6px; font-size: .85rem; font-weight: 600; letter-spacing:.04em; }
+    .kpi-banner { border-left: 4px solid var(--ep-azul); }
+    .kpi-val { font-size: 1.8rem; font-weight: 700; color: var(--ep-azul); }
+    .win-badge-ok   { background: #198754; }
+    .win-badge-fail { background: #dc3545; }
+    .win-badge-unk  { background: #6c757d; }
+    .deff-warn { font-size: .72rem; color: #fd7e14; font-weight: 600; }
+    .cand-label { font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/historicos">Hist&#243;ricos</a></li>
+        <li class="breadcrumb-item"><a href="/historicos/estudios">Estudios</a></li>
+        <li class="breadcrumb-item active">Regionales 2008</li>
+    </ol>
+</nav>
+
+<div class="mb-4">
+    <h2 class="mb-1"><i class="bi bi-map me-2"></i>Elecciones Regionales 2008</h2>
+    <p class="text-muted mb-0">
+        {{ n_estudios }} exit polls simult&#225;neos &mdash; gobernaciones, Alcald&#237;a Mayor y Alcald&#237;as Municipales
+        &mdash; <strong>23 de noviembre de 2008</strong>
+    </p>
+</div>
+
+<!-- ── KPI Banner ──────────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card kpi-banner p-3 text-center">
+            <div class="kpi-val">{{ total_centros }}</div>
+            <small class="text-muted">Centros de votaci&#243;n</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card kpi-banner p-3 text-center">
+            <div class="kpi-val">{{ "{:,}".format(total_resp) if total_resp else "—" }}</div>
+            <small class="text-muted">Respondentes</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card kpi-banner p-3 text-center">
+            <div class="kpi-val">{{ n_estudios }}</div>
+            <small class="text-muted">Estudios paralelos</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card p-3 text-center {% if con_oficial > 0 and correctos / con_oficial >= 0.8 %}bg-success bg-opacity-10{% else %}bg-warning bg-opacity-10{% endif %}">
+            <div class="kpi-val {% if con_oficial > 0 and correctos / con_oficial >= 0.8 %}text-success{% else %}text-warning{% endif %}">
+                {{ correctos }}/{{ con_oficial }}
+            </div>
+            <small class="text-muted">Ganadores correctos</small>
+        </div>
+    </div>
+</div>
+
+{% if con_oficial > 0 %}
+<div class="alert {% if correctos / con_oficial >= 0.8 %}alert-success{% elif correctos / con_oficial >= 0.6 %}alert-warning{% else %}alert-danger{% endif %} py-2 mb-4" role="alert">
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>Acertividad global:</strong>
+    {{ correctos }} de {{ con_oficial }} ganadores correctamente identificados
+    ({{ (correctos / con_oficial * 100) | round(1) }}%).
+    {% set incorrectos = con_oficial - correctos %}
+    {% if incorrectos > 0 %}
+    {{ incorrectos }} proyecci&#243;n{{ 'es' if incorrectos > 1 else '' }} incorrecta{{ 's' if incorrectos > 1 else '' }} —
+    ver tarjetas marcadas con <span class="badge win-badge-fail">&#x2717;</span>.
+    {% endif %}
+    Haz clic en cualquier tarjeta para ver el an&#225;lisis detallado con la tendencia del estudio.
+</div>
+{% endif %}
+
+<!-- ── Grilla por regiones ─────────────────────────────────────────────────── -->
+{% for region_nombre, region_estados in regiones %}
+<div class="mb-4">
+    <div class="region-header mb-3 d-inline-block">
+        <i class="bi bi-geo-alt me-2"></i>{{ region_nombre }}
+        <span class="ms-2 fw-normal opacity-75">{{ region_estados | length }} estudio{{ 's' if region_estados | length > 1 else '' }}</span>
+    </div>
+
+    <div class="row g-3">
+    {% for e in region_estados %}
+    <div class="col-md-6 col-lg-4 col-xl-3">
+        <a href="/historicos/estudios/2008-gobernadores/{{ e.slug }}" class="text-decoration-none">
+        <div class="card shadow-sm card-estado h-100"
+             style="border-left: 4px solid {% if e.win_estudio %}#c0392b{% else %}#2980b9{% endif %}">
+            <div class="card-body py-3 px-3">
+
+                <!-- Título + badge ganador -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="fw-bold" style="font-size:.95rem; color:#1a3a5c">{{ e.nombre }}</div>
+                        <div class="text-muted" style="font-size:.72rem">
+                            {{ e.tipo_cargo or 'Gobernaci&#243;n' }}
+                        </div>
+                    </div>
+                    {% if e.lara_ambiguo %}
+                    <span class="badge bg-secondary ms-1" title="Resultado ambiguo (Henri Falc&#243;n / PPT)">?</span>
+                    {% elif e.ganador_ok is none %}
+                    <span class="badge bg-secondary ms-1" title="Sin datos oficiales">&#8212;</span>
+                    {% elif e.ganador_ok %}
+                    <span class="badge win-badge-ok ms-1" title="Ganador proyectado correctamente">&#x2713;</span>
+                    {% else %}
+                    <span class="badge win-badge-fail ms-1" title="Proyecci&#243;n incorrecta del ganador">&#x2717;</span>
+                    {% endif %}
+                </div>
+
+                <!-- Candidatos -->
+                {% if e.cand_gov or e.cand_opos %}
+                <div class="d-flex justify-content-between mb-2" style="font-size:.76rem">
+                    <span class="text-danger cand-label" title="{{ e.cand_gov or '' }}">
+                        <i class="bi bi-person-fill"></i> {{ (e.cand_gov or '—') | truncate(22, True, '…') }}
+                    </span>
+                    <span class="text-primary cand-label text-end" title="{{ e.cand_opos or '' }}">
+                        {{ (e.cand_opos or '—') | truncate(22, True, '…') }} <i class="bi bi-person"></i>
+                    </span>
+                </div>
+                {% endif %}
+
+                <!-- Barras estudio -->
+                {% if e.e_gov is not none %}
+                <div class="mb-1">
+                    <div class="d-flex justify-content-between" style="font-size:.78rem">
+                        <span class="text-danger fw-semibold">{{ e.e_gov }}%</span>
+                        <span class="text-muted">Estudio</span>
+                        <span class="text-primary fw-semibold">{{ e.e_opos }}%</span>
+                    </div>
+                    <div class="d-flex gap-1 mt-1">
+                        <div class="bar-gov" style="width:{{ e.e_gov }}%"></div>
+                        <div class="bar-opos" style="width:{{ e.e_opos }}%"></div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Resultados oficiales -->
+                {% if e.o_gov is not none %}
+                <div class="mb-1">
+                    <div class="d-flex justify-content-between" style="font-size:.75rem">
+                        <span class="text-danger">{{ e.o_gov }}%</span>
+                        <span class="text-muted">Oficial CNE</span>
+                        <span class="text-primary">{{ e.o_opos }}%</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Delta + métricas -->
+                <div class="d-flex justify-content-between align-items-center mt-2" style="font-size:.75rem">
+                    <span class="text-muted">{{ e.n_centros }} centros</span>
+                    {% if e.delta_gov is not none %}
+                    <span class="badge
+                        {% if e.delta_gov | abs <= 1 %}bg-success
+                        {% elif e.delta_gov | abs <= 2.5 %}bg-warning text-dark
+                        {% else %}bg-danger{% endif %}"
+                        style="font-size:.68rem">
+                        &#916; {{ '%+.1f'|format(e.delta_gov) }} pp
+                    </span>
+                    {% endif %}
+                    {% if e.deff is not none and e.deff > 5 %}
+                    <span class="deff-warn" title="DEFF elevado: muestra por conglomerados con alta varianza intracluster">DEFF={{ e.deff }}</span>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+        </a>
+    </div>
+    {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+<!-- ── Leyenda ─────────────────────────────────────────────────────────────── -->
+<div class="card mt-2 mb-4 bg-light border-0">
+    <div class="card-body py-2 small text-muted d-flex flex-wrap gap-3 align-items-center">
+        <span><span class="badge win-badge-ok">&#x2713;</span> Ganador correcto</span>
+        <span><span class="badge win-badge-fail">&#x2717;</span> Ganador incorrecto</span>
+        <span><span class="badge bg-secondary">?</span> Resultado ambiguo (Lara / PPT)</span>
+        <span><span class="badge bg-success">&#916; leve</span> error &le; 1 pp</span>
+        <span><span class="badge bg-warning text-dark">&#916; moderado</span> 1&#8211;2.5 pp</span>
+        <span><span class="badge bg-danger">&#916; cr&#237;tico</span> &gt; 2.5 pp</span>
+        <span class="ms-auto"><a href="/historicos/estudios" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Estudios</a></span>
+    </div>
+</div>
+
+{% endblock %}

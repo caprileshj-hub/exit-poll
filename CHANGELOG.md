@@ -95,6 +95,51 @@ Implementa análisis metodológico completo dentro de cada tarjeta de estudio hi
 
 ---
 
+## 2026-05-19 (sesión 2)
+
+### feat — Regionales 2008: colección de 25 exit polls simultáneos
+
+Implementación completa del módulo de Elecciones Regionales 2008 (gobernaciones, Alcaldía Mayor de Caracas, Municipio Libertador, Municipio Maracaibo).
+
+#### Migración de esquema
+- `backend/migrate_turnos_ambito.py`: recrea `historico_estudios_turnos` con columna `ambito TEXT NOT NULL DEFAULT 'NACIONAL'`; cambia UNIQUE de `(eleccion_ref, turno)` a `(eleccion_ref, ambito, turno)`; preserva los 43 turnos existentes con `ambito='NACIONAL'`
+- `backend/schema.sql` e `backend/init_db.py` actualizados con el mismo cambio
+- `backend/seed_historico_estudios.py` y la ruta de guardado en `app.py` actualizados para incluir `ambito` en todos los INSERT de turnos
+
+#### Importación de datos (`backend/import_2008.py`)
+- Lee 7 archivos Excel (`*.xlsx`) en `backend/data/2008/`: cada uno contiene múltiples hojas de estados
+- `is_graphic_sheet()`: discrimina hojas de datos vs hojas gráficas (`G*`, `C*`) sin filtrar por inicial (fix para Carabobo, Cojedes, Guarico)
+- `parse_state_sheet()`: extrae candidatos, centros únicos, conteos acumulados por `(centro, turno)`
+- `build_turno_series()`: construye serie cumulativa por turno usando el último reporte disponible por centro (deduplication)
+- Categorización política: Chavismo=MVR/PSUV, Oposición=PJ/AD/COPEI/UNT(≥2), Otros=extra-bloque
+- Henri Falcón (Lara/PPT): tratado como ambiguo, marcado con `lara_nota` en notas JSON
+- OFICIALES: datos Wikipedia/CNE + PDF `resultados-de-las-elecciones-municipales-2004-y-2008.pdf` (Libertador 53.59%/41.39%, Maracaibo 39.71%/59.90%)
+- Resultado: 26 filas en `historico_estudios` (25 estados + NACIONAL), 25 en `historico_oficial`, 405 en `historico_estudios_turnos`
+- Acertividad: 20/24 ganadores correctos (83.3%); Lara=ambiguo; 4 incorrectos (Miranda, Mérida, Zulia, Libertador)
+
+#### Nuevas rutas (`backend/app.py`)
+- `GET /historicos/estudios/2008-gobernadores` → `gobernadores_2008_collection()`: grilla regional de 25 tarjetas + KPIs (613 centros, 140K respondentes, acertividad global), organizadas en 7 regiones
+- `GET /historicos/estudios/2008-gobernadores/{estado_slug}` → `gobernadores_2008_detalle()`: candidatos, KPIs, gráfico Plotly de tendencia acumulativa (Plotly dual-axis: % + centros reportados vs turno), DEFF/MoE, análisis de acertividad MAE M3 Mosteller, nota de ambigüedad Lara
+- `_historicos_unificados()`: inyección de tarjeta tipo `coleccion` para 2008-gobernadores (evita mostrar `e_gov=0%` en listado principal)
+
+#### Nuevos templates
+- `backend/templates/gobernadores_2008.html`: colección con 7 secciones regionales, tarjetas color-coded por ganador estudio (rojo=gov/azul=opos), badges ✓/✗/?, barras duales estudio vs oficial, delta badge, DEFF warning si >5
+- `backend/templates/gobernador_2008_detalle.html`: candidatos con %, gráfico de tendencia prominente (eje dual %), alertas DEFF, tabla comparativa Estudio/Oficial/Δ, MAE M3, error de brecha, ganador, sesgo estructural, nota Lara cuando aplica
+- `backend/templates/historicos.html`: nuevo tipo `coleccion` con tarjeta en violeta (#6f42c1) enlazando a la colección
+
+#### Métricas 2008-gobernadores
+| Estado | Est Gov% | Est Opos% | Ofic Gov% | Ofic Opos% | Ganador |
+|---|---|---|---|---|---|
+| Miranda | 43.0 | 45.0 | 52.7 | 47.3 | ✗ (Cabello→Capriles) |
+| Mérida | 46.8 | 48.4 | 47.4 | 52.6 | ✗ (Dávila→Díaz Orellana) |
+| Lara | 48.9 | 48.8 | — | — | ? (Falcón/PPT ambiguo) |
+| Carabobo | 35.0 | 45.0 | 47.1 | 52.9 | ✓ |
+| Capital | 40.8 | 49.0 | 44.1 | 55.9 | ✓ |
+
+- Archivos: `backend/import_2008.py`, `backend/migrate_turnos_ambito.py`, `backend/schema.sql`, `backend/init_db.py`, `backend/seed_historico_estudios.py`, `backend/app.py`, `backend/templates/gobernadores_2008.html`, `backend/templates/gobernador_2008_detalle.html`, `backend/templates/historicos.html`
+
+---
+
 ## [Unreleased]
 
 <!-- Codex: agregar aquí los cambios del próximo commit antes de pushear -->

@@ -156,6 +156,7 @@ def migrar(conn: sqlite3.Connection):
         CREATE TABLE IF NOT EXISTS historico_estudios_turnos (
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
             eleccion_ref    TEXT NOT NULL,
+            ambito          TEXT NOT NULL DEFAULT 'NACIONAL',
             turno           INTEGER NOT NULL,
             hora_label      TEXT,
             pct_gov         REAL NOT NULL DEFAULT 0,
@@ -163,7 +164,7 @@ def migrar(conn: sqlite3.Connection):
             pct_otros       REAL NOT NULL DEFAULT 0,
             num_centros     INTEGER NOT NULL DEFAULT 0,
             updated_at      TEXT DEFAULT (datetime('now')),
-            UNIQUE(eleccion_ref, turno)
+            UNIQUE(eleccion_ref, ambito, turno)
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_he_ref  ON historico_estudios(eleccion_ref)")

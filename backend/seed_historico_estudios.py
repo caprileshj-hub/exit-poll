@@ -72,12 +72,13 @@ def seed_historico_estudios(db_path: str | Path = DB_PATH) -> dict[str, int]:
             counts["historico_oficial"] += 1
 
         for row in data.get("historico_estudios_turnos", []):
+            row = dict(row); row.setdefault("ambito", "NACIONAL")
             conn.execute("""
                 INSERT INTO historico_estudios_turnos
-                    (eleccion_ref, turno, hora_label, pct_gov, pct_opos, pct_otros, num_centros)
-                VALUES (:eleccion_ref, :turno, :hora_label,
+                    (eleccion_ref, ambito, turno, hora_label, pct_gov, pct_opos, pct_otros, num_centros)
+                VALUES (:eleccion_ref, :ambito, :turno, :hora_label,
                         :pct_gov, :pct_opos, :pct_otros, :num_centros)
-                ON CONFLICT(eleccion_ref, turno) DO UPDATE SET
+                ON CONFLICT(eleccion_ref, ambito, turno) DO UPDATE SET
                     hora_label=excluded.hora_label,
                     pct_gov=excluded.pct_gov,
                     pct_opos=excluded.pct_opos,
