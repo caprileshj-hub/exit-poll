@@ -970,3 +970,51 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
   - `/historicos`, `/historicos/debug-json` y `/historicos/estudios/2018-presidencial` responden 200.
   - `debug-json` lista: 2024, 2018, 2013, 2012, 2010, 2006.
   - El HTML contiene `Presidencial 2024` y `Presidencial 2018`.
+
+---
+
+## 2026-05-19 - Coleccion historica Gobernadores 2012
+
+### Contexto
+- Se agrego el estudio historico `2012-gobernadores` al modulo de historicos.
+- A diferencia de 2008, el archivo fuente es unico:
+  - `backend/data/2012/gobernadores/CORE4.xlsx`
+- El workbook contiene una hoja maestra `Entrada`, hojas auxiliares (`Hector`, `Alejandro`) y 23 hojas por estado/codigo (`AM`, `AN`, `AP`, etc.).
+- El layout 2012 no coincide con 2008: las hojas estatales estan agregadas por municipio/segmento y turnos 1..18, no por `Entidad / Centro / Turno / Cand...`.
+
+### Cambio
+- Se agrego `backend/import_2012_gobernadores.py`.
+- El importador crea 23 estudios paralelos por estado, mas una fila `NACIONAL` de metadato de coleccion.
+- Se cargan:
+  - `historico_estudios` con `eleccion_ref='2012-gobernadores'`.
+  - `historico_oficial` con resultados oficiales Wikipedia/CNE 2012.
+  - `historico_estudios_turnos` con `ambito=slug_estado` para cada serie acumulada por turno.
+- Se agregaron rutas especiales antes de la ruta generica `/historicos/estudios/{ref}`:
+  - `/historicos/estudios/2012-gobernadores`
+  - `/historicos/estudios/2012-gobernadores/{estado_slug}`
+- Se agregaron templates:
+  - `backend/templates/gobernadores_2012.html`
+  - `backend/templates/gobernador_2012_detalle.html`
+- `_historicos_unificados()` ahora marca `2012-gobernadores` como coleccion multi-estudio con badge `23 exit polls`.
+- Se regenero `backend/data/historico_estudios_seed.json`; no se versiona `backend/exitpoll.db`.
+
+### Criterio metodologico
+- Cada estado es un estudio independiente y paralelo.
+- La fila `NACIONAL` es solo metadato de coleccion; no representa un promedio nacional.
+- En 2012 la categoria de oposicion se toma como MUD/plataforma opositora.
+- Las hojas 2012 no exponen centros CNE crudos en el mismo layout de 2008; para las vistas se usa el conteo de municipios/segmentos reportados como `num_centros` operativo.
+
+### Validacion
+- `D:\Test\.venv\Scripts\python.exe import_2012_gobernadores.py --reset`: OK.
+  - 23 estados parseados.
+  - 24 filas en `historico_estudios` incluyendo `NACIONAL`.
+  - 23 filas en `historico_oficial`.
+  - 407 filas en `historico_estudios_turnos`.
+- `D:\Test\.venv\Scripts\python.exe -c "from app import app; print('OK')"`: OK.
+- `D:\Test\.venv\Scripts\pytest.exe -q`: 15 passed.
+- `TestClient`:
+  - `/historicos`: 200.
+  - `/historicos/estudios/2012-gobernadores`: 200.
+  - `/historicos/estudios/2012-gobernadores/miranda`: 200.
+- Uvicorn local:
+  - `http://127.0.0.1:8000/historicos/estudios/2012-gobernadores/miranda`: 200.

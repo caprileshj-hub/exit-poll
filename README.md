@@ -54,6 +54,7 @@ The project is in active development. **Phase 7 is underway:**
 - **Standalone HTML Dashboard** — Single-file output: Folium map (58%) + Plotly trend charts (42%); click on state polygon to see local trend; blue-white-red symmetric palette with ±3% technical tie threshold
 - **FastAPI Configuration Dashboard** — Manages elections, candidates (with photos and election-specific geography/circuit scope), sample selection, weight editing, legacy TM uploads, AI-assisted TM uploads, and visualization preview
 - **CNE 2024 Data Integration** — Ingested complete 2024 electoral results (11,927 centers) from the vzlapi source into `resultados_historicos` for representativeness scoring. Required writing a dedicated converter (`convertidor_cne2024.py`) because the 2024 Tabla de Mesa format differed structurally from both the 2015 and 2018 converters already in the system. This is the concrete case motivating the AI normalization component: each new electoral cycle — or election type — arrives with a different TM structure, and writing a new converter each time does not scale.
+- **Historical Studies Module** — Read-only archive for fixed historical studies and official results. Includes presidential studies, legislative 2010, regional governor collections for 2008 and 2012, per-state detail pages, turnout-cut trend charts, and a versioned seed (`backend/data/historico_estudios_seed.json`) applied idempotently on startup.
 - **Technical specification document** — CIS-style methodology card with calculated margin of error, printable from the dashboard
 - **Live AI analyst** — Deterministic analyst panel and provider-backed chat with guardrails. It refuses premature trend analysis with the exact phrase `datos insuficientes para establecer tendencias` until minimum opinions, coverage, and comparable cuts are available.
 
@@ -203,6 +204,7 @@ exit_poll/
 │   ├── init_db.py              # DB initialization / reset
 │   ├── convertidor_tm.py       # CNE TM converter (2015/2018 formats)
 │   ├── convertidor_cne2024.py  # CNE 2024 results ingestion (11,927 centers)
+│   ├── import_2012_gobernadores.py # Regionales 2012 historical governor collection
 │   ├── cargador_tm.py          # Differential TM loader
 │   ├── agent.py                # AI provider abstraction and structured calls
 │   ├── analista_ia.py          # Deterministic live analyst
