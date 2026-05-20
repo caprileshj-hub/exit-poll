@@ -116,6 +116,68 @@ Si el patrón estadal es consistente (≥ 65% estados subestiman gobierno), se s
 
 ---
 
+### 1.5 Centros sin reporte y sesgo del encuestador
+
+Dos fuentes de error que los indicadores de acertividad post-hoc no capturan directamente,
+pero que se manifiestan en los residuales del estudio.
+
+#### Centros sin reporte (unit non-response a nivel de centro)
+
+En condiciones de campo reales, algunos centros de votación no reportan sus datos al equipo
+de totalización. Esto ocurre por:
+- Problemas de comunicación (ausencia de señal, coordinador no contactable)
+- Incidentes en el centro (cierre forzado, violencia, lentitud extrema)
+- Centro excluido por decisión del coordinador en campo
+
+**Implicación estadística:** Si los centros sin reporte no son aleatorios (y raramente lo son),
+su ausencia introduce sesgo de cobertura. En Venezuela, los centros urbanos de oposición y
+los rurales muy chavistas tienen las tasas de reporte más bajas por razones distintas
+(acceso a comunicaciones y disposición del coordinador, respectivamente), lo que puede cancelar
+parcialmente el sesgo pero no eliminarlo.
+
+**En los datos históricos:** la columna `num_centros` en `historico_estudios` registra cuántos
+centros reportaron, no cuántos estaban en la muestra original. La diferencia
+`(centros_muestra − num_centros_reportados)` es la tasa de no-reporte a nivel de centro,
+que actualmente no está registrada en el schema por falta de datos de muestra planificada.
+
+**TSE mapping:** corresponde al componente `error_afijacion_muestra_reducida` (n_centros < 20)
+en `auditor_sesgo.py`, pero este umbral solo detecta casos extremos. El problema general de
+centros no-reportados es más sutil y requeriría la muestra planificada original como denominador.
+
+**Pendiente:** registrar en `notas` JSON la columna `centros_planificados` para habilitar
+el cálculo de tasa de no-reporte por estudio.
+
+#### Sesgo del encuestador (interviewer bias)
+
+Distinto de la espiral del silencio (que es sesgo del respondente), el sesgo del encuestador
+es un error sistemático introducido por quien aplica el instrumento:
+
+| Tipo | Descripción | Manifestación en los datos |
+|------|-------------|---------------------------|
+| **Redondeo selectivo** | El encuestador anota la marca más próxima en lugar del porcentaje exacto | Acumulación de valores en múltiplos de 5 en `pct_gov` por turno |
+| **Efecto de proximidad** | El encuestador registra el voto de quien está más cerca, sesgando hacia el candidato dominante en el entorno inmediato | Amplificación del candidato local |
+| **Sesgo de omisión** | Se omiten respuestas de electores con voto "inconveniente" para simplificar la hoja de campo | Subregistro sistemático de un bando |
+| **Sesgo de conformidad** | El coordinador ajusta los totales del turno para que cuadren con la expectativa previa | Serie de turnos excesivamente suave, sin variación natural |
+
+**Detección posible con datos actuales:**
+- Redondeo: histograma de los valores de `pct_gov` por turno — si hay picos en 0, 5, 10, 25, 50
+- Sesgo de conformidad: autocorrelación alta en la serie de turnos; RMSE inter-turno < 0.2 pp
+  (señal demasiado limpia para datos de campo)
+
+**Nota sobre la operación:** en el exit poll venezolano, el encuestador aplica el cuestionario
+en papel y lo transmite por teléfono al coordinador de estado, quien hace el conteo. La fuente
+de sesgo de encuestador más probable es el coordinador de estado (no el encuestador en campo),
+porque él totaliza y decide qué reportar al Centro de Operaciones. Este rol de "buffer" entre
+campo y totalización es una característica operativa del modelo SMS/teléfono que no existe en
+exit polls donde se captura digitalmente en el centro.
+
+**En el analista IA:** actualmente no se flagea el sesgo del encuestador. El flag
+`SESGO_NO_RESPUESTA_NO_CUANTIFICADO` cubre el riesgo de espiral del silencio pero no este.
+Se propone agregar en futuras versiones del prompt un flag `SESGO_ENCUESTADOR_POSIBLE` cuando
+la serie de turnos muestra autocorrelación anormalmente alta.
+
+---
+
 ## 2. Tipos de estudio: particularidades y hallazgos
 
 ### 2.1 Presidencial (2006, 2012, 2013)
@@ -556,5 +618,8 @@ y el analista IA lo aplica en tiempo real durante la jornada electoral.
 - [ ] Importar datos de Parlamentarias 2015 y Presidencial 2018 (si hay cores)
 - [ ] Calcular RMSE estadal para el estudio 2008-gobernadores (24 estados con datos oficiales)
 - [ ] Registrar tasas de no-respuesta históricas para activar el flag `SESGO_NO_RESPUESTA_NO_CUANTIFICADO` en los estudios pasados
+- [ ] Agregar columna `centros_planificados` en `notas` JSON de cada estudio para calcular tasa real de no-reporte a nivel de centro
+- [ ] Agregar flag `SESGO_ENCUESTADOR_POSIBLE` al analista IA cuando la autocorrelación de la serie de turnos supera umbral (serie demasiado suave para datos de campo)
+- [ ] Análisis de redondeo: histograma de `pct_gov` por turno para detectar acumulación en múltiplos de 5 — indicador de redondeo selectivo por coordinador de estado
 - [ ] Calibrar ICC_REF=0.04 con datos reales de la muestra (cuando estén disponibles encuestas con datos de varianza intraclúster)
 - [ ] Calcular factor de amplificación Capa 2 para legislativo si se agregan datos de Parlamentarias 2015
