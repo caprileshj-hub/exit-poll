@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% set active_page = "historicos" %}
+{% block title %}Municipales 2013{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1"><i class="bi bi-building me-2"></i>Elecciones Municipales 2013</h2>
+    <div class="text-muted small">{{ n_estudios }} estudios municipales · {{ total_centros }} centros · {{ "{:,}".format(total_resp) }} registros</div>
+  </div>
+  <a href="/historicos" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Históricos</a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card h-100 shadow-sm"><div class="card-body">
+      <div class="small text-muted">Estudios</div>
+      <div class="fs-3 fw-bold">{{ n_estudios }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card h-100 shadow-sm"><div class="card-body">
+      <div class="small text-muted">Centros ponderados</div>
+      <div class="fs-3 fw-bold">{{ total_centros }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card h-100 shadow-sm"><div class="card-body">
+      <div class="small text-muted">Con oficial CNE</div>
+      <div class="fs-3 fw-bold">{{ con_oficial }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card h-100 shadow-sm"><div class="card-body">
+      <div class="small text-muted">Ganador correcto</div>
+      <div class="fs-3 fw-bold">{% if con_oficial %}{{ correctos }}/{{ con_oficial }}{% else %}—{% endif %}</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="alert alert-light border small">
+  <strong>Auditoría del core:</strong>
+  {{ meta.semaforo }}
+</div>
+
+{% for estado, items in estados %}
+<h5 class="mt-4 mb-2">{{ estado }}</h5>
+<div class="row g-3">
+  {% for m in items %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+          <h6 class="fw-bold mb-0">{{ m.municipio }}</h6>
+          {% if m.ganador_ok is not none %}
+          <span class="badge {% if m.ganador_ok %}bg-success{% else %}bg-danger{% endif %}">
+            {% if m.ganador_ok %}OK{% else %}Revisar{% endif %}
+          </span>
+          {% else %}
+          <span class="badge bg-secondary">Sin oficial</span>
+          {% endif %}
+        </div>
+        <div class="row text-center">
+          <div class="col-4">
+            <div class="fw-bold text-danger">{{ m.e_gov }}%</div>
+            <small class="text-muted">Gob.</small>
+          </div>
+          <div class="col-4">
+            <div class="fw-bold text-primary">{{ m.e_opos }}%</div>
+            <small class="text-muted">Opos.</small>
+          </div>
+          <div class="col-4">
+            <div class="fw-bold text-secondary">{{ m.n_centros }}</div>
+            <small class="text-muted">Centros</small>
+          </div>
+        </div>
+        <div class="small text-muted mt-3">
+          Transmiten: {{ m.auditoria.centros_transmiten or 0 }}/{{ m.auditoria.centros_esperados or m.n_centros }}
+          · Atípicos: {{ m.auditoria.cortes_con_total_atipico or 0 }}
+        </div>
+      </div>
+      <div class="card-footer bg-transparent">
+        <a class="btn btn-sm btn-outline-primary w-100" href="/historicos/estudios/2013-municipales/{{ m.slug }}">
+          <i class="bi bi-graph-up me-1"></i>Ver detalle
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+{% endblock %}

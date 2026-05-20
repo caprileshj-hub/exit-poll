@@ -3037,6 +3037,7 @@ def _historicos_unificados(conn: sqlite3.Connection) -> tuple[list[dict], dict[s
     for ref, nombre, badge, url in [
         ("2008-gobernadores", "Elecciones Regionales 2008", "25 exit polls", "/historicos/estudios/2008-gobernadores"),
         ("2012-gobernadores", "Elecciones Regionales 2012", "23 exit polls", "/historicos/estudios/2012-gobernadores"),
+        ("2013-municipales", "Elecciones Municipales 2013", "52 exit polls", "/historicos/estudios/2013-municipales"),
     ]:
         if any(e["eleccion_ref"] == ref for e in elections):
             for e in elections:
@@ -3737,6 +3738,151 @@ async def gobernadores_2012_detalle(request: Request, estado_slug: str):
             "turnos": turnos,
             "analisis": analisis,
             "lara_ambiguo": bool(notas.get("lara_nota")),
+        })
+
+
+@app.get("/historicos/estudios/2013-municipales", response_class=HTMLResponse)
+async def municipales_2013_collection(request: Request):
+    """Vista coleccion: 52 exit polls municipales 2013."""
+    conn = get_db()
+    import json as _json, math as _math
+
+    nac_row = conn.execute(
+        "SELECT notas FROM historico_estudios WHERE eleccion_ref='2013-municipales' AND ambito='NACIONAL'"
+    ).fetchone()
+    if not nac_row:
+        conn.close()
+        raise HTTPException(404, "Datos de 2013-municipales no encontrados. Ejecute import_2013_municipales.py primero.")
+    coleccion_meta = _json.loads(nac_row["notas"] or "{}")
+
+    filas_e = {r["ambito"]: dict(r) for r in conn.execute(
+        "SELECT ambito, nombre, pct_gov, pct_opos, pct_otros, num_centros, notas "
+        "FROM historico_estudios WHERE eleccion_ref='2013-municipales' AND ambito!='NACIONAL'"
+    ).fetchall()}
+    filas_o = {r["ambito"]: dict(r) for r in conn.execute(
+        "SELECT ambito, pct_gov, pct_opos, pct_otros "
+        "FROM historico_oficial WHERE eleccion_ref='2013-municipales'"
+    ).fetchall()}
+    conn.close()
+
+    ICC_REF = 0.04
+    municipios = []
+    for slug, fe in filas_e.items():
+        fo = filas_o.get(slug, {})
+        notas = _json.loads(fe.get("notas") or "{}")
+        e_gov = fe.get("pct_gov"); e_opos = fe.get("pct_opos")
+        o_gov = fo.get("pct_gov"); o_opos = fo.get("pct_opos")
+        n = notas.get("n_respondentes", 0)
+        k = fe.get("num_centros", 0)
+        deff = round(1 + (n / k - 1) * ICC_REF, 2) if k > 0 else None
+        moe = round(1.96 * _math.sqrt((deff or 1) * 0.25 / n) * 100, 2) if n > 0 else None
+        win_e = e_gov is not None and e_opos is not None and e_gov > e_opos
+        win_o = o_gov is not None and o_opos is not None and o_gov > o_opos
+        delta_g = round(e_gov - o_gov, 2) if e_gov is not None and o_gov is not None else None
+        delta_o = round(e_opos - o_opos, 2) if e_opos is not None and o_opos is not None else None
+        municipios.append({
+            "slug": slug,
+            "nombre": fe.get("nombre", slug),
+            "estado": notas.get("estado", ""),
+            "municipio": notas.get("municipio", fe.get("nombre", slug)),
+            "e_gov": e_gov, "e_opos": e_opos,
+            "o_gov": o_gov, "o_opos": o_opos,
+            "n_centros": k, "n_respondentes": n,
+            "deff": deff, "moe_pp": moe,
+            "win_estudio": win_e, "win_oficial": win_o,
+            "ganador_ok": (win_e == win_o) if o_gov is not None else None,
+            "delta_gov": delta_g, "delta_opos": delta_o,
+            "auditoria": notas.get("auditoria", {}),
+        })
+
+    from collections import defaultdict
+    por_estado: dict = defaultdict(list)
+    for m in municipios:
+        por_estado[m["estado"]].append(m)
+    estados = [(e, sorted(items, key=lambda x: x["municipio"])) for e, items in sorted(por_estado.items())]
+    correctos = sum(1 for m in municipios if m["ganador_ok"] is True)
+    con_oficial = sum(1 for m in municipios if m["ganador_ok"] is not None)
+
+    return templates.TemplateResponse(request=request,
+        name="municipales_2013.html", context={
+            "meta": coleccion_meta,
+            "municipios": municipios,
+            "estados": estados,
+            "total_centros": coleccion_meta.get("n_centros_total", 0),
+            "total_resp": coleccion_meta.get("n_respondentes_total", 0),
+            "n_estudios": len(municipios),
+            "correctos": correctos,
+            "con_oficial": con_oficial,
+        })
+
+
+@app.get("/historicos/estudios/2013-municipales/{municipio_slug}", response_class=HTMLResponse)
+async def municipales_2013_detalle(request: Request, municipio_slug: str):
+    """Detalle individual: tendencia por turno, auditoria y comparacion oficial si existe."""
+    conn = get_db()
+    import json as _json, math as _math, json as json_mod
+
+    fe = conn.execute(
+        "SELECT * FROM historico_estudios WHERE eleccion_ref='2013-municipales' AND ambito=?",
+        (municipio_slug,)
+    ).fetchone()
+    if not fe:
+        conn.close()
+        raise HTTPException(404, f"Municipio '{municipio_slug}' no encontrado en 2013-municipales")
+    fe = dict(fe)
+    fo = conn.execute(
+        "SELECT * FROM historico_oficial WHERE eleccion_ref='2013-municipales' AND ambito=?",
+        (municipio_slug,)
+    ).fetchone()
+    fo = dict(fo) if fo else {}
+
+    turnos_raw = conn.execute(
+        "SELECT turno, hora_label, pct_gov, pct_opos, pct_otros, num_centros "
+        "FROM historico_estudios_turnos "
+        "WHERE eleccion_ref='2013-municipales' AND ambito=? ORDER BY turno",
+        (municipio_slug,)
+    ).fetchall()
+    conn.close()
+
+    notas = _json.loads(fe.get("notas") or "{}")
+    turnos = [dict(r) for r in turnos_raw]
+    e_gov = fe.get("pct_gov"); e_opos = fe.get("pct_opos"); e_otros = fe.get("pct_otros")
+    o_gov = fo.get("pct_gov"); o_opos = fo.get("pct_opos"); o_otros = fo.get("pct_otros")
+    n = notas.get("n_respondentes", 0)
+    k = fe.get("num_centros", 0)
+    deff = round(1 + (n / k - 1) * 0.04, 2) if k > 0 else None
+    moe_srs = round(1.96 * _math.sqrt(0.25 / n) * 100, 2) if n > 0 else None
+    moe_adj = round(1.96 * _math.sqrt((deff or 1) * 0.25 / n) * 100, 2) if n > 0 else None
+
+    analisis = {}
+    if e_gov is not None and o_gov is not None:
+        delta_g = round(e_gov - o_gov, 2)
+        delta_o = round(e_opos - o_opos, 2) if e_opos is not None and o_opos is not None else None
+        win_e = e_gov > (e_opos or 0)
+        win_o = o_gov > (o_opos or 0)
+        analisis = {
+            "delta_gov": delta_g,
+            "delta_opos": delta_o,
+            "error_abs": abs(delta_g),
+            "ganador_estudio": "gobierno" if win_e else "oposicion",
+            "ganador_oficial": "gobierno" if win_o else "oposicion",
+            "acierto_ganador": win_e == win_o,
+        }
+
+    return templates.TemplateResponse(request=request,
+        name="municipal_2013_detalle.html", context={
+            "slug": municipio_slug,
+            "nombre": fe.get("nombre", municipio_slug),
+            "notas": notas,
+            "fe": fe, "fo": fo,
+            "e_gov": e_gov, "e_opos": e_opos, "e_otros": e_otros,
+            "o_gov": o_gov, "o_opos": o_opos, "o_otros": o_otros,
+            "n_respondentes": n, "n_centros": k,
+            "deff": deff, "moe_srs": moe_srs, "moe_adj": moe_adj,
+            "turnos_json": json_mod.dumps(turnos),
+            "turnos": turnos,
+            "analisis": analisis,
+            "auditoria": notas.get("auditoria", {}),
         })
 
 

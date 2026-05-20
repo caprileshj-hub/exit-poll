@@ -1018,3 +1018,58 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
   - `/historicos/estudios/2012-gobernadores/miranda`: 200.
 - Uvicorn local:
   - `http://127.0.0.1:8000/historicos/estudios/2012-gobernadores/miranda`: 200.
+
+---
+
+## 2026-05-20 - Coleccion historica Municipales 2013
+
+### Contexto
+- Se agrego la eleccion municipal 2013 al modulo `/historicos`.
+- Los insumos locales estan en `backend/data/2013/municipales/`:
+  - `auditoria4.xlsx`
+  - `PESO CENTROS DIC 2013.xlsx`
+- La pagina CNE original esta caida; el importador queda preparado para leer resultados oficiales desde archive.org:
+  - `https://web.archive.org/web/20190812031057/http://www.cne.gob.ve/resultado_municipal_2013/r/1/reg_000000.html`
+
+### Cambio
+- Se agrego `backend/import_2013_municipales.py`.
+- El importador crea una coleccion `2013-municipales` con 52 estudios municipales y fila `NACIONAL` de metadatos.
+- Se cargan:
+  - `historico_estudios` con `eleccion_ref='2013-municipales'`.
+  - `historico_estudios_turnos` con `ambito=slug_municipio`.
+  - `historico_oficial` cuando archive.org/CNE responde y se logra leer el municipio.
+- Se agregaron rutas especiales:
+  - `/historicos/estudios/2013-municipales`
+  - `/historicos/estudios/2013-municipales/{municipio_slug}`
+- Se agregaron templates:
+  - `backend/templates/municipales_2013.html`
+  - `backend/templates/municipal_2013_detalle.html`
+- `_historicos_unificados()` marca `2013-municipales` como coleccion multi-estudio con badge `52 exit polls`.
+- Se regenero `backend/data/historico_estudios_seed.json`; no se versiona `backend/exitpoll.db`.
+
+### Semaforo de informacion confiable
+- `auditoria4.xlsx` usa las hojas `Pantalla1` a `Pantalla4` como tablero operativo por centro y turno.
+- Cada fila consolida el total recibido por centro en un corte. El semaforo separa:
+  - centros que transmiten informacion util/correcta;
+  - centros con informacion errada o atipica, por totales desproporcionados o inconsistentes;
+  - centros sin transmision, cuando no aparece informacion posterior al corte base.
+- Para la publicacion historica no se muestran datos crudos por centro; se documenta el resumen de auditoria por municipio:
+  - centros esperados;
+  - centros que transmitieron;
+  - centros sin transmision;
+  - cortes con total atipico.
+- La ponderacion publicada usa `PESO CENTROS DIC 2013.xlsx` y agrupa candidato 1 como gobierno, candidato 2 como oposicion y el resto como otros, igual que el core historico.
+
+### Validacion
+- `C:\Users\capri\AppData\Local\Python\pythoncore-3.14-64\python.exe backend\import_2013_municipales.py --no-official --write-seed`: OK.
+  - 53 filas en `historico_estudios`.
+  - 279 filas en `historico_estudios_turnos`.
+  - `historico_oficial` quedo en 0 en esta corrida porque archive.org rechazo conexiones de forma intermitente; el scraper queda implementado para completar esa capa cuando responda estable.
+- `C:\Users\capri\AppData\Local\Python\pythoncore-3.14-64\python.exe backend\seed_historico_estudios.py`: OK, 201 estudios, 149 oficiales, 1134 turnos.
+- `C:\Users\capri\AppData\Local\Python\pythoncore-3.14-64\python.exe -m py_compile backend\app.py backend\import_2013_municipales.py backend\seed_historico_estudios.py`: OK.
+- `TestClient`:
+  - `/historicos`: 200.
+  - `/historicos/debug-json`: 200.
+  - `/historicos/estudios/2013-municipales`: 200.
+  - `/historicos/estudios/2013-municipales/monagas-maturin`: 200.
+- `C:\Users\capri\AppData\Local\Python\pythoncore-3.14-64\python.exe -m pytest -q`: 15 passed.
