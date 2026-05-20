@@ -3033,15 +3033,19 @@ def _historicos_unificados(conn: sqlite3.Connection) -> tuple[list[dict], dict[s
         d["e_gov"] = d["e_opos"] = d["delta"] = d["ganador_ok"] = None
         elections.append(d)
 
-    # Inyectar tarjeta especial para colecciones multi-estudio
-    # 2008-gobernadores: 25 exit polls paralelos, sin agregado nacional significativo
-    if any(e["eleccion_ref"] == "2008-gobernadores" for e in elections):
-        for e in elections:
-            if e["eleccion_ref"] == "2008-gobernadores":
+    # Inyectar tarjetas especiales para colecciones multi-estudio
+    for ref, nombre, badge, url in [
+        ("2008-gobernadores", "Elecciones Regionales 2008", "25 exit polls", "/historicos/estudios/2008-gobernadores"),
+        ("2012-gobernadores", "Elecciones Regionales 2012", "23 exit polls", "/historicos/estudios/2012-gobernadores"),
+    ]:
+        if any(e["eleccion_ref"] == ref for e in elections):
+            for e in elections:
+                if e["eleccion_ref"] != ref:
+                    continue
                 e["tipo"] = "coleccion"
-                e["nombre_eleccion"] = "Elecciones Regionales 2008"
-                e["coleccion_url"] = "/historicos/estudios/2008-gobernadores"
-                e["coleccion_badge"] = "25 exit polls"
+                e["nombre_eleccion"] = nombre
+                e["coleccion_url"] = url
+                e["coleccion_badge"] = badge
                 e["delta"] = None; e["ganador_ok"] = None; e["sesgo_nivel"] = None
                 break
 
@@ -3552,6 +3556,175 @@ async def gobernadores_2008_detalle(request: Request, estado_slug: str):
     import json as json_mod
     return templates.TemplateResponse(request=request,
         name="gobernador_2008_detalle.html", context={
+            "slug": estado_slug,
+            "nombre": fe.get("nombre", estado_slug),
+            "notas": notas,
+            "fe": fe, "fo": fo,
+            "e_gov": e_gov, "e_opos": e_opos, "e_otros": e_otros,
+            "o_gov": o_gov, "o_opos": o_opos, "o_otros": o_otros,
+            "n_respondentes": n, "n_centros": k,
+            "deff": deff, "moe_srs": moe_srs, "moe_adj": moe_adj,
+            "turnos_json": json_mod.dumps(turnos),
+            "turnos": turnos,
+            "analisis": analisis,
+            "lara_ambiguo": bool(notas.get("lara_nota")),
+        })
+
+
+@app.get("/historicos/estudios/2012-gobernadores", response_class=HTMLResponse)
+async def gobernadores_2012_collection(request: Request):
+    """Vista coleccion: mapa + grilla de los 23 exit polls regionales 2012."""
+    conn = get_db()
+    import json as _json, math as _math
+
+    nac_row = conn.execute(
+        "SELECT notas FROM historico_estudios WHERE eleccion_ref='2012-gobernadores' AND ambito='NACIONAL'"
+    ).fetchone()
+    if not nac_row:
+        conn.close()
+        raise HTTPException(404, "Datos de 2012-gobernadores no encontrados. Ejecute import_2012_gobernadores.py primero.")
+    coleccion_meta = _json.loads(nac_row["notas"] or "{}")
+
+    filas_e = {r["ambito"]: dict(r) for r in conn.execute(
+        "SELECT ambito, nombre, pct_gov, pct_opos, pct_otros, num_centros, notas "
+        "FROM historico_estudios WHERE eleccion_ref='2012-gobernadores' AND ambito!='NACIONAL'"
+    ).fetchall()}
+    filas_o = {r["ambito"]: dict(r) for r in conn.execute(
+        "SELECT ambito, pct_gov, pct_opos, pct_otros "
+        "FROM historico_oficial WHERE eleccion_ref='2012-gobernadores'"
+    ).fetchall()}
+    conn.close()
+
+    ICC_REF = 0.04
+    estados = []
+    for slug, fe in filas_e.items():
+        fo = filas_o.get(slug, {})
+        notas = _json.loads(fe.get("notas") or "{}")
+        e_gov  = fe.get("pct_gov");  e_opos = fe.get("pct_opos")
+        o_gov  = fo.get("pct_gov");  o_opos = fo.get("pct_opos")
+        n      = notas.get("n_respondentes", 0)
+        k      = fe.get("num_centros", 0)
+        deff   = round(1 + (n / k - 1) * ICC_REF, 2) if k > 0 else None
+        moe    = round(1.96 * _math.sqrt((deff or 1) * 0.25 / n) * 100, 2) if n > 0 else None
+
+        win_e  = e_gov is not None and e_opos is not None and e_gov > e_opos
+        win_o  = o_gov is not None and o_opos is not None and o_gov > o_opos
+        delta_g = round(e_gov - o_gov, 2) if e_gov is not None and o_gov else None
+        delta_o = round(e_opos - o_opos, 2) if e_opos is not None and o_opos else None
+        ganador_ok = (win_e == win_o) if o_gov else None
+        lara_ambiguo = bool(notas.get("lara_nota"))
+
+        estados.append({
+            "slug": slug,
+            "nombre": fe.get("nombre", slug),
+            "region": notas.get("region", ""),
+            "tipo_cargo": notas.get("tipo_cargo", "Gobernacion"),
+            "cand_gov": notas.get("cand_gov_nombre") or notas.get("candidato_gov"),
+            "cand_opos": notas.get("cand_opos_nombre") or notas.get("candidato_opos"),
+            "e_gov": e_gov, "e_opos": e_opos,
+            "o_gov": o_gov, "o_opos": o_opos,
+            "n_centros": k, "n_respondentes": n,
+            "max_turno": 0,
+            "deff": deff, "moe_pp": moe,
+            "win_estudio": win_e, "win_oficial": win_o,
+            "ganador_ok": ganador_ok, "lara_ambiguo": lara_ambiguo,
+            "delta_gov": delta_g, "delta_opos": delta_o,
+        })
+
+    REGION_ORDER = ["Capital", "Central", "Centro Occidental",
+                    "Andina", "Guayana y Llanos", "Nororiental e Insular", "Zuliana"]
+    from collections import defaultdict
+    por_region: dict = defaultdict(list)
+    for e in estados:
+        por_region[e["region"]].append(e)
+    regiones = [(r, sorted(por_region[r], key=lambda x: x["nombre"])) for r in REGION_ORDER if r in por_region]
+    correctos = sum(1 for e in estados if e["ganador_ok"] is True)
+    con_oficial = sum(1 for e in estados if e["ganador_ok"] is not None)
+
+    return templates.TemplateResponse(request=request,
+        name="gobernadores_2012.html", context={
+            "meta": coleccion_meta,
+            "estados": estados,
+            "regiones": regiones,
+            "total_centros": coleccion_meta.get("n_centros_total", 0),
+            "total_resp": coleccion_meta.get("n_respondentes_total", 0),
+            "n_estudios": len(estados),
+            "correctos": correctos,
+            "con_oficial": con_oficial,
+        })
+
+
+@app.get("/historicos/estudios/2012-gobernadores/{estado_slug}", response_class=HTMLResponse)
+async def gobernadores_2012_detalle(request: Request, estado_slug: str):
+    """Detalle individual: turno-chart + DEFF + analisis acertividad por estado."""
+    conn = get_db()
+    import json as _json, math as _math
+
+    fe = conn.execute(
+        "SELECT * FROM historico_estudios WHERE eleccion_ref='2012-gobernadores' AND ambito=?",
+        (estado_slug,)
+    ).fetchone()
+    if not fe:
+        conn.close()
+        raise HTTPException(404, f"Estado '{estado_slug}' no encontrado en 2012-gobernadores")
+    fe = dict(fe)
+    fo = conn.execute(
+        "SELECT * FROM historico_oficial WHERE eleccion_ref='2012-gobernadores' AND ambito=?",
+        (estado_slug,)
+    ).fetchone()
+    fo = dict(fo) if fo else {}
+
+    turnos_raw = conn.execute(
+        "SELECT turno, pct_gov, pct_opos, pct_otros, num_centros "
+        "FROM historico_estudios_turnos "
+        "WHERE eleccion_ref='2012-gobernadores' AND ambito=? ORDER BY turno",
+        (estado_slug,)
+    ).fetchall()
+    conn.close()
+
+    notas = _json.loads(fe.get("notas") or "{}")
+    turnos = [dict(r) for r in turnos_raw]
+    ICC_REF = 0.04
+
+    e_gov  = fe.get("pct_gov");  e_opos = fe.get("pct_opos");  e_otros = fe.get("pct_otros")
+    o_gov  = fo.get("pct_gov");  o_opos = fo.get("pct_opos");  o_otros = fo.get("pct_otros")
+    n      = notas.get("n_respondentes", 0)
+    k      = fe.get("num_centros", 0)
+    deff   = round(1 + (n / k - 1) * ICC_REF, 2) if k > 0 else None
+    moe_srs = round(1.96 * _math.sqrt(0.25 / n) * 100, 2) if n > 0 else None
+    moe_adj = round(1.96 * _math.sqrt((deff or 1) * 0.25 / n) * 100, 2) if n > 0 else None
+
+    analisis = {}
+    if e_gov is not None and o_gov is not None and o_gov > 0:
+        delta_g = round(e_gov - o_gov, 2)
+        delta_o = round(e_opos - o_opos, 2) if e_opos is not None and o_opos else None
+        e_brecha = round(e_gov - (e_opos or 0), 2)
+        o_brecha = round(o_gov - (o_opos or 0), 2)
+        error_abs = abs(delta_g)
+        magnitud = ("leve" if error_abs <= 1.0 else "moderado" if error_abs <= 2.5
+                    else "severo" if error_abs <= 5.0 else "critico")
+        win_e = e_gov > (e_opos or 0)
+        win_o = o_gov > (o_opos or 0)
+        mae_partes = [error_abs]
+        if delta_o is not None: mae_partes.append(abs(delta_o))
+        if e_otros is not None and o_otros is not None and o_otros > 0:
+            mae_partes.append(abs(round(e_otros - o_otros, 2)))
+        analisis = {
+            "delta_gov": delta_g, "delta_opos": delta_o,
+            "e_brecha": e_brecha, "o_brecha": o_brecha,
+            "delta_brecha": round(e_brecha - o_brecha, 2),
+            "error_abs": error_abs, "magnitud": magnitud,
+            "mae_mosteller": round(sum(mae_partes) / len(mae_partes), 2),
+            "mae_n_opciones": len(mae_partes),
+            "ganador_estudio": "gobierno" if win_e else "oposicion",
+            "ganador_oficial": "gobierno" if win_o else "oposicion",
+            "acierto_ganador": win_e == win_o,
+            "errores_opuestos": (delta_g * delta_o < 0) if delta_o else False,
+        }
+
+    import json as json_mod
+    return templates.TemplateResponse(request=request,
+        name="gobernador_2012_detalle.html", context={
             "slug": estado_slug,
             "nombre": fe.get("nombre", estado_slug),
             "notas": notas,
