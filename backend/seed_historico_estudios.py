@@ -19,11 +19,48 @@ def _load_seed() -> dict:
         return json.load(fh)
 
 
+def _migrate_turnos_ambito(conn: sqlite3.Connection) -> None:
+    """Agrega columna ambito a historico_estudios_turnos si la BD es anterior a la migración."""
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(historico_estudios_turnos)").fetchall()]
+    if "ambito" in cols:
+        return
+    conn.execute("ALTER TABLE historico_estudios_turnos RENAME TO _turnos_old")
+    conn.execute("""
+        CREATE TABLE historico_estudios_turnos (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            eleccion_ref    TEXT NOT NULL,
+            ambito          TEXT NOT NULL DEFAULT 'NACIONAL',
+            turno           INTEGER NOT NULL,
+            hora_label      TEXT,
+            pct_gov         REAL,
+            pct_opos        REAL,
+            pct_otros       REAL,
+            num_centros     INTEGER DEFAULT 0,
+            updated_at      TEXT DEFAULT (datetime('now')),
+            UNIQUE(eleccion_ref, ambito, turno)
+        )
+    """)
+    conn.execute("""
+        INSERT INTO historico_estudios_turnos
+            (id, eleccion_ref, ambito, turno, hora_label,
+             pct_gov, pct_opos, pct_otros, num_centros, updated_at)
+        SELECT id, eleccion_ref, 'NACIONAL', turno, hora_label,
+               pct_gov, pct_opos, pct_otros, num_centros, updated_at
+        FROM _turnos_old
+    """)
+    conn.execute("DROP TABLE _turnos_old")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_het_ref ON historico_estudios_turnos(eleccion_ref)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_het_amb ON historico_estudios_turnos(eleccion_ref, ambito)")
+    conn.commit()
+    print("[seed] Migración ambito completada en historico_estudios_turnos.")
+
+
 def seed_historico_estudios(db_path: str | Path = DB_PATH) -> dict[str, int]:
     data = _load_seed()
     conn = sqlite3.connect(str(db_path))
     try:
         conn.execute("PRAGMA foreign_keys = ON")
+        _migrate_turnos_ambito(conn)
         counts = {
             "historico_estudios": 0,
             "historico_oficial": 0,
