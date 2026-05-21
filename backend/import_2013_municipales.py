@@ -13,6 +13,7 @@ import html
 import json
 import re
 import sqlite3
+import time
 import unicodedata
 import urllib.parse
 from collections import Counter, defaultdict
@@ -41,52 +42,52 @@ STUDIED_MUNICIPALITIES = {
     3: ("amazonas-atures", "Amazonas", "Atures", "220100"),
     4: ("anzoategui-bolivar", "Anzoategui", "Bolivar", "020300"),
     5: ("anzoategui-freites", "Anzoategui", "Freites", "020600"),
-    6: ("anzoategui-simon-rodriguez", "Anzoategui", "Simon Rodriguez", "021700"),
-    7: ("anzoategui-sotillo", "Anzoategui", "Sotillo", "021900"),
-    8: ("apure-san-fernando", "Apure", "San Fernando", "030700"),
-    9: ("aragua-girardot", "Aragua", "Girardot", "040700"),
-    10: ("aragua-jose-felix-ribas", "Aragua", "Jose Felix Ribas", "041300"),
-    11: ("aragua-santiago-marino", "Aragua", "Santiago Marino", "041800"),
-    12: ("aragua-zamora", "Aragua", "Zamora", "041600"),
-    13: ("barinas-barinas", "Barinas", "Barinas", "050100"),
-    14: ("bolivar-caroni", "Bolivar", "Caroni", "060300"),
-    15: ("bolivar-heres", "Bolivar", "Heres", "060400"),
-    16: ("carabobo-guacara", "Carabobo", "Guacara", "071400"),
-    17: ("carabobo-libertador", "Carabobo", "Libertador", "071000"),
-    18: ("carabobo-puerto-cabello", "Carabobo", "Puerto Cabello", "070600"),
-    19: ("carabobo-valencia", "Carabobo", "Valencia", "071100"),
-    20: ("cojedes-ezequiel-zamora", "Cojedes", "Ezequiel Zamora", "080900"),
+    6: ("anzoategui-simon-rodriguez", "Anzoategui", "Simon Rodriguez", "021200"),
+    7: ("anzoategui-sotillo", "Anzoategui", "Sotillo", "021300"),
+    8: ("apure-san-fernando", "Apure", "San Fernando", "030600"),
+    9: ("aragua-girardot", "Aragua", "Girardot", "040100"),
+    10: ("aragua-jose-felix-ribas", "Aragua", "Jose Felix Ribas", "040300"),
+    11: ("aragua-santiago-marino", "Aragua", "Santiago Marino", "040200"),
+    12: ("aragua-zamora", "Aragua", "Zamora", "040800"),
+    13: ("barinas-barinas", "Barinas", "Barinas", "050200"),
+    14: ("bolivar-caroni", "Bolivar", "Caroni", "060100"),
+    15: ("bolivar-heres", "Bolivar", "Heres", "060300"),
+    16: ("carabobo-guacara", "Carabobo", "Guacara", "070400"),
+    17: ("carabobo-libertador", "Carabobo", "Libertador", "071400"),
+    18: ("carabobo-puerto-cabello", "Carabobo", "Puerto Cabello", "070700"),
+    19: ("carabobo-valencia", "Carabobo", "Valencia", "070900"),
+    20: ("cojedes-ezequiel-zamora", "Cojedes", "Ezequiel Zamora", "080600"),
     21: ("delta-amacuro-tucupita", "Delta Amacuro", "Tucupita", "230100"),
-    22: ("falcon-carirubana", "Falcon", "Carirubana", "091100"),
+    22: ("falcon-carirubana", "Falcon", "Carirubana", "090400"),
     23: ("falcon-miranda", "Falcon", "Miranda", "091000"),
-    24: ("guarico-juan-german-roscio", "Guarico", "Juan German Roscio", "100800"),
-    25: ("guarico-miranda", "Guarico", "Miranda", "101400"),
-    26: ("lara-iribarren", "Lara", "Iribarren", "110300"),
-    27: ("lara-moran", "Lara", "Moran", "110600"),
-    28: ("lara-palavecino", "Lara", "Palavecino", "110700"),
-    29: ("lara-torres", "Lara", "Torres", "110900"),
-    30: ("merida-libertador", "Merida", "Libertador", "120400"),
-    31: ("miranda-baruta", "Miranda", "Baruta", "130300"),
-    32: ("miranda-guaicaipuro", "Miranda", "Guaicaipuro", "130500"),
-    33: ("miranda-plaza", "Miranda", "Plaza", "130700"),
-    34: ("miranda-sucre", "Miranda", "Sucre", "131000"),
-    35: ("monagas-maturin", "Monagas", "Maturin", "140900"),
-    36: ("nueva-esparta-marino", "Nueva Esparta", "Marino", "150700"),
-    37: ("portuguesa-araure", "Portuguesa", "Araure", "160200"),
-    38: ("portuguesa-guanare", "Portuguesa", "Guanare", "160600"),
-    39: ("portuguesa-paez", "Portuguesa", "Paez", "160900"),
+    24: ("guarico-juan-german-roscio", "Guarico", "Juan German Roscio", "100600"),
+    25: ("guarico-miranda", "Guarico", "Miranda", "100300"),
+    26: ("lara-iribarren", "Lara", "Iribarren", "110200"),
+    27: ("lara-moran", "Lara", "Moran", "110400"),
+    28: ("lara-palavecino", "Lara", "Palavecino", "110500"),
+    29: ("lara-torres", "Lara", "Torres", "110600"),
+    30: ("merida-libertador", "Merida", "Libertador", "120800"),
+    31: ("miranda-baruta", "Miranda", "Baruta", "131600"),
+    32: ("miranda-guaicaipuro", "Miranda", "Guaicaipuro", "130300"),
+    33: ("miranda-plaza", "Miranda", "Plaza", "130800"),
+    34: ("miranda-sucre", "Miranda", "Sucre", "130900"),
+    35: ("monagas-maturin", "Monagas", "Maturin", "140700"),
+    36: ("nueva-esparta-marino", "Nueva Esparta", "Marino", "150600"),
+    37: ("portuguesa-araure", "Portuguesa", "Araure", "160100"),
+    38: ("portuguesa-guanare", "Portuguesa", "Guanare", "160300"),
+    39: ("portuguesa-paez", "Portuguesa", "Paez", "160600"),
     40: ("sucre-bermudez", "Sucre", "Bermudez", "170300"),
-    41: ("sucre-sucre", "Sucre", "Sucre", "171200"),
+    41: ("sucre-sucre", "Sucre", "Sucre", "170900"),
     42: ("tachira-san-cristobal", "Tachira", "San Cristobal", "180800"),
-    43: ("trujillo-valera", "Trujillo", "Valera", "190800"),
+    43: ("trujillo-valera", "Trujillo", "Valera", "190700"),
     44: ("vargas-vargas", "Vargas", "Vargas", "240100"),
-    45: ("yaracuy-san-felipe", "Yaracuy", "San Felipe", "200900"),
-    46: ("zulia-cabimas", "Zulia", "Cabimas", "210200"),
-    47: ("zulia-lagunillas", "Zulia", "Lagunillas", "211000"),
-    48: ("zulia-mara", "Zulia", "Mara", "211200"),
-    49: ("zulia-maracaibo", "Zulia", "Maracaibo", "211300"),
-    50: ("zulia-san-francisco", "Zulia", "San Francisco", "211700"),
-    51: ("monagas-cedeno", "Monagas", "Cedeno", "140200"),
+    45: ("yaracuy-san-felipe", "Yaracuy", "San Felipe", "200400"),
+    46: ("zulia-cabimas", "Zulia", "Cabimas", "211400"),
+    47: ("zulia-lagunillas", "Zulia", "Lagunillas", "211100"),
+    48: ("zulia-mara", "Zulia", "Mara", "210400"),
+    49: ("zulia-maracaibo", "Zulia", "Maracaibo", "210500"),
+    50: ("zulia-san-francisco", "Zulia", "San Francisco", "211800"),
+    51: ("monagas-cedeno", "Monagas", "Cedeno", "140400"),
     52: ("anzoategui-anaco", "Anzoategui", "Anaco", "020100"),
 }
 
@@ -118,6 +119,55 @@ class OfficialResult:
     opos_name: str | None
 
 
+MANUAL_OFFICIAL_RESULTS = {
+    8: OfficialResult(
+        pct_gov=65.27,
+        pct_opos=32.19,
+        pct_otros=2.54,
+        total_votos=52279,
+        source_url="CNE 2013 via archive.org, ficha tecnica provista manualmente",
+        gov_name="OFELIA PADRON",
+        opos_name="YADALA ABOUHADOUR",
+    ),
+    13: OfficialResult(
+        pct_gov=48.58,
+        pct_opos=50.44,
+        pct_otros=0.98,
+        total_votos=110772,
+        source_url="CNE 2013 via archive.org, ficha tecnica provista manualmente",
+        gov_name="EDGARDO RAMIREZ",
+        opos_name="MACHIN MACHIN",
+    ),
+    35: OfficialResult(
+        pct_gov=37.26,
+        pct_opos=38.63,
+        pct_otros=24.11,
+        total_votos=194245,
+        source_url="CNE 2013 via archive.org, ficha tecnica provista manualmente",
+        gov_name="JOSE MAICAVARES",
+        opos_name="WARNER JIMENEZ",
+    ),
+    39: OfficialResult(
+        pct_gov=67.78,
+        pct_opos=26.13,
+        pct_otros=6.09,
+        total_votos=55045,
+        source_url="CNE 2013 via archive.org, ficha tecnica provista manualmente",
+        gov_name="EFREN PEREZ",
+        opos_name="ELIAS BITTAR",
+    ),
+    41: OfficialResult(
+        pct_gov=54.71,
+        pct_opos=42.35,
+        pct_otros=2.94,
+        total_votos=123333,
+        source_url="CNE 2013 via archive.org, ficha tecnica provista manualmente",
+        gov_name="DAVID VELASQUEZ",
+        opos_name="ROBERT ALCALA",
+    ),
+}
+
+
 def _strip_accents(value: str) -> str:
     text = unicodedata.normalize("NFKD", value)
     return "".join(ch for ch in text if not unicodedata.combining(ch))
@@ -139,10 +189,24 @@ def _archive_url(cne_path: str, side: int = 1) -> str:
     return f"{ARCHIVE_PREFIX}{CNE_ROOT}/{side}/{code}"
 
 
+FETCH_DELAY_SECONDS = 0.0
+FETCH_RETRIES = 3
+
+
 def _fetch(url: str) -> str:
-    resp = requests.get(url, timeout=30, headers={"User-Agent": "exit-poll-import/1.0"})
-    resp.raise_for_status()
-    return resp.text
+    last_exc = None
+    for attempt in range(1, FETCH_RETRIES + 1):
+        if FETCH_DELAY_SECONDS:
+            time.sleep(FETCH_DELAY_SECONDS)
+        try:
+            resp = requests.get(url, timeout=30, headers={"User-Agent": "exit-poll-import/1.0"})
+            resp.raise_for_status()
+            return resp.text
+        except Exception as exc:
+            last_exc = exc
+            if attempt < FETCH_RETRIES:
+                time.sleep(max(FETCH_DELAY_SECONDS, 1.0) * attempt)
+    raise last_exc
 
 
 def _wayback_href(href: str) -> str:
@@ -158,7 +222,24 @@ def _num(text: str) -> int:
     return int(cleaned) if cleaned else 0
 
 
+def _mayor_contest_segment(page: str) -> str:
+    title_pattern = re.compile(
+        r"<a\b[^>]*id=\"ContestTitle\"[^>]*>(.*?)</a>",
+        re.S | re.I,
+    )
+    for match in title_pattern.finditer(page):
+        title = _norm(match.group(1))
+        if "ALCALDESA O ALCALDE" not in title:
+            continue
+        start = match.start()
+        next_title = title_pattern.search(page, match.end())
+        end = next_title.start() if next_title else len(page)
+        return page[start:end]
+    return page
+
+
 def _candidate_rows(page: str) -> list[tuple[str, int]]:
+    page = _mayor_contest_segment(page)
     rows = []
     pattern = re.compile(
         r"<tr class=\"tbsubtotalrow\".*?<a href=\"javascript:showCandidateInfo\('[^']+'\);\">(.*?)</a>.*?"
@@ -205,7 +286,8 @@ def _official_for_code(code: str) -> OfficialResult:
         url = _archive_url(code, side)
         try:
             rows = _candidate_rows(_fetch(url))
-        except Exception:
+        except Exception as exc:
+            print(f"WARN: no se pudo leer {code} lado {side}: {exc}")
             continue
         if rows:
             gov_votes = opos_votes = 0
@@ -323,9 +405,9 @@ def _study_totals(entrada: pd.DataFrame, pesos: pd.DataFrame) -> tuple[dict[int,
 
     by_muni = {}
     by_turn = {}
-    final_turn = joined.groupby("municipio_id")["turno"].max().to_dict()
     for municipio_id, g in joined.groupby("municipio_id"):
-        gf = g[g["turno"] == final_turn[municipio_id]]
+        final_turn = int(g["turno"].max())
+        gf = g[g["turno"] <= final_turn]
         buckets = gf.groupby("bucket")["weighted"].sum().to_dict()
         total = sum(buckets.values())
         by_muni[municipio_id] = {
@@ -333,9 +415,10 @@ def _study_totals(entrada: pd.DataFrame, pesos: pd.DataFrame) -> tuple[dict[int,
             "pct_opos": _pct(buckets.get("opos", 0), total),
             "pct_otros": _pct(buckets.get("otros", 0), total),
             "n_respondentes": int(round(gf["votos"].sum())),
-            "final_turn": int(final_turn[municipio_id]),
+            "final_turn": final_turn,
         }
-        for turno, gt in g.groupby("turno"):
+        for turno in sorted(g["turno"].unique()):
+            gt = g[g["turno"] <= turno]
             buckets_t = gt.groupby("bucket")["weighted"].sum().to_dict()
             total_t = sum(buckets_t.values())
             by_turn[(municipio_id, int(turno))] = {
@@ -382,7 +465,17 @@ def build_seed_rows(fetch_official: bool = True) -> dict[str, list[dict]]:
     oficiales = {}
     if fetch_official:
         for municipio_id, (_, _, _, cne_code) in STUDIED_MUNICIPALITIES.items():
-            oficiales[municipio_id] = _official_for_code(cne_code)
+            slug, estado, municipio, _ = STUDIED_MUNICIPALITIES[municipio_id]
+            print(f"[official] {municipio_id:02d}/52 {estado} - {municipio} ({cne_code})")
+            try:
+                oficiales[municipio_id] = _official_for_code(cne_code)
+                print(f"[official] OK {slug}: {oficiales[municipio_id].total_votos} votos")
+            except Exception as exc:
+                if municipio_id in MANUAL_OFFICIAL_RESULTS:
+                    oficiales[municipio_id] = MANUAL_OFFICIAL_RESULTS[municipio_id]
+                    print(f"[official] MANUAL {slug}: {oficiales[municipio_id].total_votos} votos")
+                else:
+                    print(f"WARN: sin oficial para {slug}: {exc}")
 
     total_centros = int(pesos["centro_id"].nunique())
     total_resp = sum(v["n_respondentes"] for v in study.values())
@@ -510,8 +603,13 @@ def build_seed_rows(fetch_official: bool = True) -> dict[str, list[dict]]:
     }
 
 
-def seed_2013_municipales(conn: sqlite3.Connection, fetch_official: bool = True) -> dict[str, int]:
-    data = build_seed_rows(fetch_official=fetch_official)
+def seed_2013_municipales(
+    conn: sqlite3.Connection,
+    fetch_official: bool = True,
+    data: dict[str, list[dict]] | None = None,
+) -> dict[str, int]:
+    if data is None:
+        data = build_seed_rows(fetch_official=fetch_official)
     counts = {key: 0 for key in data}
     for row in data["historico_estudios"]:
         conn.execute("""
@@ -584,8 +682,14 @@ def main() -> None:
     parser.add_argument("--no-official", action="store_true", help="No consulta archive.org/CNE")
     parser.add_argument("--write-seed", action="store_true", help="Actualiza data/historico_estudios_seed.json")
     parser.add_argument("--discover-codes", action="store_true", help="Lista códigos CNE encontrados en archive.org")
+    parser.add_argument("--delay-seconds", type=float, default=1.5, help="Pausa entre solicitudes a archive.org")
+    parser.add_argument("--retries", type=int, default=3, help="Reintentos por URL de archive.org")
     parser.add_argument("--db", default=str(DB))
     args = parser.parse_args()
+
+    global FETCH_DELAY_SECONDS, FETCH_RETRIES
+    FETCH_DELAY_SECONDS = max(0.0, args.delay_seconds)
+    FETCH_RETRIES = max(1, args.retries)
 
     if args.discover_codes:
         found = discover_cne_codes()
@@ -600,7 +704,7 @@ def main() -> None:
 
     conn = sqlite3.connect(args.db)
     try:
-        counts = seed_2013_municipales(conn, fetch_official=not args.no_official)
+        counts = seed_2013_municipales(conn, fetch_official=not args.no_official, data=data)
         conn.commit()
         print("2013 municipales:", counts)
     finally:

@@ -1073,3 +1073,89 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
   - `/historicos/estudios/2013-municipales`: 200.
   - `/historicos/estudios/2013-municipales/monagas-maturin`: 200.
 - `C:\Users\capri\AppData\Local\Python\pythoncore-3.14-64\python.exe -m pytest -q`: 15 passed.
+
+---
+
+## 2026-05-20 - Reorganizacion de data historica 2012/2013
+
+### Contexto
+- En 2012 y 2013 hay mas de un tipo de eleccion historica cargada.
+- Para evitar ambiguedad, los insumos Excel quedaron separados por tipo:
+  - `backend/data/2012/presidenciales/`
+  - `backend/data/2012/gobernadores/`
+  - `backend/data/2013/presidenciales/`
+  - `backend/data/2013/municipales/`
+
+### Cambio
+- `backend/import_2012_2013.py` ahora lee los archivos presidenciales desde las subcarpetas `presidenciales/`.
+- El mismo importador se actualizo para insertar turnos presidenciales con `ambito='NACIONAL'`, compatible con el esquema actual de `historico_estudios_turnos`.
+- `backend/import_2012_gobernadores.py` ya apuntaba a `backend/data/2012/gobernadores/`.
+- `backend/import_2013_municipales.py` ya apuntaba a `backend/data/2013/municipales/`.
+- Los archivos que antes estaban en la raiz del anio deben tratarse como movidos, no como eliminados:
+  - `backend/data/2012/Core (2).xlsx` -> `backend/data/2012/presidenciales/Core (2).xlsx`
+  - `backend/data/2012/resultados oficiales presidenciales 2012.xlsx` -> `backend/data/2012/presidenciales/resultados oficiales presidenciales 2012.xlsx`
+  - `backend/data/2013/CoreMA2.xlsx` -> `backend/data/2013/presidenciales/CoreMA2.xlsx`
+  - `backend/data/2013/resultados oficiales elecciones presidenciales 2013.xlsx` -> `backend/data/2013/presidenciales/resultados oficiales elecciones presidenciales 2013.xlsx`
+
+### Validacion
+- `D:\Test\.venv\Scripts\python.exe -m py_compile backend\import_2012_2013.py backend\import_2012_gobernadores.py backend\import_2013_municipales.py`: OK.
+- `D:\Test\.venv\Scripts\python.exe import_2012_2013.py` desde `backend/`: OK.
+  - `2012-presidencial`: 25 filas de estudio, 25 oficiales, 13 turnos.
+  - `2013-presidencial`: 25 filas de estudio, 25 oficiales, 18 turnos.
+
+---
+
+## 2026-05-20 - Scraper archive.org municipal 2013
+
+### Contexto
+- Se corrio el scraper oficial de `2013-municipales` contra archive.org con pausas entre solicitudes para no saturar el snapshot.
+- El primer mapeo de codigos CNE estaba desplazado en varios estados; se corrigio usando los indices estadales archivados del CNE.
+- El parser ahora toma solo el primer bloque `ALCALDESA O ALCALDE` de cada pagina, evitando sumar concejales u otros cargos.
+
+### Resultado
+- `backend/data/historico_estudios_seed.json` queda con:
+  - 53 filas de estudio para `2013-municipales`.
+  - 279 filas de turnos.
+  - 52 filas oficiales: 51 municipios mas `NACIONAL`.
+- Se cargaron fichas tecnicas manuales provistas desde CNE/archive para municipios donde archive.org no devolvia pagina usable:
+  - Barinas, Barinas.
+  - San Fernando, Apure.
+  - Maturin, Monagas.
+  - Paez, Portuguesa.
+  - Sucre, Sucre.
+- San Fernando, Apure:
+  - Ofelia Padron: 65,27%.
+  - Yadala Abouhadour: 32,19%.
+  - Otros: 2,54%.
+  - Votos validos: 52.279.
+- Barinas, Maturin, Paez y Sucre-Sucre se cargaron con sus porcentajes oficiales manuales, manteniendo la convencion local de candidato gobierno/oposicion.
+- Falta oficial por pagina no disponible o snapshot roto en archive.org:
+  - `guarico-juan-german-roscio`
+- No se cargo el bloque de `Municipio Roscio del estado Bolivar` porque no corresponde al estudio pendiente `Juan German Roscio, Guarico`.
+
+### Validacion
+- `D:\Test\.venv\Scripts\python.exe backend\import_2013_municipales.py --write-seed --delay-seconds 4 --retries 3`: OK, con faltantes documentados.
+- `D:\Test\.venv\Scripts\python.exe backend\seed_historico_estudios.py`: OK.
+  - 201 estudios.
+  - 201 oficiales.
+  - 1134 turnos.
+
+---
+
+## 2026-05-20 - Graficos acumulativos municipales 2013
+
+### Cambio
+- `backend/import_2013_municipales.py` ahora calcula cada corte con las opiniones acumuladas hasta ese turno (`turno <= corte`).
+- El resultado final del estudio municipal tambien sale del acumulado completo, no solo de las filas del ultimo turno.
+- Se regenero `backend/data/historico_estudios_seed.json` preservando los oficiales ya obtenidos por archive.org y las fichas tecnicas manuales.
+
+### Validacion
+- `D:\Test\.venv\Scripts\python.exe backend\seed_historico_estudios.py`: OK.
+  - 201 estudios.
+  - 201 oficiales.
+  - 1134 turnos.
+- Rutas verificadas:
+  - `/historicos/estudios/2013-municipales`
+  - `/historicos/estudios/2013-municipales/barinas-barinas`
+  - `/historicos/estudios/2013-municipales/zulia-maracaibo`
+- `D:\Test\.venv\Scripts\pytest.exe -q`: 15 passed.

@@ -1,9 +1,15 @@
-"""Import Presidencial 2012 and 2013 into historico tables."""
+"""Import Presidencial 2012 and 2013 into historico tables.
+
+Los archivos fuente viven bajo subcarpetas por tipo de eleccion, porque 2012 y
+2013 tienen mas de un estudio historico cargado en el repo.
+"""
 import openpyxl
 import sqlite3
 from collections import defaultdict
 
 DB = 'exitpoll.db'
+DATA_2012_PRESIDENCIAL = 'data/2012/presidenciales'
+DATA_2013_PRESIDENCIAL = 'data/2013/presidenciales'
 
 # ── Name → DB codigo_cne mapping ─────────────────────────────────────────────
 NAME_TO_CODE = {
@@ -79,9 +85,9 @@ def upsert_oficial(conn, ref, nombre_eleccion, fecha, ambito, nombre,
 def upsert_turno(conn, ref, turno, pct_gov, pct_opos, pct_otros, num_centros=0):
     conn.execute("""
         INSERT INTO historico_estudios_turnos
-            (eleccion_ref, turno, pct_gov, pct_opos, pct_otros, num_centros)
-        VALUES (?,?,?,?,?,?)
-        ON CONFLICT(eleccion_ref, turno) DO UPDATE SET
+            (eleccion_ref, ambito, turno, pct_gov, pct_opos, pct_otros, num_centros)
+        VALUES (?,'NACIONAL',?,?,?,?,?)
+        ON CONFLICT(eleccion_ref, ambito, turno) DO UPDATE SET
             pct_gov=excluded.pct_gov, pct_opos=excluded.pct_opos,
             pct_otros=excluded.pct_otros, num_centros=excluded.num_centros,
             updated_at=datetime('now')
@@ -96,7 +102,7 @@ def import_2012(conn):
     NOMBRE = 'Presidencial 2012'
     FECHA  = '2012-10-07'
 
-    wb = openpyxl.load_workbook('data/2012/Core (2).xlsx', read_only=True, data_only=True)
+    wb = openpyxl.load_workbook(f'{DATA_2012_PRESIDENCIAL}/Core (2).xlsx', read_only=True, data_only=True)
 
     # ── Estado DB nombres ────────────────────────────────────────────────────
     estado_nombre = {r['codigo_cne']: r['nombre']
@@ -174,7 +180,7 @@ def import_2012(conn):
     # cols: cod_edo(0), chavez(11), capriles(12), chirino(13), sequera(14),
     #       reyes(15), bolivar(16), votos_nulos(17)
     wb_off = openpyxl.load_workbook(
-        'data/2012/resultados oficiales presidenciales 2012.xlsx',
+        f'{DATA_2012_PRESIDENCIAL}/resultados oficiales presidenciales 2012.xlsx',
         read_only=True, data_only=True)
     ws_off = wb_off.active
     by_edo = defaultdict(lambda: {'chav': 0, 'cap': 0, 'otros': 0, 'tot': 0})
@@ -225,7 +231,7 @@ def import_2013(conn):
     NOMBRE = 'Presidencial 2013'
     FECHA  = '2013-04-14'
 
-    wb = openpyxl.load_workbook('data/2013/CoreMA2.xlsx', read_only=True, data_only=True)
+    wb = openpyxl.load_workbook(f'{DATA_2013_PRESIDENCIAL}/CoreMA2.xlsx', read_only=True, data_only=True)
 
     estado_nombre = {r['codigo_cne']: r['nombre']
                      for r in conn.execute("SELECT codigo_cne, nombre FROM estados")}
@@ -308,7 +314,7 @@ def import_2013(conn):
     # cols: cod_edo(0), maduro(12), capriles(13), sequera(14),
     #       bolivar(15), mora(16), mendez(17)
     wb_off = openpyxl.load_workbook(
-        'data/2013/resultados oficiales elecciones presidenciales 2013.xlsx',
+        f'{DATA_2013_PRESIDENCIAL}/resultados oficiales elecciones presidenciales 2013.xlsx',
         read_only=True, data_only=True)
     ws_off = wb_off.active
     by_edo = defaultdict(lambda: {'mad': 0, 'cap': 0, 'otros': 0, 'tot': 0})
