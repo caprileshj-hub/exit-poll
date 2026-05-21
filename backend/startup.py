@@ -33,6 +33,9 @@ def main() -> None:
     if table_count(db_path, "centros") == 0:
         run([sys.executable, "init_showcase.py"])
 
+    # Always re-seed historicos — idempotente via ON CONFLICT DO UPDATE
+    run([sys.executable, "seed_historico_estudios.py"])
+
     port = os.environ.get("PORT", "8000")
     os.execvp("uvicorn", ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", port])
 
