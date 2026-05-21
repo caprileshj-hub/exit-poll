@@ -136,7 +136,13 @@
                     <div class="d-flex gap-1 mt-1">
                         <div class="bar-gov" style="width:{{ m.e_gov }}%"></div>
                         <div class="bar-opos" style="width:{{ m.e_opos }}%"></div>
+                        {% if m.e_otros and m.e_otros > 0 %}
+                        <div style="background:#6c757d;height:6px;border-radius:2px;width:{{ m.e_otros }}%"></div>
+                        {% endif %}
                     </div>
+                    {% if m.e_otros and m.e_otros > 0 %}
+                    <div class="text-end" style="font-size:.7rem;color:#6c757d">Otros {{ m.e_otros }}%</div>
+                    {% endif %}
                 </div>
                 {% endif %}
 
@@ -148,6 +154,9 @@
                         <span class="text-muted">Oficial CNE</span>
                         <span class="text-primary">{{ m.o_opos }}%</span>
                     </div>
+                    {% if m.o_otros and m.o_otros > 0 %}
+                    <div class="text-end" style="font-size:.7rem;color:#6c757d">Otros {{ m.o_otros }}%</div>
+                    {% endif %}
                 </div>
                 {% endif %}
 

@@ -74,6 +74,17 @@
             {% endif %}
         </div>
     </div>
+    {% if (e_otros is not none and e_otros > 0) or (o_otros is not none and o_otros > 0) %}
+    <div class="col-12">
+        <div class="card p-2 bg-light" style="border-left:4px solid #6c757d">
+            <div class="small text-muted d-flex gap-4 align-items-center flex-wrap">
+                <span><strong>Otros / Tercer&#237;a:</strong></span>
+                {% if e_otros is not none %}<span>Estudio: <strong>{{ e_otros }}%</strong></span>{% endif %}
+                {% if o_otros is not none and o_otros > 0 %}<span>Oficial CNE: <strong>{{ o_otros }}%</strong></span>{% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- ── KPIs ───────────────────────────────────────────────────────────── -->

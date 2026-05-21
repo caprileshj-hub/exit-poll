@@ -382,6 +382,23 @@ def _load_weights() -> pd.DataFrame:
     })
 
 
+def _load_candidate_names() -> dict[int, tuple[str, str]]:
+    """Read gov/opos candidate names from the Nucleo sheet (candidato 1 = gov, 2 = opos).
+    The Nucleo only fills municipio_id on the first candidate row, so forward-fill is needed."""
+    nucleo = pd.read_excel(CORE, sheet_name="Nucleo", header=None)
+    nucleo[1] = nucleo[1].ffill()
+    names: dict[int, tuple[str, str]] = {}
+    gov_rows = nucleo[nucleo[2] == 1.0][[1, 3]].dropna()
+    opos_rows = nucleo[nucleo[2] == 2.0][[1, 3]].dropna()
+    for _, row in gov_rows.iterrows():
+        mun_id = int(row[1])
+        gov_name = str(row[3]).strip()
+        opos_match = opos_rows[opos_rows[1] == row[1]][3].values
+        opos_name = str(opos_match[0]).strip() if len(opos_match) > 0 else ""
+        names[mun_id] = (gov_name, opos_name)
+    return names
+
+
 def _load_entrada() -> pd.DataFrame:
     entrada = pd.read_excel(CORE, sheet_name="Entrada", header=1)
     cols = ["CENTRO1", "MUNICIPIO1", "TURNO1", "CANDIDATO1", "VOTOS1"]
@@ -394,19 +411,19 @@ def _load_entrada() -> pd.DataFrame:
 
 
 def _study_totals(entrada: pd.DataFrame, pesos: pd.DataFrame) -> tuple[dict[int, dict], dict[tuple[int, int], dict]]:
-    joined = entrada.merge(pesos[["municipio_id", "centro_id", "peso"]], on=["municipio_id", "centro_id"], how="left")
-    joined = joined[joined["peso"].notna()]
+    # Use raw (unweighted) vote counts so results match the operational Nucleo sheet.
+    # The pesos merge is kept only to restrict to centres in the sample design.
+    joined = entrada.merge(pesos[["municipio_id", "centro_id"]], on=["municipio_id", "centro_id"], how="inner")
     joined["bucket"] = joined["candidato"].map(
         lambda c: "gov" if c == GOV_CANDIDATE else "opos" if c == OPOS_CANDIDATE else "otros"
     )
-    joined["weighted"] = joined["votos"] * joined["peso"]
 
     by_muni = {}
     by_turn = {}
     for municipio_id, g in joined.groupby("municipio_id"):
         final_turn = int(g["turno"].max())
         gf = g[g["turno"] <= final_turn]
-        buckets = gf.groupby("bucket")["weighted"].sum().to_dict()
+        buckets = gf.groupby("bucket")["votos"].sum().to_dict()
         total = sum(buckets.values())
         by_muni[municipio_id] = {
             "pct_gov": _pct(buckets.get("gov", 0), total),
@@ -417,7 +434,7 @@ def _study_totals(entrada: pd.DataFrame, pesos: pd.DataFrame) -> tuple[dict[int,
         }
         for turno in sorted(g["turno"].unique()):
             gt = g[g["turno"] <= turno]
-            buckets_t = gt.groupby("bucket")["weighted"].sum().to_dict()
+            buckets_t = gt.groupby("bucket")["votos"].sum().to_dict()
             total_t = sum(buckets_t.values())
             by_turn[(municipio_id, int(turno))] = {
                 "pct_gov": _pct(buckets_t.get("gov", 0), total_t),
@@ -459,6 +476,7 @@ def build_seed_rows(fetch_official: bool = True) -> dict[str, list[dict]]:
     entrada = _load_entrada()
     study, turnos = _study_totals(entrada, pesos)
     audit = _audit_summary(entrada, pesos)
+    cand_names = _load_candidate_names()
 
     oficiales = {}
     if fetch_official:
@@ -547,12 +565,17 @@ def build_seed_rows(fetch_official: bool = True) -> dict[str, list[dict]]:
             "final_turn": values["final_turn"],
             "auditoria": audit.get(municipio_id, {}),
         }
+        # Candidate names: Nucleo sheet is primary (local, reliable); CNE official overrides if available
+        if municipio_id in cand_names:
+            gov_n, opos_n = cand_names[municipio_id]
+            notes["cand_gov_nombre"] = gov_n
+            notes["cand_opos_nombre"] = opos_n
         if municipio_id in oficiales:
-            notes.update({
-                "cand_gov_nombre": oficiales[municipio_id].gov_name,
-                "cand_opos_nombre": oficiales[municipio_id].opos_name,
-                "fuente_oficial_url": oficiales[municipio_id].source_url,
-            })
+            if oficiales[municipio_id].gov_name:
+                notes["cand_gov_nombre"] = oficiales[municipio_id].gov_name
+            if oficiales[municipio_id].opos_name:
+                notes["cand_opos_nombre"] = oficiales[municipio_id].opos_name
+            notes["fuente_oficial_url"] = oficiales[municipio_id].source_url
         rows_e.append({
             "eleccion_ref": REF,
             "ambito": slug,
