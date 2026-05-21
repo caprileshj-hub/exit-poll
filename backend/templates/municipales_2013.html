@@ -1,92 +1,192 @@
 {% extends "base.html" %}
 {% set active_page = "historicos" %}
-{% block title %}Municipales 2013{% endblock %}
+{% block title %}Elecciones Municipales 2013 &mdash; {{ n_estudios }} Exit Polls{% endblock %}
+
+{% block extra_head %}
+<style>
+    .card-muni { transition: box-shadow .15s; cursor: pointer; }
+    .card-muni:hover { box-shadow: 0 4px 16px rgba(0,0,0,.18) !important; }
+    .bar-gov  { background: #c0392b; height: 6px; border-radius: 2px; }
+    .bar-opos { background: #2980b9; height: 6px; border-radius: 2px; }
+    .estado-header { background: var(--ep-azul); color: #fff; padding: .4rem 1rem;
+                     border-radius: 6px; font-size: .85rem; font-weight: 600; letter-spacing:.04em; }
+    .kpi-banner { border-left: 4px solid var(--ep-azul); }
+    .kpi-val { font-size: 1.8rem; font-weight: 700; color: var(--ep-azul); }
+    .win-badge-ok   { background: #198754; }
+    .win-badge-fail { background: #dc3545; }
+    .win-badge-unk  { background: #6c757d; }
+    .deff-warn { font-size: .72rem; color: #fd7e14; font-weight: 600; }
+    .cand-label { font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/historicos">Hist&#243;ricos</a></li>
+        <li class="breadcrumb-item"><a href="/historicos/estudios">Estudios</a></li>
+        <li class="breadcrumb-item active">Municipales 2013</li>
+    </ol>
+</nav>
+
+<div class="mb-4">
     <h2 class="mb-1"><i class="bi bi-building me-2"></i>Elecciones Municipales 2013</h2>
-    <div class="text-muted small">{{ n_estudios }} estudios municipales · {{ total_centros }} centros · {{ "{:,}".format(total_resp) }} registros</div>
-  </div>
-  <a href="/historicos" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Históricos</a>
+    <p class="text-muted mb-0">
+        {{ n_estudios }} exit polls simult&#225;neos &mdash; alcald&#237;as
+        &mdash; <strong>8 de diciembre de 2013</strong>
+    </p>
 </div>
 
+<!-- ── KPI Banner ──────────────────────────────────────────────────────── -->
 <div class="row g-3 mb-4">
-  <div class="col-md-3">
-    <div class="card h-100 shadow-sm"><div class="card-body">
-      <div class="small text-muted">Estudios</div>
-      <div class="fs-3 fw-bold">{{ n_estudios }}</div>
-    </div></div>
-  </div>
-  <div class="col-md-3">
-    <div class="card h-100 shadow-sm"><div class="card-body">
-      <div class="small text-muted">Centros ponderados</div>
-      <div class="fs-3 fw-bold">{{ total_centros }}</div>
-    </div></div>
-  </div>
-  <div class="col-md-3">
-    <div class="card h-100 shadow-sm"><div class="card-body">
-      <div class="small text-muted">Con oficial CNE</div>
-      <div class="fs-3 fw-bold">{{ con_oficial }}</div>
-    </div></div>
-  </div>
-  <div class="col-md-3">
-    <div class="card h-100 shadow-sm"><div class="card-body">
-      <div class="small text-muted">Ganador correcto</div>
-      <div class="fs-3 fw-bold">{% if con_oficial %}{{ correctos }}/{{ con_oficial }}{% else %}—{% endif %}</div>
-    </div></div>
-  </div>
-</div>
-
-<div class="alert alert-light border small">
-  <strong>Auditoría del core:</strong>
-  {{ meta.semaforo }}
-</div>
-
-{% for estado, items in estados %}
-<h5 class="mt-4 mb-2">{{ estado }}</h5>
-<div class="row g-3">
-  {% for m in items %}
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100 shadow-sm">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-          <h6 class="fw-bold mb-0">{{ m.municipio }}</h6>
-          {% if m.ganador_ok is not none %}
-          <span class="badge {% if m.ganador_ok %}bg-success{% else %}bg-danger{% endif %}">
-            {% if m.ganador_ok %}OK{% else %}Revisar{% endif %}
-          </span>
-          {% else %}
-          <span class="badge bg-secondary">Sin oficial</span>
-          {% endif %}
+    <div class="col-6 col-md-3">
+        <div class="card kpi-banner p-3 text-center">
+            <div class="kpi-val">{{ total_centros }}</div>
+            <small class="text-muted">Centros ponderados</small>
         </div>
-        <div class="row text-center">
-          <div class="col-4">
-            <div class="fw-bold text-danger">{{ m.e_gov }}%</div>
-            <small class="text-muted">Gob.</small>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-primary">{{ m.e_opos }}%</div>
-            <small class="text-muted">Opos.</small>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-secondary">{{ m.n_centros }}</div>
-            <small class="text-muted">Centros</small>
-          </div>
-        </div>
-        <div class="small text-muted mt-3">
-          Transmiten: {{ m.auditoria.centros_transmiten or 0 }}/{{ m.auditoria.centros_esperados or m.n_centros }}
-          · Atípicos: {{ m.auditoria.cortes_con_total_atipico or 0 }}
-        </div>
-      </div>
-      <div class="card-footer bg-transparent">
-        <a class="btn btn-sm btn-outline-primary w-100" href="/historicos/estudios/2013-municipales/{{ m.slug }}">
-          <i class="bi bi-graph-up me-1"></i>Ver detalle
-        </a>
-      </div>
     </div>
-  </div>
-  {% endfor %}
+    <div class="col-6 col-md-3">
+        <div class="card kpi-banner p-3 text-center">
+            <div class="kpi-val">{{ "{:,}".format(total_resp) if total_resp else "&#8212;" }}</div>
+            <small class="text-muted">Respondentes</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card kpi-banner p-3 text-center">
+            <div class="kpi-val">{{ n_estudios }}</div>
+            <small class="text-muted">Estudios paralelos</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card p-3 text-center {% if con_oficial > 0 and correctos / con_oficial >= 0.8 %}bg-success bg-opacity-10{% else %}bg-warning bg-opacity-10{% endif %}">
+            <div class="kpi-val {% if con_oficial > 0 and correctos / con_oficial >= 0.8 %}text-success{% else %}text-warning{% endif %}">
+                {{ correctos }}/{{ con_oficial }}
+            </div>
+            <small class="text-muted">Ganadores correctos</small>
+        </div>
+    </div>
+</div>
+
+{% if con_oficial > 0 %}
+<div class="alert {% if correctos / con_oficial >= 0.8 %}alert-success{% elif correctos / con_oficial >= 0.6 %}alert-warning{% else %}alert-danger{% endif %} py-2 mb-4" role="alert">
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>Acertividad global:</strong>
+    {{ correctos }} de {{ con_oficial }} ganadores correctamente identificados
+    ({{ (correctos / con_oficial * 100) | round(1) }}%).
+    {% set incorrectos = con_oficial - correctos %}
+    {% if incorrectos > 0 %}
+    {{ incorrectos }} proyecci&#243;n{{ 'es' if incorrectos > 1 else '' }} incorrecta{{ 's' if incorrectos > 1 else '' }} &#8212;
+    ver tarjetas marcadas con <span class="badge win-badge-fail">&#x2717;</span>.
+    {% endif %}
+    Haz clic en cualquier tarjeta para ver el an&#225;lisis detallado con la tendencia del estudio.
+</div>
+{% endif %}
+
+<!-- ── Grilla por estado ───────────────────────────────────────────────── -->
+{% for estado_nombre, estado_municipios in estados %}
+<div class="mb-4">
+    <div class="estado-header mb-3 d-inline-block">
+        <i class="bi bi-geo-alt me-2"></i>{{ estado_nombre }}
+        <span class="ms-2 fw-normal opacity-75">{{ estado_municipios | length }} estudio{{ 's' if estado_municipios | length > 1 else '' }}</span>
+    </div>
+
+    <div class="row g-3">
+    {% for m in estado_municipios %}
+    <div class="col-md-6 col-lg-4 col-xl-3">
+        <a href="/historicos/estudios/2013-municipales/{{ m.slug }}" class="text-decoration-none">
+        <div class="card shadow-sm card-muni h-100"
+             style="border-left: 4px solid {% if m.win_estudio %}#c0392b{% else %}#2980b9{% endif %}">
+            <div class="card-body py-3 px-3">
+
+                <!-- T&#237;tulo + badge ganador -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="fw-bold" style="font-size:.95rem; color:#1a3a5c">{{ m.municipio }}</div>
+                        <div class="text-muted" style="font-size:.72rem">Alcald&#237;a</div>
+                    </div>
+                    {% if m.ganador_ok is none %}
+                    <span class="badge bg-secondary ms-1" title="Sin datos oficiales">&#8212;</span>
+                    {% elif m.ganador_ok %}
+                    <span class="badge win-badge-ok ms-1" title="Ganador proyectado correctamente">&#x2713;</span>
+                    {% else %}
+                    <span class="badge win-badge-fail ms-1" title="Proyecci&#243;n incorrecta del ganador">&#x2717;</span>
+                    {% endif %}
+                </div>
+
+                <!-- Candidatos -->
+                {% if m.cand_gov or m.cand_opos %}
+                <div class="d-flex justify-content-between mb-2" style="font-size:.76rem">
+                    <span class="text-danger cand-label" title="{{ m.cand_gov or '' }}">
+                        <i class="bi bi-person-fill"></i> {{ (m.cand_gov or '&#8212;') | truncate(22, True, '&#8230;') }}
+                    </span>
+                    <span class="text-primary cand-label text-end" title="{{ m.cand_opos or '' }}">
+                        {{ (m.cand_opos or '&#8212;') | truncate(22, True, '&#8230;') }} <i class="bi bi-person"></i>
+                    </span>
+                </div>
+                {% endif %}
+
+                <!-- Barras estudio -->
+                {% if m.e_gov is not none %}
+                <div class="mb-1">
+                    <div class="d-flex justify-content-between" style="font-size:.78rem">
+                        <span class="text-danger fw-semibold">{{ m.e_gov }}%</span>
+                        <span class="text-muted">Estudio</span>
+                        <span class="text-primary fw-semibold">{{ m.e_opos }}%</span>
+                    </div>
+                    <div class="d-flex gap-1 mt-1">
+                        <div class="bar-gov" style="width:{{ m.e_gov }}%"></div>
+                        <div class="bar-opos" style="width:{{ m.e_opos }}%"></div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Resultados oficiales -->
+                {% if m.o_gov is not none %}
+                <div class="mb-1">
+                    <div class="d-flex justify-content-between" style="font-size:.75rem">
+                        <span class="text-danger">{{ m.o_gov }}%</span>
+                        <span class="text-muted">Oficial CNE</span>
+                        <span class="text-primary">{{ m.o_opos }}%</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Delta + m&#233;tricas -->
+                <div class="d-flex justify-content-between align-items-center mt-2" style="font-size:.75rem">
+                    <span class="text-muted">{{ m.n_centros }} centros</span>
+                    {% if m.delta_gov is not none %}
+                    <span class="badge
+                        {% if m.delta_gov | abs <= 1 %}bg-success
+                        {% elif m.delta_gov | abs <= 2.5 %}bg-warning text-dark
+                        {% else %}bg-danger{% endif %}"
+                        style="font-size:.68rem">
+                        &#916; {{ '%+.1f'|format(m.delta_gov) }} pp
+                    </span>
+                    {% endif %}
+                    {% if m.deff is not none and m.deff > 5 %}
+                    <span class="deff-warn" title="DEFF elevado: muestra por conglomerados con alta varianza intracluster">DEFF={{ m.deff }}</span>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+        </a>
+    </div>
+    {% endfor %}
+    </div>
 </div>
 {% endfor %}
+
+<!-- ── Leyenda ──────────────────────────────────────────────────────────── -->
+<div class="card mt-2 mb-4 bg-light border-0">
+    <div class="card-body py-2 small text-muted d-flex flex-wrap gap-3 align-items-center">
+        <span><span class="badge win-badge-ok">&#x2713;</span> Ganador correcto</span>
+        <span><span class="badge win-badge-fail">&#x2717;</span> Ganador incorrecto</span>
+        <span><span class="badge bg-success">&#916; leve</span> error &le; 1 pp</span>
+        <span><span class="badge bg-warning text-dark">&#916; moderado</span> 1&#8211;2.5 pp</span>
+        <span><span class="badge bg-danger">&#916; cr&#237;tico</span> &gt; 2.5 pp</span>
+        <span class="ms-auto"><a href="/historicos/estudios" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Estudios</a></span>
+    </div>
+</div>
+
 {% endblock %}

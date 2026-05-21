@@ -3793,6 +3793,8 @@ async def municipales_2013_collection(request: Request):
             "ganador_ok": (win_e == win_o) if o_gov is not None else None,
             "delta_gov": delta_g, "delta_opos": delta_o,
             "auditoria": notas.get("auditoria", {}),
+            "cand_gov": notas.get("cand_gov_nombre") or "",
+            "cand_opos": notas.get("cand_opos_nombre") or "",
         })
 
     from collections import defaultdict
@@ -3855,18 +3857,31 @@ async def municipales_2013_detalle(request: Request, municipio_slug: str):
     moe_adj = round(1.96 * _math.sqrt((deff or 1) * 0.25 / n) * 100, 2) if n > 0 else None
 
     analisis = {}
-    if e_gov is not None and o_gov is not None:
+    if e_gov is not None and o_gov is not None and o_gov > 0:
         delta_g = round(e_gov - o_gov, 2)
-        delta_o = round(e_opos - o_opos, 2) if e_opos is not None and o_opos is not None else None
+        delta_o = round(e_opos - o_opos, 2) if e_opos is not None and o_opos else None
+        e_brecha = round(e_gov - (e_opos or 0), 2)
+        o_brecha = round(o_gov - (o_opos or 0), 2)
+        error_abs = abs(delta_g)
+        magnitud = ("leve" if error_abs <= 1.0 else "moderado" if error_abs <= 2.5
+                    else "severo" if error_abs <= 5.0 else "critico")
         win_e = e_gov > (e_opos or 0)
         win_o = o_gov > (o_opos or 0)
+        mae_partes = [error_abs]
+        if delta_o is not None: mae_partes.append(abs(delta_o))
+        if e_otros is not None and o_otros is not None and o_otros > 0:
+            mae_partes.append(abs(round(e_otros - o_otros, 2)))
         analisis = {
-            "delta_gov": delta_g,
-            "delta_opos": delta_o,
-            "error_abs": abs(delta_g),
+            "delta_gov": delta_g, "delta_opos": delta_o,
+            "e_brecha": e_brecha, "o_brecha": o_brecha,
+            "delta_brecha": round(e_brecha - o_brecha, 2),
+            "error_abs": error_abs, "magnitud": magnitud,
+            "mae_mosteller": round(sum(mae_partes) / len(mae_partes), 2),
+            "mae_n_opciones": len(mae_partes),
             "ganador_estudio": "gobierno" if win_e else "oposicion",
             "ganador_oficial": "gobierno" if win_o else "oposicion",
             "acierto_ganador": win_e == win_o,
+            "errores_opuestos": (delta_g * delta_o < 0) if delta_o else False,
         }
 
     return templates.TemplateResponse(request=request,

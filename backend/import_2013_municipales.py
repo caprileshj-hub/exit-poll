@@ -94,18 +94,16 @@ STUDIED_MUNICIPALITIES = {
 
 GOV_CANDIDATE = 1
 OPOS_CANDIDATE = 2
-TURN_LABELS = {
-    0: "Base auditada",
-    1: "1er corte",
-    2: "2do corte",
-    3: "3er corte",
-    4: "4to corte",
-    5: "5to corte",
-    6: "6to corte",
-    7: "7mo corte",
-    8: "8vo corte",
-    9: "9no corte",
-}
+
+
+def _turno_label(turno: int) -> str:
+    """Convierte número de turno a etiqueta horaria. Turno 0 = base pre-campo.
+    Turnos 1..N: cada 30 min desde las 07:00."""
+    if turno == 0:
+        return "Base (07:00)"
+    mins = 7 * 60 + (turno - 1) * 30
+    h, m = divmod(mins, 60)
+    return f"{h:02d}:{m:02d}"
 
 
 @dataclass
@@ -589,7 +587,7 @@ def build_seed_rows(fetch_official: bool = True) -> dict[str, list[dict]]:
                 "eleccion_ref": REF,
                 "ambito": slug,
                 "turno": turno,
-                "hora_label": TURN_LABELS.get(turno, f"Corte {turno}"),
+                "hora_label": _turno_label(turno),
                 "pct_gov": tv["pct_gov"],
                 "pct_opos": tv["pct_opos"],
                 "pct_otros": tv["pct_otros"],

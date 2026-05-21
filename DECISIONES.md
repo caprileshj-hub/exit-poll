@@ -144,3 +144,20 @@
 - Distribución: sideload directo (APK firmada) — no requiere Play Store.
 
 **Estado**: Fija. Desarrollo Android pendiente (fuera de scope del repo web actual).
+
+---
+
+## ADR-010 — Seed de datos históricos en startup.py (no solo en evento FastAPI)
+
+**Decisión**: `startup.py` llama `seed_historico_estudios.py` explícitamente en cada arranque, antes de iniciar uvicorn.
+
+**Contexto**: Los datos históricos viven en `data/historico_estudios_seed.json` (versionado en git) y se escriben en `exitpoll.db` (persistente en Azure, no versionado). Cuando se regenera el seed localmente y se hace push, Azure tiene el código nuevo pero la BD contiene los datos viejos. El `@app.on_event("startup")` que existía como mecanismo de sync fallaba silenciosamente por el bloque `try/except` — Azure servía datos desactualizados sin ningún aviso en los logs.
+
+**Consecuencias**:
+- `startup.py` ejecuta `seed_historico_estudios.py` incondicionalmente en cada deploy/restart.
+- El seed usa `ON CONFLICT DO UPDATE` en todas las tablas historicas — es idempotente y seguro.
+- Si el seed falla, `subprocess.check_call` lanza excepción y el arranque aborta visiblemente (en lugar de continuar con datos viejos).
+- El evento `@app.on_event("startup")` en `app.py` queda como fallback redundante pero ya no es el mecanismo primario.
+- **Regla operativa**: cada vez que se modifica `historico_estudios_seed.json` localmente, el commit y push al repo es suficiente para que Azure sincronice en el próximo restart. No se necesita intervención manual en la BD.
+
+**Estado**: Fija.
