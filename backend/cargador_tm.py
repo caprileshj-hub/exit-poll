@@ -15,6 +15,8 @@ Lo que NUNCA se sobreescribe si ya tiene valor:
     - radio_m       (configuracion operativa)
 
 Centros que desaparecen del nuevo TM se marcan activo=0, no se borran.
+La desactivación se limita a los ESTADOS presentes en el CSV: un TM parcial
+(p. ej. una elección regional) no toca los centros del resto del país.
 
 Uso:
     python cargador_tm.py <tm_estandar.csv> [--dry-run]
@@ -103,6 +105,7 @@ def cargar_tm(csv_path: str, dry_run: bool = False):
     conn.execute('PRAGMA foreign_keys = ON')
 
     stats = {'nuevos': 0, 'actualizados': 0, 'sin_cambio': 0, 'desactivados': 0}
+    estados_csv: set[int] = set()
 
     try:
         for _, row in centros_nuevos.iterrows():
@@ -114,6 +117,7 @@ def cargar_tm(csv_path: str, dry_run: bool = False):
                 {'codigo_cne': str(row['cod_estado']).zfill(2)},
                 {'nombre': normalizar(row['estado']), 'es_excepcion': 0}
             )
+            estados_csv.add(id_estado)
 
             id_municipio = obtener_o_crear(
                 conn, 'municipios',
@@ -200,8 +204,14 @@ def cargar_tm(csv_path: str, dry_run: bool = False):
                 stats['actualizados'] += 1
 
         # --- Marcar como inactivos los centros que no están en el nuevo TM ---
-        codigos_csv = set(centros_nuevos['codigo_centro'].astype(str))
-        codigos_bd  = {r[0] for r in conn.execute('SELECT codigo_cne FROM centros WHERE activo=1')}
+        # Solo dentro de los estados que el CSV cubre: un TM parcial no debe
+        # desactivar los centros del resto del país.
+        codigos_csv = {str(c).strip() for c in centros_nuevos['codigo_centro']}
+        placeholders = ','.join('?' for _ in estados_csv)
+        codigos_bd = {r[0] for r in conn.execute(
+            f'SELECT codigo_cne FROM centros WHERE activo=1 AND id_estado IN ({placeholders})',
+            list(estados_csv)
+        )} if estados_csv else set()
         desaparecidos = codigos_bd - codigos_csv
 
         if desaparecidos and not dry_run:
@@ -227,7 +237,7 @@ def cargar_tm(csv_path: str, dry_run: bool = False):
     print(f'    Centros nuevos:       {stats["nuevos"]:>6,}')
     print(f'    Centros actualizados: {stats["actualizados"]:>6,}  (mesas/electores)')
     print(f'    Sin cambios:          {stats["sin_cambio"]:>6,}')
-    print(f'    Desactivados:         {stats["desactivados"]:>6,}  (no están en nuevo TM)')
+    print(f'    Desactivados:         {stats["desactivados"]:>6,}  (no están en el nuevo TM, solo estados del CSV)')
     if dry_run:
         print('\n[!] Dry run: no se escribió nada en la BD')
 
