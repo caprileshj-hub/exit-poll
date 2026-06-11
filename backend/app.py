@@ -1681,7 +1681,15 @@ VIZ_DIR = BASE_DIR / "static" / "viz"
 VIZ_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _datos_ventaja_por_estado(db) -> dict:
+def _eleccion_ref_referencia(db) -> str | None:
+    """Ref histórica más reciente (los refs empiezan por año, ordenan lexicográficamente)."""
+    row = db.execute(
+        "SELECT eleccion_ref FROM resultados_historicos ORDER BY eleccion_ref DESC LIMIT 1"
+    ).fetchone()
+    return row["eleccion_ref"] if row else None
+
+
+def _datos_ventaja_por_estado(db, eleccion_ref: str) -> dict:
     """Extrae ventaja gobierno-oposición por estado desde resultados_historicos."""
     rows = db.execute("""
         SELECT e.nombre,
@@ -1691,9 +1699,9 @@ def _datos_ventaja_por_estado(db) -> dict:
         FROM resultados_historicos rh
         JOIN centros c ON rh.codigo_centro = c.codigo_cne
         JOIN estados e ON c.id_estado = e.id
-        WHERE c.activo = 1
+        WHERE c.activo = 1 AND rh.eleccion_ref = ?
         GROUP BY e.id
-    """).fetchall()
+    """, (eleccion_ref,)).fetchall()
     datos = {}
     for r in rows:
         if r["val"] and r["val"] > 0:
@@ -1712,7 +1720,7 @@ def _datos_ventaja_por_estado(db) -> dict:
     return datos
 
 
-def _datos_ventaja_muestra(db, id_eleccion: int) -> dict:
+def _datos_ventaja_muestra(db, id_eleccion: int, eleccion_ref: str) -> dict:
     """Ventaja solo para centros en la muestra, por estado."""
     rows = db.execute("""
         SELECT e.nombre,
@@ -1722,10 +1730,11 @@ def _datos_ventaja_muestra(db, id_eleccion: int) -> dict:
         FROM muestra m
         JOIN centros c ON m.codigo_centro = c.codigo_cne
         JOIN estados e ON c.id_estado = e.id
-        LEFT JOIN resultados_historicos rh ON rh.codigo_centro = m.codigo_centro
+        LEFT JOIN resultados_historicos rh
+            ON rh.codigo_centro = m.codigo_centro AND rh.eleccion_ref = ?
         WHERE m.id_eleccion = ? AND m.activo = 1
         GROUP BY e.id
-    """, (id_eleccion,)).fetchall()
+    """, (eleccion_ref, id_eleccion)).fetchall()
     datos = {}
     for r in rows:
         if r["val"] and r["val"] > 0:
@@ -1757,7 +1766,7 @@ def _norm_municipio(nombre: str) -> str:
     return especiales.get(nombre.upper(), nombre.title())
 
 
-def _datos_ventaja_por_municipio(db) -> dict:
+def _datos_ventaja_por_municipio(db, eleccion_ref: str) -> dict:
     """Extrae ventaja gobierno-oposicion por municipio."""
     rows = db.execute("""
         SELECT e.nombre AS estado, mu.nombre AS municipio,
@@ -1768,9 +1777,9 @@ def _datos_ventaja_por_municipio(db) -> dict:
         JOIN centros c ON rh.codigo_centro = c.codigo_cne
         JOIN estados e ON c.id_estado = e.id
         JOIN municipios mu ON c.id_municipio = mu.id
-        WHERE c.activo = 1
+        WHERE c.activo = 1 AND rh.eleccion_ref = ?
         GROUP BY e.id, mu.id
-    """).fetchall()
+    """, (eleccion_ref,)).fetchall()
     datos = {}
     for r in rows:
         if r["val"] and r["val"] > 0:
@@ -1780,7 +1789,7 @@ def _datos_ventaja_por_municipio(db) -> dict:
     return datos
 
 
-def _datos_ventaja_muestra_municipio(db, id_eleccion: int) -> dict:
+def _datos_ventaja_muestra_municipio(db, id_eleccion: int, eleccion_ref: str) -> dict:
     """Extrae ventaja de centros en muestra por municipio."""
     rows = db.execute("""
         SELECT e.nombre AS estado, mu.nombre AS municipio,
@@ -1791,10 +1800,11 @@ def _datos_ventaja_muestra_municipio(db, id_eleccion: int) -> dict:
         JOIN centros c ON m.codigo_centro = c.codigo_cne
         JOIN estados e ON c.id_estado = e.id
         JOIN municipios mu ON c.id_municipio = mu.id
-        LEFT JOIN resultados_historicos rh ON rh.codigo_centro = m.codigo_centro
+        LEFT JOIN resultados_historicos rh
+            ON rh.codigo_centro = m.codigo_centro AND rh.eleccion_ref = ?
         WHERE m.id_eleccion = ? AND m.activo = 1
         GROUP BY e.id, mu.id
-    """, (id_eleccion,)).fetchall()
+    """, (eleccion_ref, id_eleccion)).fetchall()
     datos = {}
     for r in rows:
         if r["val"] and r["val"] > 0:
@@ -1851,22 +1861,25 @@ def _tendencia_simulada(datos_ventaja: dict, n_puntos: int = 15) -> dict:
     return tendencias
 
 
-def _total_referencia_dashboard(db, id_eleccion: int | None = None, fuente: str = "todos") -> int:
+def _total_referencia_dashboard(
+    db, eleccion_ref: str, id_eleccion: int | None = None, fuente: str = "todos"
+) -> int:
     """Cuenta opiniones de referencia con la misma fuente usada por /visualizacion."""
     if fuente == "muestra" and id_eleccion:
         row = db.execute("""
             SELECT COALESCE(SUM(rh.votos_validos), 0) AS total
             FROM muestra m
-            LEFT JOIN resultados_historicos rh ON rh.codigo_centro = m.codigo_centro
+            LEFT JOIN resultados_historicos rh
+                ON rh.codigo_centro = m.codigo_centro AND rh.eleccion_ref = ?
             WHERE m.id_eleccion = ? AND m.activo = 1
-        """, (id_eleccion,)).fetchone()
+        """, (eleccion_ref, id_eleccion)).fetchone()
     else:
         row = db.execute("""
             SELECT COALESCE(SUM(rh.votos_validos), 0) AS total
             FROM resultados_historicos rh
             JOIN centros c ON rh.codigo_centro = c.codigo_cne
-            WHERE c.activo = 1
-        """).fetchone()
+            WHERE c.activo = 1 AND rh.eleccion_ref = ?
+        """, (eleccion_ref,)).fetchone()
     return int(row["total"] or 0)
 
 
@@ -1877,22 +1890,26 @@ def _datos_dashboard_referencia(
     fuente: str = "todos",
 ) -> tuple[dict, dict, int]:
     """Devuelve la misma data base que usa el dashboard estatico de /visualizacion."""
+    eleccion_ref = _eleccion_ref_referencia(db)
+    if not eleccion_ref:
+        return {}, {}, 0
+
     if nivel == "municipio":
         if fuente == "muestra" and id_eleccion:
-            datos_ventaja = _datos_ventaja_muestra_municipio(db, id_eleccion)
+            datos_ventaja = _datos_ventaja_muestra_municipio(db, id_eleccion, eleccion_ref)
         else:
-            datos_ventaja = _datos_ventaja_por_municipio(db)
+            datos_ventaja = _datos_ventaja_por_municipio(db, eleccion_ref)
     elif fuente == "muestra" and id_eleccion:
-        datos_ventaja = _datos_ventaja_muestra(db, id_eleccion)
+        datos_ventaja = _datos_ventaja_muestra(db, id_eleccion, eleccion_ref)
     else:
-        datos_ventaja = _datos_ventaja_por_estado(db)
+        datos_ventaja = _datos_ventaja_por_estado(db, eleccion_ref)
 
     if not datos_ventaja:
         return {}, {}, 0
     return (
         datos_ventaja,
         _tendencia_simulada(datos_ventaja),
-        _total_referencia_dashboard(db, id_eleccion, fuente),
+        _total_referencia_dashboard(db, eleccion_ref, id_eleccion, fuente),
     )
 
 
@@ -1958,16 +1975,19 @@ async def visualizacion_generar(
 
     candidatos_dict = _nombres_candidatos(db, eid)
 
-    # Obtener datos de ventaja
-    if nivel == "municipio":
+    # Obtener datos de ventaja (siempre de una sola eleccion_ref)
+    eleccion_ref = _eleccion_ref_referencia(db)
+    if not eleccion_ref:
+        datos_ventaja = {}
+    elif nivel == "municipio":
         if fuente == "muestra" and eid:
-            datos_ventaja = _datos_ventaja_muestra_municipio(db, eid)
+            datos_ventaja = _datos_ventaja_muestra_municipio(db, eid, eleccion_ref)
         else:
-            datos_ventaja = _datos_ventaja_por_municipio(db)
+            datos_ventaja = _datos_ventaja_por_municipio(db, eleccion_ref)
     elif fuente == "muestra" and eid:
-        datos_ventaja = _datos_ventaja_muestra(db, eid)
+        datos_ventaja = _datos_ventaja_muestra(db, eid, eleccion_ref)
     else:
-        datos_ventaja = _datos_ventaja_por_estado(db)
+        datos_ventaja = _datos_ventaja_por_estado(db, eleccion_ref)
 
     db.close()
 

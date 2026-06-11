@@ -112,6 +112,20 @@ def _inyectar_resultados_historicos(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _inyectar_resultados_historicos_viejos(conn: sqlite3.Connection) -> None:
+    """Una eleccion anterior con resultado opuesto: no debe mezclarse con la referencia."""
+    for idx in range(1, 5):
+        codigo = f"010100{idx:03d}"
+        conn.execute(
+            """INSERT INTO resultados_historicos (
+                   codigo_centro, eleccion_ref, votos_validos,
+                   votos_gobierno, votos_oposicion, pct_gobierno, pct_oposicion
+               ) VALUES (?, '2006-test', 500, 450, 50, 90.0, 10.0)""",
+            (codigo,),
+        )
+    conn.commit()
+
+
 def _analisis(conn: sqlite3.Connection) -> dict:
     eleccion = conn.execute("SELECT * FROM elecciones WHERE activa=1").fetchone()
     candidatos = app_backend._nombres_candidatos(conn, eleccion["id"])
@@ -138,6 +152,38 @@ def test_simula_dia_electoral_y_guardrail_ia(tmp_path, monkeypatch):
         assert consolidado["resumen"] != INSUFICIENTE
         assert consolidado["metricas"]["total_opiniones"] == 120
         assert consolidado["metricas"]["ventaja_actual"] < 0
+    finally:
+        conn.close()
+
+
+def test_referencia_usa_solo_la_eleccion_mas_reciente(tmp_path, monkeypatch):
+    """Regresion B1/B3: con dos eleccion_ref cargadas, el dashboard de referencia
+    no debe mezclar votos de elecciones distintas ni duplicar filas por el JOIN."""
+    db_path = _init_db(tmp_path, monkeypatch)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        _seed_eleccion(conn)
+        _inyectar_resultados_historicos_viejos(conn)
+        _inyectar_resultados_historicos(conn)
+
+        # 'referencia-test' ordena despues de '2006-test': es la ref vigente
+        assert app_backend._eleccion_ref_referencia(conn) == "referencia-test"
+
+        payload = app_backend._dashboard_stream_payload(conn)
+        assert payload["fuente_datos"] == "dashboard_referencia"
+        # Solo los 400 votos de la ref reciente; sin el filtro daria 2400 (400 + 2000)
+        assert payload["total_opiniones"] == 400
+        # Ventaja de la ref reciente: 40% gob - 60% opo = -20; mezclada seria positiva
+        assert payload["geo"]["Distrito Capital"] == -20.0
+
+        # La fuente "muestra" tampoco debe duplicar filas por el LEFT JOIN
+        geo_muestra = app_backend._datos_ventaja_muestra(conn, 1, "referencia-test")
+        assert geo_muestra["Distrito Capital"] == -20.0
+        total_muestra = app_backend._total_referencia_dashboard(
+            conn, "referencia-test", 1, "muestra"
+        )
+        assert total_muestra == 400
     finally:
         conn.close()
 
