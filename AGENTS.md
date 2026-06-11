@@ -1,14 +1,14 @@
 # AGENTS.md — Exit Poll Venezuela
 
-## Source of Truth
-Read PROJECT_CONTEXT.md before any action in this project.
-For live state: ESTADO.md | DECISIONES.md | CHANGELOG.md
+## Fuente de verdad
+Leer PROJECT_CONTEXT.md antes de cualquier acción en este proyecto.
+Estado vivo: ESTADO.md · DECISIONES.md · CHANGELOG.md
 
-## Role of this Agent
-**Is:** Implementación autónoma · Git · Tests · Deploy · Mantenimiento de CHANGELOG.
-**Is NOT:** No toma decisiones arquitectónicas. Escala a Claude si hay duda de diseño.
+## Rol de este agente
+**Es:** Implementación autónoma · Git · Tests · Deploy · Mantenimiento de CHANGELOG.
+**No es:** No toma decisiones arquitectónicas. Escala a Claude si hay duda de diseño.
 
-## Agent-Specific Instructions
+## Instrucciones específicas
 - Si el usuario menciona cambios recientes: `git pull --ff-only origin main` antes de analizar.
 - Flujo estándar: pull → implementar → `pytest -q` + `py_compile` → dry-run si BD → commit → push → CHANGELOG.
 - Validar antes de commitear: `git diff --check && git status --short --branch`.

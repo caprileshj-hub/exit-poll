@@ -1,8 +1,12 @@
-# Formato Estándar de Tabla de Mesa (TM)
+# TM_ESTANDAR.md — Exit Poll Venezuela
+
+> Especificación del formato estándar de Tabla de Mesa (TM): el CSV interno
+> que normaliza los archivos de Tabla de Mesa del CNE.
+
+---
 
 ## Descripción
-CSV interno que normaliza los archivos de Tabla de Mesa del CNE.
-Una fila por MESA (no por centro). El cargador agrupa por centro al importar.
+Una fila por MESA (no por centro). El cargador (`cargador_tm.py`) agrupa por centro al importar.
 
 ## Formato
 

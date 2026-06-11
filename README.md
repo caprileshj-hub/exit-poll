@@ -1,5 +1,7 @@
 # Exit Poll Venezuela
 
+> Lee este documento en español: [README.es.md](./README.es.md)
+
 End-to-end exit poll platform for Venezuelan elections. Replaces a manual workflow (paper forms → phone calls → Access database → Excel) with an automated system built around SMS-based data collection — the only reliable channel in Venezuela's low-connectivity field conditions. Results flow from the field into a weighted, real-time heatmap and trend dashboard. A deterministic AI analyst embedded in the live view reads incoming data and provides plain-language interpretations of the national trend, individual states, and each candidate's position — with explicit guardrails against premature winner declarations.
 
 ---
@@ -45,7 +47,7 @@ The surveyor's phone number serves as their ID — it never travels in the SMS p
 
 The project is in active development. **Phase 7 is underway:**
 
-### ✅ Completed
+### Completed
 - **Database** — SQLite with WAL mode, foreign keys, permanent voting-center registry, election-specific eligibility, audit tables, and client access model
 - **TM Ingestion Pipeline** — Keeps the legacy Excel/CSV differential loader for known 2015/2018 formats and adds an AI-assisted multi-format ingestion flow for new CNE files; manually-entered GPS coordinates and risk ratings are never overwritten
 - **Sample Design** — Automatic selection of representative voting centers using historical CNE results (11,927 centers from 2024); classifies centers as *swing*, *bastion*, *volume*, or *standard*
@@ -58,7 +60,7 @@ The project is in active development. **Phase 7 is underway:**
 - **Technical specification document** — CIS-style methodology card with calculated margin of error, printable from the dashboard
 - **Live AI analyst** — Deterministic analyst panel and provider-backed chat with guardrails. It refuses premature trend analysis with the exact phrase `datos insuficientes para establecer tendencias` until minimum opinions, coverage, and comparable cuts are available.
 
-### 🔄 In Development (Phase 7)
+### In Development (Phase 7)
 - Production hardening for AI-powered TM normalization: larger-file UX, better manual-resolution workflows, provider rate-limit handling, and stronger fuzzy matching
 - SMS parser and GPS validation in FastAPI backend
 - Android APK (surveyor UI + SMS sending + offline queue)
@@ -214,8 +216,15 @@ exit_poll/
 │   ├── generador_dashboard.py  # Standalone HTML dashboard generator
 │   ├── TM_ESTANDAR.md          # Internal CSV spec (15 columns)
 │   └── exitpoll.db             # SQLite database
+├── test_flujo.py               # Election-day flow + AI guardrail tests
+├── test_ai_validation.py       # Statistical validation tests
+├── test_cargador_tm.py         # Differential TM loader tests
+├── test_geo_pesos.py           # Weights + geography matching tests
 └── legacy/
-    └── Core.xlsx               # Original Excel model (reference)
+    ├── Core.xlsx               # Original Excel model (reference)
+    ├── scripts_raiz/           # Pre-backend scripts (phases 1-6)
+    ├── ai_configs/             # Per-tool AI instructions (archived)
+    └── outputs/                # Generated artifacts (archived)
 ```
 
 ---

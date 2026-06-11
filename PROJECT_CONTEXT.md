@@ -147,7 +147,7 @@ El número de teléfono del encuestador es su ID — no viaja en el SMS.
 - Bugs pendientes → anotar en `ESTADO.md` sección Pendientes.
 - Comportamiento cambiado importante → sincronizar `README.md`.
 - Antes de `git pull`: verificar que no haya cambios sin commitear.
-- `test_flujo.py` es smoke test legacy — pytest verde no garantiza funcionalidad FastAPI completa.
+- Suite de tests: `test_flujo.py`, `test_ai_validation.py`, `test_cargador_tm.py`, `test_geo_pesos.py` (20 tests al 2026-06-10). Correr pytest desde la raíz del proyecto. Verde no garantiza funcionalidad FastAPI completa.
 - Para cambios de esquema o seed: `--dry-run` primero.
 
 ---
@@ -158,5 +158,8 @@ El número de teléfono del encuestador es su ID — no viaja en el SMS.
 |-----------|-----------|
 | `ESTADO.md` | Qué funciona, qué está pendiente, bugs conocidos |
 | `DECISIONES.md` | Decisiones arquitectónicas con rationale (ADRs) |
-| `CHANGELOG.md` | Historial de commits y cambios |
-| `BITACORA.md` | Historial narrativo de desarrollo (no modificar con agentes) |
+| `CHANGELOG.md` | Historial de cambios por sesión (más reciente arriba) |
+| `BITACORA.md` | Historial narrativo de desarrollo; los agentes pueden agregar sesiones con formato `## AAAA-MM-DD — Tema` |
+| `METODOLOGIA_ESTADISTICA.md` | Marco estadístico de estudios históricos y analista IA |
+| `SECURITY.md` | Auditoría de seguridad 2026-05-01 y riesgos aceptados (en inglés) |
+| `README.md` / `README.es.md` | Cara pública del repo (inglés/español, enlazados) |

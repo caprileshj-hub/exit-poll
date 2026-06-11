@@ -2,7 +2,7 @@
 
 > Estado actual del proyecto: qué funciona, qué está pendiente, qué bugs hay abiertos.
 > Actualizar al cierre de cada sesión de trabajo significativa.
-> Última actualización: 2026-05-19
+> Última actualización: 2026-06-10
 
 ---
 
@@ -96,10 +96,10 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 - [x] **Harness de tests backend**
   - Dependencias de desarrollo documentadas en `requirements-dev.txt`
   - `test_flujo.py` ejecutable con pytest sobre SQLite temporal
-- [ ] **Ampliar cobertura de tests backend**
+- [ ] **Ampliar cobertura de tests backend** (20 tests al 2026-06-10: `test_flujo`, `test_ai_validation`, `test_cargador_tm`, `test_geo_pesos`)
   - Rutas FastAPI críticas: `/candidatos`, `/pesos`, `/visualizacion`, `/tm`
   - `calcular_resultado_ponderado()` en `simulador_showcase.py`
-  - Calculador pesos por tipo de elección (regional, municipal, asamblea)
+  - Calculador pesos por tipo de elección (asamblea pendiente; regional cubierto en `test_geo_pesos`)
 
 ### Media prioridad
 - [ ] **Dashboard auditoría interna**: semáforo centros, panel encuestadores, alertas fraude (acceso interno exclusivo)
@@ -128,7 +128,25 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 - **Impacto**: Candidatos `lista`, `nominal`, `indigena` pueden quedar sin su geografía correctamente asociada.
 - **Acción**: Revisar JS del formulario; agregar validación server-side por combinación.
 
+### BUG-002: Error muestral de /ficha usa electores en vez de entrevistas
+- **Archivo**: `backend/app.py` · ruta `/ficha`
+- **Síntoma**: La fórmula del margen de error usa como *n* los electores de los centros de la muestra (~cientos de miles), no las entrevistas esperadas.
+- **Impacto**: La ficha técnica estilo CIS muestra un MoE irrealmente pequeño.
+- **Acción**: Decidir el *n* correcto (¿entrevistas planificadas por centro × centros? ¿campo configurable?) antes de corregir la fórmula.
+
 ## Bugs resueltos
+
+### RESUELTO (2026-06-10): Dashboard de referencia mezclaba elecciones distintas
+- **Archivos**: `backend/app.py` · funciones de ventaja y `_total_referencia_dashboard`
+- **Resolución**: Nuevo helper `_eleccion_ref_referencia()`; todas las funciones de referencia filtran por la `eleccion_ref` más reciente. Antes sumaban 2006 + 2024 (ventaja nacional −3.7 pp en vez de −36.8 pp) y los LEFT JOIN duplicaban filas por centro con dos refs.
+
+### RESUELTO (2026-06-10): Carga TM parcial desactivaba centros de todo el país
+- **Archivo**: `backend/cargador_tm.py`
+- **Resolución**: La desactivación de centros ausentes del CSV se acota a los estados que el CSV cubre, igual que el path de ingesta IA.
+
+### RESUELTO (2026-06-10): Pesos excluían centros sin municipio; geografía duplicada entre ingestas
+- **Archivos**: `backend/calculador_pesos.py`, `backend/app.py`
+- **Resolución**: LEFT JOIN a municipios con aviso (centros sin geografía agrupan como unidad propia); `_geo_match_name()` unifica el matching de nombres CNE crudos vs nombres de la ingesta IA.
 
 ### RESUELTO: Agregación incorrecta en simulador regional/municipal
 - **Archivo**: `backend/simulador_showcase.py` · función `calcular_resultado_ponderado()`

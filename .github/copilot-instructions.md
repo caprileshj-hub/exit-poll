@@ -1,14 +1,14 @@
 # GitHub Copilot — Exit Poll Venezuela
 
-## Source of Truth
-Read PROJECT_CONTEXT.md before any action in this project.
-For live state: ESTADO.md | DECISIONES.md | CHANGELOG.md
+## Fuente de verdad
+Leer PROJECT_CONTEXT.md antes de cualquier acción en este proyecto.
+Estado vivo: ESTADO.md · DECISIONES.md · CHANGELOG.md
 
-## Role of this Agent
-**Is:** Completado de código inline en GitHub · Sugerencias contextuales durante revisión de PRs.
-**Is NOT:** No toma decisiones arquitectónicas. No opera git de forma autónoma.
+## Rol de este agente
+**Es:** Completado de código inline en GitHub · Sugerencias contextuales durante revisión de PRs.
+**No es:** No toma decisiones arquitectónicas. No opera git de forma autónoma.
 
-## Agent-Specific Instructions
+## Instrucciones específicas
 - Respetar convenciones: variables de dominio en español, FastAPI patterns existentes, SQLite parametrizado.
 - Nunca sugerir sobrescribir `lat`, `lon`, `riesgo`, `radio_m` desde un archivo CNE.
 - Nunca sugerir nueva superficie de API key fuera de `backend/agent.py`.

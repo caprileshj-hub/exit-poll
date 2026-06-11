@@ -1,7 +1,173 @@
 # CHANGELOG.md — Exit Poll Venezuela
 
-> Mantenido por Codex en cada sesión de implementación. No editar manualmente.
+> Historial de cambios por sesión, mantenido por los agentes al cierre de cada sesión de implementación.
+> Orden: más reciente arriba. `[Unreleased]` agrupa lo pendiente de commit.
 > Tipos: `feat` · `fix` · `refactor` · `test` · `docs` · `deploy` · `security`
+
+---
+
+## [Unreleased]
+
+<!-- Agregar aquí los cambios del próximo commit antes de pushear -->
+
+---
+
+## 2026-06-10
+
+### fix — Dashboard de referencia filtra por la eleccion_ref más reciente
+- Las funciones de ventaja (`_datos_ventaja_por_estado`, `_datos_ventaja_por_municipio` y variantes de muestra) y `_total_referencia_dashboard` sumaban **todas** las `eleccion_ref` de `resultados_historicos`; al importar el seed 2006 el dashboard `/live`, `/visualizacion` y el contexto del analista mezclaban 2006 con 2024 (ventaja nacional −3.7 pp en vez de −36.8 pp)
+- Los `LEFT JOIN` de muestra además duplicaban filas por centro con dos refs
+- Nuevo helper `_eleccion_ref_referencia()` resuelve la ref vigente (la más reciente); `/muestra` y `/muestra/generar` la usan en vez de `'2024-presidencial'` hardcodeado
+- Archivos: `backend/app.py`, `test_flujo.py`
+- Tests: regresión con dos refs cargadas; suite completa verde
+- Deploy: requiere redeploy
+
+### fix — Carga TM diferencial acotada a los estados presentes en el CSV
+- `cargador_tm.cargar_tm` marcaba `activo=0` a todo centro de la BD ausente del CSV, sin importar el estado: un TM parcial (una regional) desactivaba los ~13.000 centros del resto del país
+- La desactivación ahora se limita a los estados que el CSV cubre, igual que el path de ingesta IA (`_deactivate_tm_scope`)
+- Archivos: `backend/cargador_tm.py`, `test_cargador_tm.py`
+- Tests: TM parcial no toca otros estados; dry-run no escribe
+- Deploy: requiere redeploy
+
+### fix — Pesos con centros sin municipio y geografía compartida entre ingestas
+- `calculador_pesos`: el `INNER JOIN` a municipios excluía en silencio del cálculo a los centros con `id_municipio NULL` (los crea la ingesta IA). Ahora `LEFT JOIN` con aviso; sin geografía asignada el centro agrupa como unidad propia (peso 1)
+- `_obtener_o_crear_geo`: buscaba municipios/parroquias por igualdad exacta del nombre normalizado, que no coincide con los nombres crudos CNE de `cargador_tm` ("MP. ZAMORA" vs "Zamora") y creaba duplicados `AI##`. Nuevo `_geo_match_name()` compara nombres canónicos entre ambas fuentes
+- Archivos: `backend/calculador_pesos.py`, `backend/app.py`, `test_geo_pesos.py`
+- Tests: 20 passed (suite completa)
+- Deploy: requiere redeploy
+
+### fix — Menores del barrido de bugs
+- `selector_muestra`: `diff_nac` de 0.0 (centro perfectamente representativo) se convertía en 999 por usar `or` como fallback de `None`
+- `test_flujo`: resuelve `schema.sql` relativo al archivo; pytest funciona desde cualquier directorio
+- Archivos: `backend/selector_muestra.py`, `backend/app.py`, `test_flujo.py`
+
+### refactor — Limpieza del repositorio: legacy/
+- `legacy/scripts_raiz/`: los 9 scripts pre-backend de las fases 1–6 (pipeline CSV 2024, crawler CNE 2013, dashboards Streamlit, graficadores) con sus datos
+- `legacy/ai_configs/`: instrucciones por herramienta (aider, cursor, gemini, grok, etc.); quedan activos `AGENTS.md`, `CLAUDE.md` y `.github/copilot-instructions.md`
+- `legacy/outputs/`: HTML generados, logs `server_*.txt` y dos BD vacías huérfanas
+- `.gitignore`: ignora `server_*.txt`, elimina entrada obsoleta `/exit poll/`
+- Archivos: `.gitignore`, `legacy/`
+- Deploy: no requiere redeploy
+
+---
+
+## 2026-05-20
+
+### feat — Municipales 2013: colección de 52 exit polls
+- `backend/import_2013_municipales.py`: colección `2013-municipales` con 52 estudios municipales + fila `NACIONAL` de metadatos, desde `auditoria4.xlsx` y `PESO CENTROS DIC 2013.xlsx`
+- Rutas `/historicos/estudios/2013-municipales` y `/{municipio_slug}`; templates `municipales_2013.html` y `municipal_2013_detalle.html`
+- Semáforo de información confiable por municipio: centros esperados / que transmitieron / sin transmisión / cortes atípicos
+- Detalle: BITACORA.md (2026-05-20)
+
+### feat — Scraper archive.org para oficiales municipales 2013
+- Scraper contra snapshots archive.org del CNE con pausas y reintentos; corrige mapeo de códigos CNE desplazado y toma solo el bloque `ALCALDESA O ALCALDE`
+- 52 filas oficiales (51 municipios + NACIONAL); fichas técnicas manuales para Barinas, San Fernando, Maturín, Páez y Sucre-Sucre
+- Pendiente por snapshot roto: `guarico-juan-german-roscio`
+- Detalle: BITACORA.md (2026-05-20)
+
+### fix — Municipales 2013: gráficos acumulativos y porcentajes sin ponderar
+- Cada corte se calcula con las opiniones acumuladas hasta ese turno (`turno <= corte`); el resultado final sale del acumulado completo
+- Porcentajes sin ponderar, nombres de candidatos y categoría Otros consistentes con Gobernadores 2012
+- Archivos: `backend/import_2013_municipales.py`, `backend/data/historico_estudios_seed.json`
+
+### refactor — Reorganización de data histórica 2012/2013
+- Insumos Excel separados por tipo de elección: `backend/data/2012/{presidenciales,gobernadores}/` y `backend/data/2013/{presidenciales,municipales}/`
+- `import_2012_2013.py` actualizado a las subcarpetas e inserta turnos con `ambito='NACIONAL'`
+
+### fix — Seed histórico también en startup.py (sync Azure)
+- `startup.py` ejecuta `seed_historico_estudios.py` en cada arranque para garantizar que los cambios del seed JSON lleguen a Azure en cada deploy (ver ADR-010)
+- Archivos: `backend/startup.py`
+
+---
+
+## 2026-05-19
+
+### feat — Auditoría estadística rigurosa en tarjetas de estudios históricos
+
+Implementa análisis metodológico completo dentro de cada tarjeta de estudio histórico individual (no un resumen cruzado). Cubre los 4 estudios disponibles: Presidencial 2006, 2012, 2013 y Asamblea Nacional 2010.
+
+#### Nuevo módulo `backend/auditor_sesgo.py`
+- Diagnóstico TSE (Total Survey Error) por estudio: no-respuesta diferencial (espiral del silencio), sesgo asimétrico estructural (errores de signo opuesto), DEFF estimado (Kish 1965: ICC=0.04)
+- MoE SRSWOR vs MoE ajustado por DEFF por estudio
+- Detección automática de patrón histórico esperado (gov subestimado)
+- Nivel de riesgo metodológico: bajo / moderado / severo / crítico con puntaje compuesto
+- Recomendaciones accionables según nivel de error y disponibilidad de datos
+
+#### `backend/app.py` — ruta `GET /historicos/estudios/{ref}`
+- `analisis` enriquecido: `delta_gov`, `delta_opos`, `delta_brecha`, `mae_mosteller` (Medida 3 Mosteller), `errores_opuestos` (flag de sesgo estructural), `rmse_estados`, `bias_std`, `pct_estados_gov_neg`, `ganador_estudio`, `ganador_oficial`, `acierto_ganador`, `magnitud`
+- `analisis_leg` para legislativas: `delta_gov_esc`, `delta_opos_esc`, `acierto_mayoria`, `mae_voto_lista`, `capa2` (descomposición Capa 1 + Capa 2)
+- Capa 2 (2010): `err_esc_proporcional`, `err_esc_algoritmo`, `factor_amplificacion`, `pct_error_por_algoritmo`
+- Badge de sesgo en listado `/historicos`: nivel crítico/alto/moderado por desviación de gov
+
+#### `backend/templates/historico_estudio_detalle.html`
+- Panel "Diagnóstico de Sesgo Sistémico (TSE)" con componentes coloreados por probabilidad
+- **Presidenciales**: tabla comparativa Proyectado vs Oficial vs Desviación (gov, opos, otros, brecha), KPIs MAE M3 Mosteller + error de brecha + ganador correcto + sesgo estructural, RMSE±σ estadal, % estados con gov subestimado, texto de conclusiones técnico
+- **Asamblea 2010**: visualización escaños, tabla voto lista vs oficial, alerta Capa 2 con factor de amplificación del algoritmo electoral, conclusiones Capa 1/Capa 2 diferenciadas
+
+#### `backend/templates/historicos.html`
+- Badge de nivel de sesgo (crítico/alto/moderado) en tarjetas con estudio, solo si `sesgo_nivel != 'bajo'`
+
+#### `backend/ai_prompts.py` y `backend/ai_validation.py` — versión 2.4
+- Prompt v2.4: cláusula obligatoria de espiral del silencio cuando `SESGO_NO_RESPUESTA_NO_CUANTIFICADO`; cláusula DEFF cuando `MOE_AJUSTADO_POR_DEFF`; prohibición de ajustar porcentajes por sesgo (solo advertir)
+- Validación v2.4: flag `SESGO_NO_RESPUESTA_NO_CUANTIFICADO` cuando `tasa_no_respuesta=None`; corrección de MoE con DEFF cuando `design_effect_estimado > 1.0`
+
+#### `backend/calculador_pesos.py`
+- Nueva función `diagnosticar_cobertura(id_eleccion)`: compara cobertura muestral vs universo por estado, estima DEFF desde tamaños de clúster, señala estados < 10% como alertas
+
+#### Métricas verificadas para los 4 estudios
+| Estudio | MAE M3 | Δ Brecha | Sesgo estructural |
+|---|---|---|---|
+| Presidencial 2006 | 1.59 pp | +0.31 pp | No |
+| Presidencial 2012 | 2.82 pp | −7.52 pp | Sí (errores opuestos) |
+| Presidencial 2013 | 4.53 pp | +11.71 pp | Sí (errores opuestos) |
+| Asamblea 2010 | MAE voto lista 3.40 pp | — | Capa 2: factor ×1.80, 44.4 % por algoritmo |
+
+### feat — Regionales 2008: colección de 25 exit polls simultáneos
+
+Implementación completa del módulo de Elecciones Regionales 2008 (gobernaciones, Alcaldía Mayor de Caracas, Municipio Libertador, Municipio Maracaibo).
+
+#### Migración de esquema
+- `backend/migrate_turnos_ambito.py`: recrea `historico_estudios_turnos` con columna `ambito TEXT NOT NULL DEFAULT 'NACIONAL'`; cambia UNIQUE de `(eleccion_ref, turno)` a `(eleccion_ref, ambito, turno)`; preserva los 43 turnos existentes con `ambito='NACIONAL'`
+- `backend/schema.sql` e `backend/init_db.py` actualizados con el mismo cambio
+- `backend/seed_historico_estudios.py` y la ruta de guardado en `app.py` actualizados para incluir `ambito` en todos los INSERT de turnos
+
+#### Importación de datos (`backend/import_2008.py`)
+- Lee 7 archivos Excel (`*.xlsx`) en `backend/data/2008/`: cada uno contiene múltiples hojas de estados
+- `is_graphic_sheet()`: discrimina hojas de datos vs hojas gráficas (`G*`, `C*`) sin filtrar por inicial (fix para Carabobo, Cojedes, Guarico)
+- `parse_state_sheet()`: extrae candidatos, centros únicos, conteos acumulados por `(centro, turno)`
+- `build_turno_series()`: construye serie cumulativa por turno usando el último reporte disponible por centro (deduplication)
+- Categorización política: Chavismo=MVR/PSUV, Oposición=PJ/AD/COPEI/UNT(≥2), Otros=extra-bloque
+- Henri Falcón (Lara/PPT): tratado como ambiguo, marcado con `lara_nota` en notas JSON
+- OFICIALES: datos Wikipedia/CNE + PDF `resultados-de-las-elecciones-municipales-2004-y-2008.pdf` (Libertador 53.59%/41.39%, Maracaibo 39.71%/59.90%)
+- Resultado: 26 filas en `historico_estudios` (25 estados + NACIONAL), 25 en `historico_oficial`, 405 en `historico_estudios_turnos`
+- Acertividad: 20/24 ganadores correctos (83.3%); Lara=ambiguo; 4 incorrectos (Miranda, Mérida, Zulia, Libertador)
+
+#### Nuevas rutas (`backend/app.py`)
+- `GET /historicos/estudios/2008-gobernadores` → `gobernadores_2008_collection()`: grilla regional de 25 tarjetas + KPIs (613 centros, 140K respondentes, acertividad global), organizadas en 7 regiones
+- `GET /historicos/estudios/2008-gobernadores/{estado_slug}` → `gobernadores_2008_detalle()`: candidatos, KPIs, gráfico Plotly de tendencia acumulativa (Plotly dual-axis: % + centros reportados vs turno), DEFF/MoE, análisis de acertividad MAE M3 Mosteller, nota de ambigüedad Lara
+- `_historicos_unificados()`: inyección de tarjeta tipo `coleccion` para 2008-gobernadores (evita mostrar `e_gov=0%` en listado principal)
+
+#### Nuevos templates
+- `backend/templates/gobernadores_2008.html`: colección con 7 secciones regionales, tarjetas color-coded por ganador estudio (rojo=gov/azul=opos), badges de acierto, barras duales estudio vs oficial, delta badge, DEFF warning si >5
+- `backend/templates/gobernador_2008_detalle.html`: candidatos con %, gráfico de tendencia prominente (eje dual %), alertas DEFF, tabla comparativa Estudio/Oficial/Δ, MAE M3, error de brecha, ganador, sesgo estructural, nota Lara cuando aplica
+- `backend/templates/historicos.html`: nuevo tipo `coleccion` con tarjeta en violeta (#6f42c1) enlazando a la colección
+
+#### Métricas 2008-gobernadores
+| Estado | Est Gov% | Est Opos% | Ofic Gov% | Ofic Opos% | Ganador |
+|---|---|---|---|---|---|
+| Miranda | 43.0 | 45.0 | 52.7 | 47.3 | ✗ (Cabello→Capriles) |
+| Mérida | 46.8 | 48.4 | 47.4 | 52.6 | ✗ (Dávila→Díaz Orellana) |
+| Lara | 48.9 | 48.8 | — | — | ? (Falcón/PPT ambiguo) |
+| Carabobo | 35.0 | 45.0 | 47.1 | 52.9 | ✓ |
+| Capital | 40.8 | 49.0 | 44.1 | 55.9 | ✓ |
+
+- Archivos: `backend/import_2008.py`, `backend/migrate_turnos_ambito.py`, `backend/schema.sql`, `backend/init_db.py`, `backend/seed_historico_estudios.py`, `backend/app.py`, `backend/templates/gobernadores_2008.html`, `backend/templates/gobernador_2008_detalle.html`, `backend/templates/historicos.html`
+
+### feat — Gobernadores 2012: colección de 23 exit polls simultáneos
+- `backend/import_2012_gobernadores.py`: 23 estudios paralelos por estado + fila `NACIONAL` de metadatos, desde `CORE4.xlsx` (hoja maestra `Entrada` + 23 hojas estatales agregadas por municipio/segmento, turnos 1–18)
+- 24 filas en `historico_estudios`, 23 oficiales (Wikipedia/CNE 2012), 407 turnos con `ambito=slug_estado`
+- Rutas `/historicos/estudios/2012-gobernadores` y `/{estado_slug}`; templates `gobernadores_2012.html` y `gobernador_2012_detalle.html`
+- Detalle: BITACORA.md (2026-05-19)
 
 ---
 
@@ -49,100 +215,26 @@
 - Tests: smoke test pasa; datos verificados contra totales del core original (Entrada sum == Cálculos nacional: 9.074/5.194/306/287 votos)
 - Deploy: requiere redeploy; la migración `init_db.py` crea las tablas automáticamente si no existen
 
----
+### feat — Estudio histórico Asamblea Nacional 2010
+- `backend/import_2010.py`: lee `R Nominal`, `R Lista`, `R Indigena` y `ENTRADA` de `aplicacion03.xlsm`; importa como `2010-asamblea` con métrica de escaños proyectados (114 gob / 50 opos / 1 otros vs referencia 98/65/2)
+- Sin tendencia: el archivo se trata como resultado final del estudio; no se inventan tabulados oficiales por estado
+- `historico_estudio_detalle.html` reconoce estudios legislativos: KPI de escaños, gráfico de distribución, comparación por estado vs voto lista oficial
+- Detalle: BITACORA.md (2026-05-18)
 
-## 2026-05-19
+### feat — Resultado oficial Presidencial 2018 (solo resultados)
+- `2018-presidencial` agregado a `historico_estudios_seed.json` dentro de `historico_oficial` (fuente Wikipedia/CNE)
+- `_historicos_unificados()` diferencia `con_estudio` de `oficial`; tarjetas sin estudio usan título legible y orden descendente por año
+- Detalle: BITACORA.md (2026-05-18)
 
-### feat — Auditoría estadística rigurosa en tarjetas de estudios históricos
-
-Implementa análisis metodológico completo dentro de cada tarjeta de estudio histórico individual (no un resumen cruzado). Cubre los 4 estudios disponibles: Presidencial 2006, 2012, 2013 y Asamblea Nacional 2010.
-
-#### Nuevo módulo `backend/auditor_sesgo.py`
-- Diagnóstico TSE (Total Survey Error) por estudio: no-respuesta diferencial (espiral del silencio), sesgo asimétrico estructural (errores de signo opuesto), DEFF estimado (Kish 1965: ICC=0.04)
-- MoE SRSWOR vs MoE ajustado por DEFF por estudio
-- Detección automática de patrón histórico esperado (gov subestimado)
-- Nivel de riesgo metodológico: bajo / moderado / severo / crítico con puntaje compuesto
-- Recomendaciones accionables según nivel de error y disponibilidad de datos
-
-#### `backend/app.py` — ruta `GET /historicos/estudios/{ref}`
-- `analisis` enriquecido: `delta_gov`, `delta_opos`, `delta_brecha`, `mae_mosteller` (Medida 3 Mosteller), `errores_opuestos` (flag de sesgo estructural), `rmse_estados`, `bias_std`, `pct_estados_gov_neg`, `ganador_estudio`, `ganador_oficial`, `acierto_ganador`, `magnitud`
-- `analisis_leg` para legislativas: `delta_gov_esc`, `delta_opos_esc`, `acierto_mayoria`, `mae_voto_lista`, `capa2` (descomposición Capa 1 + Capa 2)
-- Capa 2 (2010): `err_esc_proporcional`, `err_esc_algoritmo`, `factor_amplificacion`, `pct_error_por_algoritmo`
-- Badge de sesgo en listado `/historicos`: nivel crítico/alto/moderado por desviación de gov
-
-#### `backend/templates/historico_estudio_detalle.html`
-- Panel "Diagnóstico de Sesgo Sistémico (TSE)" con componentes coloreados por probabilidad
-- **Presidenciales**: tabla comparativa Proyectado vs Oficial vs Desviación (gov, opos, otros, brecha), KPIs MAE M3 Mosteller + error de brecha + ganador correcto + sesgo estructural, RMSE±σ estadal, % estados con gov subestimado, texto de conclusiones técnico
-- **Asamblea 2010**: visualización escaños, tabla voto lista vs oficial, alerta Capa 2 con factor de amplificación del algoritmo electoral, conclusiones Capa 1/Capa 2 diferenciadas
-
-#### `backend/templates/historicos.html`
-- Badge de nivel de sesgo (crítico/alto/moderado) en tarjetas con estudio, solo si `sesgo_nivel != 'bajo'`
-
-#### `backend/ai_prompts.py` y `backend/ai_validation.py` — versión 2.4
-- Prompt v2.4: cláusula obligatoria de espiral del silencio cuando `SESGO_NO_RESPUESTA_NO_CUANTIFICADO`; cláusula DEFF cuando `MOE_AJUSTADO_POR_DEFF`; prohibición de ajustar porcentajes por sesgo (solo advertir)
-- Validación v2.4: flag `SESGO_NO_RESPUESTA_NO_CUANTIFICADO` cuando `tasa_no_respuesta=None`; corrección de MoE con DEFF cuando `design_effect_estimado > 1.0`
-
-#### `backend/calculador_pesos.py`
-- Nueva función `diagnosticar_cobertura(id_eleccion)`: compara cobertura muestral vs universo por estado, estima DEFF desde tamaños de clúster, señala estados < 10% como alertas
-
-#### Métricas verificadas para los 4 estudios
-| Estudio | MAE M3 | Δ Brecha | Sesgo estructural |
-|---|---|---|---|
-| Presidencial 2006 | 1.59 pp | +0.31 pp | No |
-| Presidencial 2012 | 2.82 pp | −7.52 pp | Sí (errores opuestos) |
-| Presidencial 2013 | 4.53 pp | +11.71 pp | Sí (errores opuestos) |
-| Asamblea 2010 | MAE voto lista 3.40 pp | — | Capa 2: factor ×1.80, 44.4 % por algoritmo |
+### fix — Históricos unificados en Azure + seed fijo versionado
+- `_historicos_unificados()` como fuente única para `/historicos` y `/historicos/debug-json`; `Cache-Control: no-store`
+- Importación pesada de Excel reemplazada por semilla fija versionada: `backend/data/historico_estudios_seed.json` + `backend/seed_historico_estudios.py` (idempotente)
+- Rutas de creación/edición de estudios históricos bloqueadas con 404: son datos históricos fijos de solo lectura
+- Detalle: BITACORA.md (2026-05-18)
 
 ---
 
-## 2026-05-19 (sesión 2)
-
-### feat — Regionales 2008: colección de 25 exit polls simultáneos
-
-Implementación completa del módulo de Elecciones Regionales 2008 (gobernaciones, Alcaldía Mayor de Caracas, Municipio Libertador, Municipio Maracaibo).
-
-#### Migración de esquema
-- `backend/migrate_turnos_ambito.py`: recrea `historico_estudios_turnos` con columna `ambito TEXT NOT NULL DEFAULT 'NACIONAL'`; cambia UNIQUE de `(eleccion_ref, turno)` a `(eleccion_ref, ambito, turno)`; preserva los 43 turnos existentes con `ambito='NACIONAL'`
-- `backend/schema.sql` e `backend/init_db.py` actualizados con el mismo cambio
-- `backend/seed_historico_estudios.py` y la ruta de guardado en `app.py` actualizados para incluir `ambito` en todos los INSERT de turnos
-
-#### Importación de datos (`backend/import_2008.py`)
-- Lee 7 archivos Excel (`*.xlsx`) en `backend/data/2008/`: cada uno contiene múltiples hojas de estados
-- `is_graphic_sheet()`: discrimina hojas de datos vs hojas gráficas (`G*`, `C*`) sin filtrar por inicial (fix para Carabobo, Cojedes, Guarico)
-- `parse_state_sheet()`: extrae candidatos, centros únicos, conteos acumulados por `(centro, turno)`
-- `build_turno_series()`: construye serie cumulativa por turno usando el último reporte disponible por centro (deduplication)
-- Categorización política: Chavismo=MVR/PSUV, Oposición=PJ/AD/COPEI/UNT(≥2), Otros=extra-bloque
-- Henri Falcón (Lara/PPT): tratado como ambiguo, marcado con `lara_nota` en notas JSON
-- OFICIALES: datos Wikipedia/CNE + PDF `resultados-de-las-elecciones-municipales-2004-y-2008.pdf` (Libertador 53.59%/41.39%, Maracaibo 39.71%/59.90%)
-- Resultado: 26 filas en `historico_estudios` (25 estados + NACIONAL), 25 en `historico_oficial`, 405 en `historico_estudios_turnos`
-- Acertividad: 20/24 ganadores correctos (83.3%); Lara=ambiguo; 4 incorrectos (Miranda, Mérida, Zulia, Libertador)
-
-#### Nuevas rutas (`backend/app.py`)
-- `GET /historicos/estudios/2008-gobernadores` → `gobernadores_2008_collection()`: grilla regional de 25 tarjetas + KPIs (613 centros, 140K respondentes, acertividad global), organizadas en 7 regiones
-- `GET /historicos/estudios/2008-gobernadores/{estado_slug}` → `gobernadores_2008_detalle()`: candidatos, KPIs, gráfico Plotly de tendencia acumulativa (Plotly dual-axis: % + centros reportados vs turno), DEFF/MoE, análisis de acertividad MAE M3 Mosteller, nota de ambigüedad Lara
-- `_historicos_unificados()`: inyección de tarjeta tipo `coleccion` para 2008-gobernadores (evita mostrar `e_gov=0%` en listado principal)
-
-#### Nuevos templates
-- `backend/templates/gobernadores_2008.html`: colección con 7 secciones regionales, tarjetas color-coded por ganador estudio (rojo=gov/azul=opos), badges ✓/✗/?, barras duales estudio vs oficial, delta badge, DEFF warning si >5
-- `backend/templates/gobernador_2008_detalle.html`: candidatos con %, gráfico de tendencia prominente (eje dual %), alertas DEFF, tabla comparativa Estudio/Oficial/Δ, MAE M3, error de brecha, ganador, sesgo estructural, nota Lara cuando aplica
-- `backend/templates/historicos.html`: nuevo tipo `coleccion` con tarjeta en violeta (#6f42c1) enlazando a la colección
-
-#### Métricas 2008-gobernadores
-| Estado | Est Gov% | Est Opos% | Ofic Gov% | Ofic Opos% | Ganador |
-|---|---|---|---|---|---|
-| Miranda | 43.0 | 45.0 | 52.7 | 47.3 | ✗ (Cabello→Capriles) |
-| Mérida | 46.8 | 48.4 | 47.4 | 52.6 | ✗ (Dávila→Díaz Orellana) |
-| Lara | 48.9 | 48.8 | — | — | ? (Falcón/PPT ambiguo) |
-| Carabobo | 35.0 | 45.0 | 47.1 | 52.9 | ✓ |
-| Capital | 40.8 | 49.0 | 44.1 | 55.9 | ✓ |
-
-- Archivos: `backend/import_2008.py`, `backend/migrate_turnos_ambito.py`, `backend/schema.sql`, `backend/init_db.py`, `backend/seed_historico_estudios.py`, `backend/app.py`, `backend/templates/gobernadores_2008.html`, `backend/templates/gobernador_2008_detalle.html`, `backend/templates/historicos.html`
-
----
-
-## [Unreleased]
-
-<!-- Codex: agregar aquí los cambios del próximo commit antes de pushear -->
+## 2026-05-08
 
 ### fix — Live dashboard alineado con visualización
 - `/live` ahora usa votos reales cuando existen y cae a la misma data de referencia que `/visualizacion` mientras no haya opiniones SMS en `votos`
@@ -151,29 +243,8 @@ Implementación completa del módulo de Elecciones Regionales 2008 (gobernacione
 - `generador_dashboard.py` actualiza por SSE la etiqueta de fuente sin recargar la página
 - Agregado test para `votos=0` con datos históricos disponibles
 - Archivos: `backend/app.py`, `backend/generador_dashboard.py`, `test_flujo.py`, `ESTADO.md`, `CHANGELOG.md`, `BITACORA.md`
-- Tests: `D:\Test\.venv\Scripts\pytest.exe -q` → 15 passed
-- Deploy: requiere redeploy para activar el cambio en Azure
-
-### refactor — Hardening modulo AI de reportes
-- Documentado estado inicial del modulo en `AI_MODULE_REVIEW.md` antes de tocar implementacion
-- Separado prompt v2.3 en `backend/ai_prompts.py`
-- Agregado validador estadistico secuencial y adaptador de schema en `backend/ai_validation.py`
-- `backend/agent.py` mantiene compatibilidad con `ask_agent`/`ask_structured` y agrega `llm_call(...)` + metadata de trazabilidad
-- `ask_agent()` valida suficiencia estadistica antes de resolver API key o tocar proveedor remoto
-- Alias `google` agregado para reutilizar la configuracion Gemini sin cambiar la tabla `config`
-- Defaults AI alineados a reportes deterministas (`temperature=0`) y modelos requeridos por proveedor
-- Tests nuevos para validacion estadistica y schema legado
-- Archivos: `AI_MODULE_REVIEW.md`, `backend/ai_prompts.py`, `backend/ai_validation.py`, `backend/agent.py`, `backend/app.py`, `backend/templates/config.html`, `test_ai_validation.py`, `.gitignore`
-- Tests: `venv\Scripts\python.exe -m pytest -q test_flujo.py test_ai_validation.py --basetemp .pytest_ai_tmp3 -p no:cacheprovider` → 7 passed
-- Deploy: requiere redeploy para activar cambios AI en Azure
-
-### test — Dependencias de desarrollo para pytest
-- Agregado `requirements-dev.txt` con dependencias backend + `pytest`
-- Documentado el harness de tests backend en `ESTADO.md`
-- `BUG-001` de agregación regional/municipal movido a resuelto tras verificar la implementación actual
-- Archivos: `requirements-dev.txt`, `ESTADO.md`, `CHANGELOG.md`
-- Tests: `venv\Scripts\python.exe -m pytest -q test_flujo.py --basetemp .pytest_tmp3 -p no:cacheprovider` → 1 passed
-- Deploy: no requiere redeploy
+- Tests: pytest verde
+- Deploy: requiere redeploy
 
 ---
 
@@ -184,6 +255,27 @@ Implementación completa del módulo de Elecciones Regionales 2008 (gobernacione
 - Creados: `ESTADO.md` (estado vivo), `DECISIONES.md` (ADR), `CHANGELOG.md` (este archivo)
 - Archivos: `CLAUDE.md`, `codex.md`, `gemini.md`, `copilot.md`, `ESTADO.md`, `DECISIONES.md`, `CHANGELOG.md`
 - Tests: sin cambio (smoke test pasa)
+- Deploy: no requiere redeploy
+
+### refactor — Hardening módulo AI de reportes
+- Documentado estado inicial del módulo en `AI_MODULE_REVIEW.md` antes de tocar implementación
+- Separado prompt v2.3 en `backend/ai_prompts.py`
+- Agregado validador estadístico secuencial y adaptador de schema en `backend/ai_validation.py`
+- `backend/agent.py` mantiene compatibilidad con `ask_agent`/`ask_structured` y agrega `llm_call(...)` + metadata de trazabilidad
+- `ask_agent()` valida suficiencia estadística antes de resolver API key o tocar proveedor remoto
+- Alias `google` agregado para reutilizar la configuración Gemini sin cambiar la tabla `config`
+- Defaults AI alineados a reportes deterministas (`temperature=0`) y modelos requeridos por proveedor
+- Tests nuevos para validación estadística y schema legado
+- Archivos: `AI_MODULE_REVIEW.md`, `backend/ai_prompts.py`, `backend/ai_validation.py`, `backend/agent.py`, `backend/app.py`, `backend/templates/config.html`, `test_ai_validation.py`, `.gitignore`
+- Tests: pytest verde (7 passed)
+- Deploy: requiere redeploy
+
+### test — Dependencias de desarrollo para pytest
+- Agregado `requirements-dev.txt` con dependencias backend + `pytest`
+- Documentado el harness de tests backend en `ESTADO.md`
+- `BUG-001` de agregación regional/municipal movido a resuelto tras verificar la implementación actual
+- Archivos: `requirements-dev.txt`, `ESTADO.md`, `CHANGELOG.md`
+- Tests: pytest verde
 - Deploy: no requiere redeploy
 
 ---
@@ -269,9 +361,7 @@ Implementación completa del módulo de Elecciones Regionales 2008 (gobernacione
 ---
 
 <!--
-PLANTILLA PARA NUEVAS ENTRADAS (Codex: copiar, rellenar y mover a [Unreleased] antes del commit)
-
-## YYYY-MM-DD
+PLANTILLA PARA NUEVAS ENTRADAS (copiar, rellenar y agregar bajo [Unreleased] antes del commit)
 
 ### [tipo] — [descripción breve en español]
 - [detalle del cambio]

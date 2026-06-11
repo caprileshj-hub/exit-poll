@@ -1,12 +1,16 @@
-# Security Audit Trail
+# SECURITY.md — Exit Poll Venezuela
 
-Date: 2026-05-01
+> Security audit trail: documents the 2026-05-01 incident (exposed OpenAI API key),
+> the remediation applied, and the accepted risks with their follow-up.
 
-Repository: `caprileshj-hub/exit-poll`
+| Parameter | Value |
+|-----------|-------|
+| Audit date | 2026-05-01 |
+| Repository | `caprileshj-hub/exit-poll` |
+| Azure App Service | `exit-poll-ve` |
+| Azure resource group | `exit-poll-rg` |
 
-Azure App Service: `exit-poll-ve`
-
-Azure resource group: `exit-poll-rg`
+---
 
 ## What Was Found
 
@@ -26,6 +30,8 @@ Azure resource group: `exit-poll-rg`
 - Dependency audit of `backend/requirements.txt` found `starlette==0.46.2` affected by:
   - `CVE-2025-54121`, moderate severity, fixed in `starlette==0.47.2`.
   - `CVE-2025-62727`, high severity, fixed in `starlette==0.49.1`.
+
+---
 
 ## What Was Fixed
 
@@ -57,6 +63,8 @@ Azure resource group: `exit-poll-rg`
 - Re-ran `pip-audit -r backend/requirements.txt`; result: no known vulnerabilities found.
 - Confirmed `/config/test` returned HTTP 200 with `{"ok": true, "provider": "openai"}` after the Azure key migration.
 
+---
+
 ## Current Security Posture
 
 - The disabled OpenAI key should be considered permanently compromised and must not be reused.
@@ -67,6 +75,8 @@ Azure resource group: `exit-poll-rg`
 - Backend `requirements.txt` audit result after remediation: no known vulnerabilities found.
 - Azure App Service currently enforces HTTPS and TLS 1.2.
 - Azure app settings were listed with secret-like values masked; `OPENAI_API_KEY` is present in Azure App Settings as of 2026-05-01.
+
+---
 
 ## Accepted Risk And Follow-Up
 

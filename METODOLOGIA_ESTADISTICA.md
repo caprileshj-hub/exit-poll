@@ -1,9 +1,9 @@
-# Metodología Estadística — Módulo de Estudios Históricos y Analista IA
+# METODOLOGIA_ESTADISTICA.md — Exit Poll Venezuela
 
-> Documento vivo. Registra el rigor metodológico implementado, las particularidades encontradas
+> Metodología estadística del módulo de Estudios Históricos y el Analista IA.
+> Documento vivo: registra el rigor metodológico implementado, las particularidades encontradas
 > en cada tipo de elección, y los hallazgos y resoluciones surgidos durante el desarrollo.
 > Actualizar cada vez que se agregue un nuevo estudio o se extienda el marco analítico.
->
 > Última actualización: 2026-05-19
 
 ---

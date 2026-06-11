@@ -1,6 +1,11 @@
-# Bitácora de Desarrollo - Exit Poll Venezuela
+# BITACORA.md — Exit Poll Venezuela
 
-## Registro de Cambios
+> Historial narrativo de desarrollo, sesión por sesión. Más antiguo arriba.
+> Encabezados de sesión: `## AAAA-MM-DD — Tema`.
+
+---
+
+## Fases 1–5 — Registro inicial de cambios
 
 ### Fase 1: Configuración y Estabilización
 - **Infraestructura**: Se estableció el entorno virtual (`.venv`) y se corrigió el archivo `requirements.txt`.
@@ -356,7 +361,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## Deploy Azure — Estado al 2026-04-30 (RESUELTO)
+## 2026-04-30 — Deploy Azure (resuelto)
 
 ### Problemas encontrados y resueltos
 1. **Startup command incorrecto**: el `startup.sh` hacía `cd /home/site/wwwroot/backend` pero el zip despliega en la raíz sin subcarpeta `backend/`. → Corregido a `cd /home/site/wwwroot`. El startup command en Azure Portal también se actualizó a `bash /home/site/wwwroot/startup.sh`.
@@ -394,7 +399,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - `backend_deploy.zip` — paquete de despliegue generado localmente (no versionado).
 ---
 
-## 2026-04-30 - SSE Live Dashboard y agente IA multi-proveedor
+## 2026-04-30 — SSE Live Dashboard y agente IA multi-proveedor
 
 ### Fase 1: Live dashboard sin recarga completa
 - Se reemplazo el refresco completo de `/live` por SSE en `GET /stream/dashboard`.
@@ -440,7 +445,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-01 - Candidatos por ambito, guardrails de suficiencia y test de flujo
+## 2026-05-01 — Candidatos por ambito, guardrails de suficiencia y test de flujo
 
 ### Entorno local Python
 - Se confirmo que el downgrade a Python 3.12 dejo instalado `C:\Users\capri\AppData\Local\Programs\Python\Python312\python.exe`.
@@ -484,7 +489,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-01 - Ingestion AI multi-formato para Tabla de Mesa
+## 2026-05-01 — Ingestion AI multi-formato para Tabla de Mesa
 
 ### Objetivo
 - Extender `/tm` con un flujo AI capaz de recibir tablas CNE con formatos variables sin reemplazar el cargador diferencial existente.
@@ -589,7 +594,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## Sesion 2026-05-01 - Seguridad, Azure y carga AI TM
+## 2026-05-01 — Seguridad, Azure y carga AI TM
 
 ### Seguridad y credenciales
 - Se atendio incidente de API key de OpenAI filtrada y deshabilitada por OpenAI.
@@ -708,7 +713,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
   - polling o SSE para progreso `PDF n/24`
   - confirmacion de escritura separada por lote
 
-## 2026-05-01 - Correcciones criticas TM AI y simulador
+## 2026-05-01 — Correcciones criticas TM AI y simulador
 
 ### Confirmacion AI de Tabla Mesa
 - `/api/tm/confirm` ahora ejecuta la confirmacion en una transaccion con `BEGIN IMMEDIATE`.
@@ -735,7 +740,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-07 - Sincronizacion local, pytest dev y documentacion multi-equipo
+## 2026-05-07 — Sincronizacion local, pytest dev y documentacion multi-equipo
 
 ### Sincronizacion
 - Se actualizo la Lenovo desde `origin/main` con fast-forward hasta `b232f13`.
@@ -770,7 +775,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-07 - Hardening modulo AI de reportes v2.3
+## 2026-05-07 — Hardening modulo AI de reportes v2.3
 
 ### Diagnostico previo
 - Se revisaron los archivos reales del modulo AI antes de modificar codigo:
@@ -845,7 +850,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-08 - Live dashboard alineado con visualizacion
+## 2026-05-08 — Live dashboard alineado con visualizacion
 
 ### Problema
 - `/visualizacion/generar` construia el dashboard desde `resultados_historicos`.
@@ -871,7 +876,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-18 - Historicos unificados en Azure
+## 2026-05-18 — Historicos unificados en Azure
 
 ### Problema
 - `/historicos/debug-json` confirmaba que Azure tenia `resultados_historicos` con `2024-presidencial`, pero `/historicos` podia mostrar el estado vacio.
@@ -908,7 +913,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-18 - Estudio historico Asamblea Nacional 2010
+## 2026-05-18 — Estudio historico Asamblea Nacional 2010
 
 ### Contexto
 - Se agrego el estudio `backend/data/2010/aplicacion03.xlsm`.
@@ -951,7 +956,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-18 - Resultado oficial Presidencial 2018
+## 2026-05-18 — Resultado oficial Presidencial 2018
 
 ### Contexto
 - No hubo estudio historico cargado para la eleccion presidencial 2018.
@@ -973,7 +978,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-19 - Coleccion historica Gobernadores 2012
+## 2026-05-19 — Coleccion historica Gobernadores 2012
 
 ### Contexto
 - Se agrego el estudio historico `2012-gobernadores` al modulo de historicos.
@@ -1021,7 +1026,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-20 - Coleccion historica Municipales 2013
+## 2026-05-20 — Coleccion historica Municipales 2013
 
 ### Contexto
 - Se agrego la eleccion municipal 2013 al modulo `/historicos`.
@@ -1076,7 +1081,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-20 - Reorganizacion de data historica 2012/2013
+## 2026-05-20 — Reorganizacion de data historica 2012/2013
 
 ### Contexto
 - En 2012 y 2013 hay mas de un tipo de eleccion historica cargada.
@@ -1105,7 +1110,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-20 - Scraper archive.org municipal 2013
+## 2026-05-20 — Scraper archive.org municipal 2013
 
 ### Contexto
 - Se corrio el scraper oficial de `2013-municipales` contra archive.org con pausas entre solicitudes para no saturar el snapshot.
@@ -1142,7 +1147,7 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
-## 2026-05-20 - Graficos acumulativos municipales 2013
+## 2026-05-20 — Graficos acumulativos municipales 2013
 
 ### Cambio
 - `backend/import_2013_municipales.py` ahora calcula cada corte con las opiniones acumuladas hasta ese turno (`turno <= corte`).
@@ -1159,3 +1164,39 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
   - `/historicos/estudios/2013-municipales/barinas-barinas`
   - `/historicos/estudios/2013-municipales/zulia-maracaibo`
 - `D:\Test\.venv\Scripts\pytest.exe -q`: 15 passed.
+
+---
+
+## 2026-06-10 — Limpieza del repo, barrido de bugs y normalización de documentación
+
+### Contexto
+- Sesión con Claude Code: revisión completa del proyecto a pedido del usuario — ordenar carpetas, limpiar git, barrer la app en busca de bugs y normalizar la documentación.
+- El repo paraguas `D:\Test` también se ordenó: cada proyecto con repo git propio quedó ignorado en el `.gitignore` del padre; `SOMBRA.FP5` y carpetas huérfanas movidas a `D:\Test\legacy\`.
+
+### Limpieza del repositorio
+- `legacy/scripts_raiz/`: los 9 scripts pre-backend de las fases 1–6 (pipeline CSV 2024, crawler CNE 2013, dashboards Streamlit, graficadores) con sus datos.
+- `legacy/ai_configs/`: instrucciones por herramienta (aider, chatgpt, copilot, cursor, gemini, grok, perplexity, windsurf); quedan activos `AGENTS.md`, `CLAUDE.md` y `.github/copilot-instructions.md`.
+- `legacy/outputs/`: HTML de prueba, `graficos_test/`, logs `server_*.txt` y dos BD vacías huérfanas (`backend/exit_poll.db` y `exitpoll.db` de la raíz, ambas 0 bytes).
+- `.gitignore`: agrega `server_*.txt`, elimina la entrada obsoleta `/exit poll/`.
+
+### Bugs encontrados y resueltos
+1. **Dashboard de referencia mezclaba elecciones** (crítico): las funciones de ventaja y el total de referencia sumaban todas las `eleccion_ref` de `resultados_historicos`. Con 2006 + 2024 cargadas, `/live` mostraba ventaja nacional −3.7 pp cuando la ref 2024 sola da −36.8 pp. Nuevo helper `_eleccion_ref_referencia()` y filtro en las 5 funciones; los LEFT JOIN de muestra además duplicaban filas.
+2. **Carga TM parcial desactivaba todo el país** (crítico latente): `cargador_tm` marcaba `activo=0` a todo centro ausente del CSV sin importar el estado. Ahora la desactivación se acota a los estados del CSV, como el path IA.
+3. **Pesos excluían centros sin municipio**: el INNER JOIN dejaba fuera del cálculo a los centros creados por ingesta IA con `id_municipio NULL`. LEFT JOIN con aviso; sin geografía el centro agrupa como unidad propia.
+4. **Geografía duplicada entre ingestas**: la ingesta IA no encontraba los municipios con nombre crudo CNE ("MP. ZAMORA") y creaba duplicados `AI##`. Nuevo `_geo_match_name()` canoniza nombres entre fuentes. La BD de producción no tenía duplicados.
+5. **Menores**: `diff_nac` de 0.0 se convertía en 999 en `selector_muestra`; refs `'2024-presidencial'` hardcodeadas en `/muestra`; `test_flujo` dependía del directorio de ejecución.
+- Falsa alarma descartada: el streaming de `/chat` con generador síncrono no bloquea el event loop — Starlette lo itera en threadpool.
+
+### Tests
+- Suite pasó de 15 a 20 tests: regresión de mezcla de refs (`test_flujo`), TM parcial y dry-run (`test_cargador_tm`), pesos sin municipio y matching de geografía (`test_geo_pesos`).
+- `pytest -q`: 20 passed.
+
+### Documentación
+- CHANGELOG reordenado a cronología inversa estricta con `[Unreleased]` arriba; backfill de las sesiones 2026-05-18 a 2026-05-20 (AN 2010, oficial 2018, Gobernadores 2012, Municipales 2013) que solo estaban en esta bitácora.
+- Encabezados de sesión de esta bitácora unificados al formato `## AAAA-MM-DD — Tema`.
+- README en inglés (portfolio) + `README.es.md` en español, enlazados; SECURITY conserva inglés con estructura estándar; AI_MODULE_REVIEW con acentos.
+- ESTADO actualizado: bugs de hoy en resueltos, BUG-002 nuevo (error muestral de /ficha usa electores en vez de entrevistas — pendiente decisión de n).
+
+### Pendiente
+- BUG-002 (error muestral de la ficha técnica) requiere definir el n correcto.
+- Deploy a Azure para activar los fixes en producción.
