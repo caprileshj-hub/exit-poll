@@ -1583,6 +1583,7 @@ async def muestra_index(request: Request, msg: str = "", cat: str = "success"):
     db = get_db()
     eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
 
+    eleccion_ref = _eleccion_ref_referencia(db)
     muestra_actual = []
     if eleccion:
         muestra_actual = db.execute(
@@ -1596,17 +1597,17 @@ async def muestra_index(request: Request, msg: str = "", cat: str = "success"):
                LEFT JOIN municipios mu ON ct.id_municipio=mu.id
                LEFT JOIN parroquias p ON ct.id_parroquia=p.id
                LEFT JOIN resultados_historicos rh
-                   ON rh.codigo_centro=m.codigo_centro AND rh.eleccion_ref='2024-presidencial'
+                   ON rh.codigo_centro=m.codigo_centro AND rh.eleccion_ref=?
                WHERE m.id_eleccion=? AND m.activo=1
                ORDER BY e.nombre, mu.nombre, ct.num_electores DESC""",
-            (eleccion["id"],)
+            (eleccion_ref, eleccion["id"])
         ).fetchall()
 
     # Resultado nacional de referencia
     nac = db.execute("""
         SELECT SUM(votos_validos) v, SUM(votos_gobierno) g, SUM(votos_oposicion) o
-        FROM resultados_historicos WHERE eleccion_ref='2024-presidencial'
-    """).fetchone()
+        FROM resultados_historicos WHERE eleccion_ref=?
+    """, (eleccion_ref,)).fetchone()
     pct_nac = {}
     if nac and nac["v"]:
         pct_nac["gobierno"] = round(100 * nac["g"] / nac["v"], 1)
@@ -1631,13 +1632,14 @@ async def muestra_generar(
     centros_por_unidad: int = 2,
     candidatos_por_unidad: int = 5,
     umbral_pct: float = 10.0,
-    eleccion_ref: str = "2024-presidencial",
+    eleccion_ref: str = "",
 ):
     db = get_db()
     eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
     if not eleccion:
         db.close()
         return RedirectResponse("/muestra?msg=Active+una+elección+primero&cat=warning", status_code=303)
+    eleccion_ref = eleccion_ref or _eleccion_ref_referencia(db) or "2024-presidencial"
 
     sys.path.insert(0, str(BASE_DIR))
     import selector_muestra

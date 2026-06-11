@@ -19,9 +19,12 @@ import backend.app as app_backend
 INSUFICIENTE = "datos insuficientes para establecer tendencias"
 
 
+BASE_DIR = Path(__file__).resolve().parent
+
+
 def _init_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     db_path = tmp_path / "exitpoll_test.db"
-    schema = Path("backend/schema.sql").read_text(encoding="utf-8")
+    schema = (BASE_DIR / "backend" / "schema.sql").read_text(encoding="utf-8")
     conn = sqlite3.connect(db_path)
     conn.executescript(schema)
     conn.commit()

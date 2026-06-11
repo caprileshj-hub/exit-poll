@@ -133,14 +133,16 @@ def generar_candidatos(
             codigos_ya = {c["codigo_cne"] for c in representativos}
             for c in centros:
                 if c["codigo_cne"] not in codigos_ya:
-                    c["diff_nac"] = c.get("diff_nac") or 999
+                    if c.get("diff_nac") is None:
+                        c["diff_nac"] = 999
                     representativos.append(c)
                 if len(representativos) >= candidatos_por_unidad:
                     break
 
         for rank, c in enumerate(representativos[:candidatos_por_unidad], 1):
             c["rank"] = rank
-            c["representativo"] = (c.get("diff_nac") or 999) <= umbral_pct
+            diff = c["diff_nac"] if c.get("diff_nac") is not None else 999
+            c["representativo"] = diff <= umbral_pct
             resultado.append(c)
 
     # Ordenar por unidad geográfica y rank
