@@ -19,7 +19,7 @@ graficos_test/
 *.html
 !backend/templates/*.html
 *.zip
-/exit poll/
+server_*.txt
 
 # BD y archivos generados
 *.db
