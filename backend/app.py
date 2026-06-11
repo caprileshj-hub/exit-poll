@@ -976,6 +976,22 @@ def _source_match_blob(centro: dict[str, Any]) -> str:
     )
 
 
+_GEO_PREFIJOS = ("MUNICIPIO ", "PARROQUIA ", "ESTADO ", "DISTRITO ", "CM ", "CIUDAD ")
+
+
+def _geo_match_name(value: Any) -> str:
+    """Nombre canónico de municipio/parroquia para comparar entre fuentes.
+
+    Iguala el nombre crudo del CNE que guarda cargador_tm ("MP. ZAMORA",
+    "CM. VILLA DE CURA") con el que extrae la ingesta IA ("Zamora")."""
+    name = _normalize_match_text(value)
+    for pref in _GEO_PREFIJOS:
+        if name.startswith(pref):
+            name = name[len(pref):]
+            break
+    return name.strip()
+
+
 def _canonical_estado_name(value: Any) -> str:
     name = _normalize_match_text(value or "")
     if name in {"VARGAS", "EDO VARGAS", "ESTADO VARGAS", "LA GUAIRA", "EDO LA GUAIRA", "ESTADO LA GUAIRA"}:
@@ -1259,10 +1275,12 @@ def _obtener_o_crear_geo(
 
     id_municipio = None
     mun_nom = _normalize_match_text(municipio or "")
+    mun_match = _geo_match_name(municipio or "")
     if mun_nom:
-        row = db.execute("SELECT id FROM municipios WHERE id_estado=? AND nombre=?", (id_estado, mun_nom)).fetchone()
-        if row:
-            id_municipio = row["id"]
+        for row in db.execute("SELECT id, nombre FROM municipios WHERE id_estado=?", (id_estado,)).fetchall():
+            if _geo_match_name(row["nombre"]) == mun_match:
+                id_municipio = row["id"]
+                break
         else:
             code = f"AI{db.execute('SELECT COUNT(*) c FROM municipios WHERE id_estado=?', (id_estado,)).fetchone()['c'] + 1:02d}"
             db.execute("INSERT INTO municipios (id_estado, codigo_cne, nombre) VALUES (?, ?, ?)", (id_estado, code, mun_nom))
@@ -1270,10 +1288,12 @@ def _obtener_o_crear_geo(
 
     id_parroquia = None
     parr_nom = _normalize_match_text(parroquia or "")
+    parr_match = _geo_match_name(parroquia or "")
     if id_municipio and parr_nom:
-        row = db.execute("SELECT id FROM parroquias WHERE id_municipio=? AND nombre=?", (id_municipio, parr_nom)).fetchone()
-        if row:
-            id_parroquia = row["id"]
+        for row in db.execute("SELECT id, nombre FROM parroquias WHERE id_municipio=?", (id_municipio,)).fetchall():
+            if _geo_match_name(row["nombre"]) == parr_match:
+                id_parroquia = row["id"]
+                break
         else:
             code = f"AI{db.execute('SELECT COUNT(*) c FROM parroquias WHERE id_municipio=?', (id_municipio,)).fetchone()['c'] + 1:02d}"
             db.execute("INSERT INTO parroquias (id_municipio, codigo_cne, nombre) VALUES (?, ?, ?)", (id_municipio, code, parr_nom))

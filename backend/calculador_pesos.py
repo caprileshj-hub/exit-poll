@@ -81,11 +81,11 @@ def calcular(id_eleccion: int, dry_run: bool = False):
             c.id_municipio,
             c.id_estado,
             e.es_excepcion  AS estado_excepcion,
-            mu.es_excepcion AS municipio_excepcion
+            COALESCE(mu.es_excepcion, 0) AS municipio_excepcion
         FROM muestra m
         JOIN centros     c  ON c.codigo_cne = m.codigo_centro
         JOIN estados     e  ON e.id = c.id_estado
-        JOIN municipios  mu ON mu.id = c.id_municipio
+        LEFT JOIN municipios mu ON mu.id = c.id_municipio
         WHERE m.id_eleccion = ? AND m.activo = 1 AND c.activo = 1
     ''', (id_eleccion,)).fetchall()
 
@@ -96,6 +96,11 @@ def calcular(id_eleccion: int, dry_run: bool = False):
 
     centros = [dict(f) for f in filas]
     print(f'[+] Centros en muestra: {len(centros)}')
+    sin_municipio = [c['codigo_cne'] for c in centros if c['id_municipio'] is None]
+    if sin_municipio:
+        print(f'[!] {len(sin_municipio)} centros sin municipio asignado '
+              f'(agrupan como unidad propia): {", ".join(sin_municipio[:5])}'
+              f'{"..." if len(sin_municipio) > 5 else ""}')
 
     # --- Universo: electores totales por estado (para peso_nacion) ---
     universo = conn.execute('''
@@ -128,22 +133,30 @@ def calcular(id_eleccion: int, dry_run: bool = False):
 
     elif tipo == 'regional':
         # Centros-muestra suman 1 por municipio (con excepciones DC/La Guaira/municipios especiales)
+        # Sin geografía asignada el centro es su propia unidad (peso 1), nunca
+        # se agrupa con los "sin municipio" de otros estados.
         for c in centros:
             if c['estado_excepcion'] or c['municipio_excepcion']:
-                c['_grupo_muni'] = f"p_{c['id_parroquia']}"
+                grupo = f"p_{c['id_parroquia']}" if c['id_parroquia'] is not None else None
             else:
-                c['_grupo_muni'] = f"m_{c['id_municipio']}"
+                grupo = f"m_{c['id_municipio']}" if c['id_municipio'] is not None else None
+            c['_grupo_muni'] = grupo or f"centro_{c['id_muestra']}"
         p_municipio = _normalizar_dentro_grupo(centros, '_grupo_muni')
         p_estado    = zero
         p_parroquia = zero
         clave_verif, label_verif, p_verif = '_grupo_muni', 'peso_municipio', p_municipio
 
     elif tipo == 'municipal':
-        # Centros-muestra suman 1 por parroquia
-        p_parroquia = _normalizar_dentro_grupo(centros, 'id_parroquia')
+        # Centros-muestra suman 1 por parroquia (sin parroquia: unidad propia)
+        for c in centros:
+            c['_grupo_parr'] = (
+                f"p_{c['id_parroquia']}" if c['id_parroquia'] is not None
+                else f"centro_{c['id_muestra']}"
+            )
+        p_parroquia = _normalizar_dentro_grupo(centros, '_grupo_parr')
         p_municipio = zero
         p_estado    = zero
-        clave_verif, label_verif, p_verif = 'id_parroquia', 'peso_parroquia', p_parroquia
+        clave_verif, label_verif, p_verif = '_grupo_parr', 'peso_parroquia', p_parroquia
 
     else:
         conn.close()
