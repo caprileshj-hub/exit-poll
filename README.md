@@ -60,6 +60,11 @@ The project is in active development. **Phase 7 is underway:**
 - **Technical specification document** — CIS-style methodology card with calculated margin of error, printable from the dashboard
 - **Live AI analyst** — Deterministic analyst panel and provider-backed chat with guardrails. It refuses premature trend analysis with the exact phrase `datos insuficientes para establecer tendencias` until minimum opinions, coverage, and comparable cuts are available.
 
+### Historical Dataset RR 2004
+- **2004 Recall Referendum** - Center-level aggregate dataset in `backend/resultados_rr2004.csv`, seeded as `2004-revocatorio` into `resultados_historicos` through `backend/seed_resultados_historicos.py`. The recoverable source is Esdata/Wayback; it contains no voter names, ID numbers, or person-level records.
+- **Recovered coverage** - 6,265 centers, 8,956,463 valid votes, and 12,980,497 REP 2004 electors. Coverage is not 100% of the official enabled-center universe; it should be read as a partial historical recovery for center-level trend analysis. Even so, it covers more than 90% of national vote/elector volume.
+- **Historical convention** - In the recall referendum, `NO` ratifies the government and is stored as `votos_gobierno`; `SI` recalls the president and is stored as `votos_oposicion`. `codigo_centro` and `codigo_cne_nuevo` are the new CNE code; `codigo_viejo` and `codigo_cne_viejo` preserve the old Esdata identifier.
+
 ### In Development (Phase 7)
 - Production hardening for AI-powered TM normalization: larger-file UX, better manual-resolution workflows, provider rate-limit handling, and stronger fuzzy matching
 - SMS parser and GPS validation in FastAPI backend

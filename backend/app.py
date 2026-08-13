@@ -43,8 +43,10 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 def seed_historicos_startup() -> None:
     try:
         sys.path.insert(0, str(BASE_DIR))
+        import seed_resultados_historicos
         import seed_historico_estudios
 
+        seed_resultados_historicos.seed_resultados_historicos(DB_PATH)
         seed_historico_estudios.seed_historico_estudios(DB_PATH)
     except Exception as exc:
         print(f"[startup] WARN: no se pudieron sembrar estudios historicos: {exc}")

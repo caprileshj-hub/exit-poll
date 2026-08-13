@@ -60,6 +60,11 @@ El proyecto está en desarrollo activo. **La Fase 7 está en curso:**
 - **Ficha técnica** — Documento de metodología estilo CIS con margen de error calculado, imprimible desde el dashboard
 - **Analista IA en vivo** — Panel de analista determinístico y chat respaldado por proveedor con guardrails. Rechaza análisis de tendencia prematuros con la frase exacta `datos insuficientes para establecer tendencias` hasta que existan mínimos de opiniones, cobertura y cortes comparables.
 
+### Dataset historico RR 2004
+- **Referendum Revocatorio 2004** - Dataset agregado por centro en `backend/resultados_rr2004.csv`, sembrado como `2004-revocatorio` en `resultados_historicos` mediante `backend/seed_resultados_historicos.py`. La fuente recuperable es Esdata/Wayback; no contiene cedulas, nombres de electores ni registros persona a persona.
+- **Cobertura recuperada** - 6.265 centros, 8.956.463 votos validos y 12.980.497 electores REP 2004. La cobertura no es el 100% del universo oficial de centros habilitados; debe leerse como una recuperacion historica parcial para analisis de tendencias por centro. Aun asi, cubre mas de 90% del volumen nacional de votos/electores.
+- **Convencion historica** - En el revocatorio, `NO` ratifica al gobierno y se guarda como `votos_gobierno`; `SI` revoca y se guarda como `votos_oposicion`. `codigo_centro` y `codigo_cne_nuevo` son el codigo CNE nuevo; `codigo_viejo` y `codigo_cne_viejo` preservan el identificador antiguo usado por Esdata.
+
 ### En desarrollo (Fase 7)
 - Hardening de producción para la normalización TM con IA: UX para archivos grandes, mejores flujos de resolución manual, manejo de rate limits de proveedores y fuzzy matching más fuerte
 - Parser SMS y validación GPS en el backend FastAPI

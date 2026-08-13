@@ -21,6 +21,7 @@ fi
 # Sembrar estudios historicos fijos. Es idempotente via ON CONFLICT y no
 # reabre los Excel durante el arranque.
 echo "[startup] Sembrando estudios historicos fijos..."
+python seed_resultados_historicos.py || echo "[startup] WARN: seed_resultados_historicos.py fallo; revisar logs"
 python seed_historico_estudios.py || echo "[startup] WARN: seed_historico_estudios.py fallo; revisar logs"
 
 exec uvicorn app:app --host 0.0.0.0 --port "${PORT:-8000}"

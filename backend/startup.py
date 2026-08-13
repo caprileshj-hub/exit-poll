@@ -34,6 +34,7 @@ def main() -> None:
         run([sys.executable, "init_showcase.py"])
 
     # Always re-seed historicos — idempotente via ON CONFLICT DO UPDATE
+    run([sys.executable, "seed_resultados_historicos.py"])
     run([sys.executable, "seed_historico_estudios.py"])
 
     port = os.environ.get("PORT", "8000")

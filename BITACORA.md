@@ -1197,6 +1197,44 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - README en inglés (portfolio) + `README.es.md` en español, enlazados; SECURITY conserva inglés con estructura estándar; AI_MODULE_REVIEW con acentos.
 - ESTADO actualizado: bugs de hoy en resueltos, BUG-002 nuevo (error muestral de /ficha usa electores en vez de entrevistas — pendiente decisión de n).
 
+---
+
+## 2026-08-13 - Dataset historico Referendum Revocatorio 2004
+
+### Contexto
+- Se incorporo una recuperacion agregada por centro desde Esdata/Wayback para alimentar `resultados_historicos` con la referencia `2004-revocatorio`.
+- La recuperacion evita datos personales: no se descargan ni se versionan cedulas, nombres de electores ni registros elector-persona.
+
+### Cambio
+- Se agrego `backend/resultados_rr2004.csv` con 6.265 centros agregados.
+- Se agrego `backend/seed_resultados_historicos.py` para sembrar datasets historicos versionados:
+  - `2024-presidencial` desde `backend/resultados_cne2024.csv`.
+  - `2004-revocatorio` desde `backend/resultados_rr2004.csv`.
+- `backend/app.py`, `backend/startup.py`, `backend/startup.sh` e `backend/init_showcase.py` cargan el seed de resultados historicos por centro de forma idempotente.
+- Se agregaron importadores reproducibles:
+  - `backend/import_2004_esdata.ps1`
+  - `backend/import_2004_esdata.py`
+- En `resultados_rr2004.csv`, `codigo_centro` y `codigo_cne_nuevo` son el codigo CNE nuevo; `codigo_viejo` y `codigo_cne_viejo` preservan el identificador viejo de Esdata.
+
+### Criterio metodologico
+- En el RR 2004, `NO` ratifica al gobierno y se almacena como `votos_gobierno`.
+- `SI` revoca al presidente y se almacena como `votos_oposicion`.
+- La cobertura recuperada no es el 100% del universo oficial de centros habilitados; debe tratarse como una recuperacion historica parcial para analisis de tendencias por centro. Es una base de alta cobertura por volumen:
+  - 6.265 centros.
+  - 8.956.463 votos validos.
+  - 12.980.497 electores REP 2004.
+
+### Validacion
+- `D:\Test\.venv\Scripts\python.exe backend\seed_resultados_historicos.py`: OK.
+  - `2024-presidencial`: 11.925 centros.
+  - `2004-revocatorio`: 6.265 centros.
+- Rutas verificadas:
+  - `/historicos`: 200.
+  - `/historicos/2004-revocatorio`: 200.
+  - `/historicos/debug-json`: 200.
+
+---
+
 ### Pendiente
 - BUG-002 (error muestral de la ficha técnica) requiere definir el n correcto.
 - Deploy a Azure para activar los fixes en producción.

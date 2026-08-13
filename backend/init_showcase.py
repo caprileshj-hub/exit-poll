@@ -14,7 +14,6 @@ Flujo:
 Uso: python init_showcase.py
 """
 
-import csv
 import os
 import sqlite3
 import sys
@@ -22,57 +21,15 @@ import sys
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
 DB_PATH      = os.path.join(BASE_DIR, 'exitpoll.db')
 TM_PATH      = os.path.join(BASE_DIR, 'tm_2018_con_gps.csv')
-CNE2024_PATH = os.path.join(BASE_DIR, 'resultados_cne2024.csv')
 
 sys.path.insert(0, BASE_DIR)
 import calculador_pesos
 import cargador_tm
 import init_db
+import seed_resultados_historicos
 import selector_muestra
 
 ELECCION_REF = '2024-presidencial'
-
-
-def _cargar_historicos(csv_path: str):
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute('PRAGMA foreign_keys = ON')
-    count = 0
-    with open(csv_path, newline='', encoding='utf-8-sig') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            try:
-                conn.execute(
-                    '''
-                    INSERT INTO resultados_historicos
-                        (codigo_centro, eleccion_ref,
-                         votos_validos, votos_gobierno, votos_oposicion,
-                         votos_otros, pct_gobierno, pct_oposicion)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(codigo_centro, eleccion_ref) DO UPDATE SET
-                        votos_validos   = excluded.votos_validos,
-                        votos_gobierno  = excluded.votos_gobierno,
-                        votos_oposicion = excluded.votos_oposicion,
-                        votos_otros     = excluded.votos_otros,
-                        pct_gobierno    = excluded.pct_gobierno,
-                        pct_oposicion   = excluded.pct_oposicion
-                    ''',
-                    (
-                        row['centro_cne_id'],
-                        ELECCION_REF,
-                        int(float(row.get('votos_validos') or 0)),
-                        int(float(row.get('votos_gobierno') or 0)),
-                        int(float(row.get('votos_oposicion') or 0)),
-                        int(float(row.get('votos_otros') or 0)),
-                        float(row.get('pct_gobierno') or 0),
-                        float(row.get('pct_oposicion') or 0),
-                    ),
-                )
-                count += 1
-            except (ValueError, KeyError) as e:
-                print(f'[!] Fila omitida: {e}')
-    conn.commit()
-    conn.close()
-    print(f'[+] resultados_historicos: {count} centros (ref={ELECCION_REF})')
 
 
 def main():
@@ -86,8 +43,9 @@ def main():
     cargador_tm.cargar_tm(TM_PATH)
 
     # 3. Resultados históricos (requeridos por selector_muestra)
-    print('\n=== Paso 3: Cargar resultados CNE 2024 ===')
-    _cargar_historicos(CNE2024_PATH)
+    print('\n=== Paso 3: Cargar resultados historicos por centro ===')
+    stats = seed_resultados_historicos.seed_resultados_historicos(DB_PATH)
+    print(f'[+] resultados_historicos: {stats}')
 
     # 4. Elección y candidatos
     print('\n=== Paso 4: Crear elección y candidatos ===')
