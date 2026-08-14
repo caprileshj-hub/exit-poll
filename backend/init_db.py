@@ -42,6 +42,53 @@ def migrar(conn: sqlite3.Connection):
         conn.execute('ALTER TABLE elecciones ADD COLUMN notas TEXT')
         conn.commit()
         print('[~] Migracion: elecciones.notas anadida')
+    cols_muestra = {r[1] for r in conn.execute('PRAGMA table_info(muestra)')}
+    for col, ddl in {
+        'motivo': 'ALTER TABLE muestra ADD COLUMN motivo TEXT',
+        'agregado_por': 'ALTER TABLE muestra ADD COLUMN agregado_por TEXT',
+        'score_snapshot': 'ALTER TABLE muestra ADD COLUMN score_snapshot REAL',
+        'confianza_snapshot': 'ALTER TABLE muestra ADD COLUMN confianza_snapshot REAL',
+        'created_at': "ALTER TABLE muestra ADD COLUMN created_at TEXT",
+    }.items():
+        if col not in cols_muestra:
+            conn.execute(ddl)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS historico_fuentes (
+            eleccion_ref    TEXT PRIMARY KEY,
+            fuente          TEXT NOT NULL,
+            granularidad    TEXT NOT NULL,
+            cobertura_pct   REAL,
+            comparabilidad  TEXT NOT NULL DEFAULT 'directa',
+            notas           TEXT,
+            updated_at      TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS centro_codigos (
+            codigo_cne      TEXT NOT NULL,
+            codigo_alterno  TEXT NOT NULL,
+            tipo_codigo     TEXT NOT NULL,
+            fuente          TEXT NOT NULL,
+            confianza_match REAL NOT NULL DEFAULT 1.0,
+            created_at      TEXT DEFAULT (datetime('now')),
+            PRIMARY KEY(codigo_cne, codigo_alterno, tipo_codigo)
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_cc_alt ON centro_codigos(codigo_alterno)")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS centro_snapshot (
+            codigo_cne      TEXT NOT NULL,
+            eleccion_ref    TEXT NOT NULL,
+            nombre_centro   TEXT,
+            num_mesas       INTEGER DEFAULT 0,
+            num_electores   INTEGER DEFAULT 0,
+            fuente          TEXT,
+            created_at      TEXT DEFAULT (datetime('now')),
+            PRIMARY KEY(codigo_cne, eleccion_ref)
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_cs_ref ON centro_snapshot(eleccion_ref)")
+    conn.commit()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS config (
             provider      TEXT PRIMARY KEY,

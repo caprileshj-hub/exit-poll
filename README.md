@@ -50,7 +50,7 @@ The project is in active development. **Phase 7 is underway:**
 ### Completed
 - **Database** — SQLite with WAL mode, foreign keys, permanent voting-center registry, election-specific eligibility, audit tables, and client access model
 - **TM Ingestion Pipeline** — Keeps the legacy Excel/CSV differential loader for known 2015/2018 formats and adds an AI-assisted multi-format ingestion flow for new CNE files; manually-entered GPS coordinates and risk ratings are never overwritten
-- **Sample Design** — Automatic selection of representative voting centers using historical CNE results (11,927 centers from 2024); classifies centers as *swing*, *bastion*, *volume*, or *standard*
+- **Sample Design** — Assisted laboratory for selecting centers from the active and historical universe; combines utility score, data confidence, center-level trend, source lineage, and an editable automatic proposal. Uses center/table-level aggregates from 2004, 2006, 2012, 2013, and 2024 when available.
 - **Hierarchical Weight Calculator** — Four-level weighting (precinct → municipality → state → national) with geographic exception rules for Distrito Capital, La Guaira, and Miranda-Caracas
 - **Heatmap Generator** — Folium-based choropleth at state (ADM1) and municipality (ADM2) level; spatial lookup cached for 332 municipalities
 - **Standalone HTML Dashboard** — Single-file output: Folium map (58%) + Plotly trend charts (42%); click on state polygon to see local trend; blue-white-red symmetric palette with ±3% technical tie threshold

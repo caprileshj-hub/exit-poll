@@ -50,7 +50,7 @@ El proyecto está en desarrollo activo. **La Fase 7 está en curso:**
 ### Completado
 - **Base de datos** — SQLite en modo WAL, foreign keys, registro permanente de centros de votación, elegibilidad por elección, tablas de auditoría y modelo de acceso para clientes
 - **Pipeline de ingesta TM** — Mantiene el cargador diferencial legacy Excel/CSV para los formatos conocidos 2015/2018 y agrega un flujo de ingesta multi-formato asistido por IA para archivos CNE nuevos; las coordenadas GPS y calificaciones de riesgo ingresadas manualmente nunca se sobrescriben
-- **Diseño de muestra** — Selección automática de centros representativos usando resultados históricos CNE (11.927 centros de 2024); clasifica centros como *bisagra*, *bastión*, *volumen* o *estándar*
+- **Diseño de muestra** — Laboratorio asistido para seleccionar centros desde el universo activo e histórico; combina score de utilidad, confianza del dato, tendencia por centro, trazabilidad de fuentes y propuesta automática editable. Usa resultados por centro/mesa agregados de 2004, 2006, 2012, 2013 y 2024 cuando están disponibles.
 - **Calculador de pesos jerárquico** — Ponderación de cuatro niveles (parroquia → municipio → estado → nacional) con reglas de excepción geográfica para Distrito Capital, La Guaira y Miranda-Caracas
 - **Generador de heatmap** — Choropleth con Folium a nivel estado (ADM1) y municipio (ADM2); lookup espacial cacheado para 332 municipios
 - **Dashboard HTML autónomo** — Salida de un solo archivo: mapa Folium (58%) + gráficos de tendencia Plotly (42%); clic en el polígono de un estado muestra su tendencia local; paleta simétrica azul-blanco-rojo con umbral de empate técnico ±3%

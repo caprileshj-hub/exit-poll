@@ -2,12 +2,51 @@
 {% set active_page = "muestra" %}
 {% block title %}Muestra{% endblock %}
 
+{% block extra_head %}
+<style>
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; }
+    .kpi { background: #fff; border: 1px solid #e9ecef; border-radius: 8px; padding: .85rem; }
+    .kpi .value { font-size: 1.45rem; font-weight: 700; line-height: 1.1; }
+    .lab-table th, .lab-table td { vertical-align: middle; }
+    .score-pill { min-width: 58px; display: inline-block; }
+    .trend-chip { display: inline-flex; align-items: center; gap: .25rem; }
+    .center-name { max-width: 340px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .detail-row { background: #f8fafc; }
+    .history-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: .65rem; }
+    .history-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: .65rem; background: #fff; }
+    .small-muted { font-size: .78rem; color: #6c757d; }
+    .sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+    .sortable .sort-mark { color: #94a3b8; font-size: .75rem; margin-left: .2rem; }
+    .sortable.active .sort-mark { color: #0d6efd; }
+    .help-tip {
+        border: 0;
+        background: transparent;
+        color: #6c757d;
+        padding: 0 .1rem;
+        line-height: 1;
+        vertical-align: baseline;
+    }
+    .help-tip:hover { color: #0d6efd; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-bullseye me-2"></i>Muestra</h2>
+{% macro help_tip(text) -%}
+<button type="button" class="help-tip" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ text }}">
+    <i class="bi bi-question-circle"></i>
+</button>
+{%- endmacro %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0"><i class="bi bi-bullseye me-2"></i>Muestra</h2>
+        {% if eleccion %}
+        <div class="text-muted small">{{ eleccion["nombre"] }}</div>
+        {% endif %}
+    </div>
     {% if eleccion %}
-    <a href="/muestra/generar" class="btn btn-primary">
-        <i class="bi bi-magic me-1"></i>Generar muestra automática
+    <a href="/muestra/generar" class="btn btn-outline-primary">
+        <i class="bi bi-magic me-1"></i>Proponer candidatos
     </a>
     {% endif %}
 </div>
@@ -22,92 +61,287 @@
 {% if not eleccion %}
 <div class="alert alert-warning">
     <i class="bi bi-exclamation-triangle me-2"></i>
-    No hay elección activa. <a href="/elecciones" class="alert-link">Active una elección</a> primero.
+    No hay eleccion activa. <a href="/elecciones" class="alert-link">Active una eleccion</a> primero.
 </div>
-{% elif muestra|length == 0 %}
-<div class="alert alert-info">
-    <i class="bi bi-info-circle me-2"></i>
-    La elección <strong>{{ eleccion["nombre"] }}</strong> no tiene muestra.
-    Use el botón <strong>"Generar muestra automática"</strong> para crear una propuesta basada en resultados históricos.
-</div>
+{% endif %}
 
-{% if pct_nac %}
-<div class="card shadow-sm mb-4" style="max-width: 500px;">
-    <div class="card-body">
-        <h6 class="text-muted mb-2">Resultado nacional de referencia (2024)</h6>
-        <div class="d-flex gap-4">
-            <div><span class="badge badge-oposicion fs-6">Oposición: {{ pct_nac.oposicion }}%</span></div>
-            <div><span class="badge badge-gobierno fs-6">Gobierno: {{ pct_nac.gobierno }}%</span></div>
-        </div>
-        <small class="text-muted mt-2 d-block">
-            Se seleccionarán centros cuyo resultado histórico sea similar al nacional
-        </small>
+<ul class="nav nav-tabs mb-3" id="muestraTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-lab" data-bs-toggle="tab" data-bs-target="#pane-lab" type="button" role="tab">
+            Laboratorio
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-actual" data-bs-toggle="tab" data-bs-target="#pane-actual" type="button" role="tab">
+            Muestra actual <span class="badge bg-secondary ms-1">{{ muestra|length }}</span>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="muestraTabsContent">
+<div class="tab-pane fade show active" id="pane-lab" role="tabpanel" aria-labelledby="tab-lab" tabindex="0">
+
+<div class="kpi-grid mb-4">
+    <div class="kpi">
+        <div class="small-muted">Universo conocido</div>
+        <div class="value">{{ "{:,}".format(lab.resumen.universo) }}</div>
+    </div>
+    <div class="kpi">
+        <div class="small-muted">En muestra</div>
+        <div class="value">{{ lab.resumen.en_muestra }}</div>
+    </div>
+    <div class="kpi">
+        <div class="small-muted">Electores muestra</div>
+        <div class="value">{{ "{:,}".format(lab.resumen.electores_muestra) }}</div>
+    </div>
+    <div class="kpi">
+        <div class="small-muted">Activos</div>
+        <div class="value">{{ lab.resumen.estatus.get("activo", 0) }}</div>
+    </div>
+    <div class="kpi">
+        <div class="small-muted">Solo historicos</div>
+        <div class="value">{{ lab.resumen.estatus.get("solo_historico", 0) }}</div>
     </div>
 </div>
-{% endif %}
 
-{% else %}
-
-{# Muestra actual #}
-<div class="alert alert-success mb-3">
-    <i class="bi bi-check-circle me-2"></i>
-    <strong>{{ eleccion["nombre"] }}</strong> — {{ muestra|length }} centros en la muestra
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">Laboratorio de centros</h5>
+    <span class="small text-muted">{{ lab.resumen.mostrados }} de {{ lab.resumen.filtrados }} centros filtrados</span>
 </div>
 
-{% if pct_nac %}
-<p class="text-muted small mb-3">
-    Referencia nacional 2024: Oposición {{ pct_nac.oposicion }}% / Gobierno {{ pct_nac.gobierno }}%
-</p>
-{% endif %}
+<div class="alert alert-light border small mb-3">
+    <strong>Metodologia score v2:</strong>
+    el score mide utilidad de seleccion, no certeza del dato.
+    Formula barometro: 50% representatividad relativa, 30% estabilidad relativa robusta y 20% volumen log-normalizado.
+    La confianza A-D y la presencia de 2024 quedan como ejes paralelos; un centro sin 2024 puede ser util, pero no debe anclar si existe una opcion similar con 2024.
+</div>
+
+<form method="get" action="/muestra" class="row g-2 align-items-end bg-white border rounded p-3 mb-3">
+    <div class="col-lg-3 col-md-6">
+        <label class="form-label small fw-semibold">Buscar</label>
+        <input type="text" name="q" class="form-control" value="{{ filtros.q }}" placeholder="Codigo, centro, municipio">
+    </div>
+    <div class="col-lg-2 col-md-6">
+        <label class="form-label small fw-semibold">Estado</label>
+        <select name="estado" class="form-select">
+            <option value="">Todos</option>
+            {% for e in lab.estados %}
+            <option value="{{ e }}" {% if filtros.estado == e %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-lg-2 col-md-6">
+        <label class="form-label small fw-semibold">Municipio</label>
+        <select name="municipio" class="form-select">
+            <option value="">Todos</option>
+            {% for m in lab.municipios %}
+            <option value="{{ m }}" {% if filtros.municipio == m %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-lg-2 col-md-6">
+        <label class="form-label small fw-semibold">Parroquia</label>
+        <select name="parroquia" class="form-select">
+            <option value="">Todas</option>
+            {% for p in lab.parroquias %}
+            <option value="{{ p }}" {% if filtros.parroquia == p %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-lg-1 col-md-4">
+        <label class="form-label small fw-semibold">Estatus</label>
+        <select name="estatus" class="form-select">
+            <option value="">Todos</option>
+            {% for s in ["activo", "nuevo", "incierto", "solo_historico"] %}
+            <option value="{{ s }}" {% if filtros.estatus == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-lg-1 col-md-4">
+        <label class="form-label small fw-semibold">Tipo</label>
+        <select name="clasificacion" class="form-select">
+            <option value="">Todos</option>
+            {% for c in lab.clasificaciones %}
+            <option value="{{ c }}" {% if filtros.clasificacion == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-lg-1 col-md-4 d-grid">
+        <button class="btn btn-primary"><i class="bi bi-funnel"></i></button>
+    </div>
+</form>
 
 <div class="table-responsive">
-    <table class="table table-sm table-hover bg-white shadow-sm rounded" id="tablaMuestra">
+    <table class="table table-sm table-hover bg-white border lab-table" id="tablaLaboratorio">
         <thead class="table-light">
             <tr>
-                <th>Código</th>
+                <th class="sortable" data-sort="centro" data-type="text">Centro <span class="sort-mark">sort</span></th>
+                <th class="sortable" data-sort="geo" data-type="text">Geo <span class="sort-mark">sort</span></th>
+                <th class="sortable" data-sort="estatus" data-type="text">Estatus {{ help_tip("Activo: aparece en el registro permanente o TM vigente. Nuevo: activo sin historico por centro. Solo historico: existe en resultados viejos pero no es seleccionable.") }} <span class="sort-mark">sort</span></th>
+                <th class="sortable" data-sort="tipo" data-type="text">Tipo {{ help_tip("bastion_azul: oposicion fuerte y persistente. bastion_rojo: gobierno fuerte y persistente. representativo: baja distancia y baja variacion contra la referencia nacional. bisagra: brecha reciente pequena. volumen: centro grande dentro de su estado. cambiante: variacion relativa alta. sin_historico: activo sin serie. solo_historico: existe en datos viejos pero no activo. estandar: sin rasgo dominante.") }} <span class="sort-mark">sort</span></th>
+                <th class="sortable active" data-sort="uso" data-type="number">Uso {{ help_tip("ancla: tiene 2024, n_eff suficiente y confianza A/B. condicional_sin_2024: buen historico pero sin dato reciente 2024; usar solo si no hay alternativa similar con 2024. condicional: util pero con confianza C o n_eff limitado. no_ancla: no debe sostener un estrato.") }} <span class="sort-mark">desc</span></th>
+                <th class="text-end sortable" data-sort="electores" data-type="number">Electores {{ help_tip("Electores registrados en el centro segun el ultimo registro disponible o la TM vigente.") }} <span class="sort-mark">sort</span></th>
+                <th class="text-end sortable" data-sort="historicos" data-type="number">Hist. {{ help_tip("Cantidad cruda de elecciones historicas. En la ficha se muestra n_eff, que pondera por recencia.") }} <span class="sort-mark">sort</span></th>
+                <th class="text-end sortable" data-sort="desvio" data-type="number">Desvio {{ help_tip("Desvio relativo shrunk: distancia promedio contra la brecha nacional, ponderada por recencia. El shrinkage hacia el estrato se aplica con series cortas y se apaga con n_eff >= 2.5.") }} <span class="sort-mark">sort</span></th>
+                <th class="text-end sortable" data-sort="estabilidad" data-type="number">Estab. rel. {{ help_tip("MAD del desvio relativo contra la brecha nacional. Usa shrinkage adaptativo hacia el estrato y menor valor significa movimiento mas estable contra la referencia.") }} <span class="sort-mark">sort</span></th>
+                <th class="text-end sortable" data-sort="confianza" data-type="number">Conf. {{ help_tip("Eje paralelo al score: fuente, granularidad, cobertura, recencia y n_eff. No se suma al score para evitar que documentacion compense mala utilidad.") }} <span class="sort-mark">sort</span></th>
+                <th class="text-end sortable" data-sort="score" data-type="number">Score {{ help_tip("Utilidad barometro pura: 50% representatividad relativa, 30% estabilidad relativa y 20% volumen log-normalizado. Puede ordenar por esta columna si quiere ver utilidad sin la regla de uso/ancla.") }} <span class="sort-mark">sort</span></th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for c in lab.centros %}
+            {% set rowid = "centro-" ~ loop.index %}
+            <tr class="lab-main-row"
+                data-detail="{{ rowid }}"
+                data-sort-centro="{{ (c.nombre ~ ' ' ~ c.codigo_cne)|lower }}"
+                data-sort-geo="{{ (c.estado ~ ' ' ~ (c.municipio or '') ~ ' ' ~ (c.parroquia or ''))|lower }}"
+                data-sort-estatus="{{ c.estatus }}"
+                data-sort-tipo="{{ c.clasificacion }}"
+                data-sort-uso="{{ c.uso_prioridad }}"
+                data-sort-electores="{{ c.num_electores or 0 }}"
+                data-sort-historicos="{{ c.n_historicos }}"
+                data-sort-desvio="{{ c.desvio_pp if c.desvio_pp is not none else 9999 }}"
+                data-sort-estabilidad="{{ c.estabilidad_relativa_pp if c.estabilidad_relativa_pp is not none else 9999 }}"
+                data-sort-confianza="{{ c.confianza }}"
+                data-sort-score="{{ c.score if c.score is not none else -1 }}">
+                <td>
+                    <div><code>{{ c.codigo_cne }}</code></div>
+                    <div class="center-name small">{{ c.nombre }}</div>
+                </td>
+                <td class="small">
+                    {{ c.estado }}{% if c.municipio %}<br>{{ c.municipio }}{% endif %}
+                    {% if c.parroquia %}<br><span class="text-muted">{{ c.parroquia }}</span>{% endif %}
+                </td>
+                <td>
+                    <span class="badge {% if c.estatus == 'activo' %}bg-success{% elif c.estatus == 'nuevo' %}bg-primary{% elif c.estatus == 'solo_historico' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+                        {{ c.estatus }}
+                    </span>
+                </td>
+                <td><span class="badge bg-light text-dark">{{ c.clasificacion }}</span></td>
+                <td>
+                    <span class="badge {% if c.uso_recomendado == 'ancla' %}bg-success{% elif c.uso_recomendado == 'condicional_sin_2024' %}bg-warning text-dark{% elif c.uso_recomendado == 'condicional' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                        {{ c.uso_recomendado }}
+                    </span>
+                </td>
+                <td class="text-end">{{ "{:,}".format(c.num_electores or 0) }}</td>
+                <td class="text-end">{{ c.n_historicos }}</td>
+                <td class="text-end">{% if c.desvio_pp is not none %}{{ "%.1f"|format(c.desvio_pp) }}pp{% else %}-{% endif %}</td>
+                <td class="text-end">{% if c.estabilidad_relativa_pp is not none %}{{ "%.1f"|format(c.estabilidad_relativa_pp) }}pp{% else %}-{% endif %}</td>
+                <td class="text-end">
+                    <span class="badge {% if c.semaforo in ['A','B'] %}bg-success{% elif c.semaforo == 'C' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                        {{ c.semaforo }} {{ "%.0f"|format(c.confianza * 100) }}%
+                    </span>
+                </td>
+                <td class="text-end">
+                    {% if c.score is not none %}
+                    <span class="badge bg-dark score-pill">{{ "%.1f"|format(c.score) }}</span>
+                    {% else %}
+                    <span class="badge bg-light text-muted score-pill">insuf.</span>
+                    {% endif %}
+                </td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#{{ rowid }}" title="Ficha">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    {% if eleccion and c.estatus != "solo_historico" and not c.en_muestra %}
+                    <form method="post" action="/muestra/agregar" class="d-inline">
+                        <input type="hidden" name="codigo_centro" value="{{ c.codigo_cne }}">
+                        <input type="hidden" name="motivo" value="Seleccion manual desde laboratorio">
+                        <button class="btn btn-sm btn-success" title="Agregar">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </form>
+                    {% elif c.en_muestra %}
+                    <span class="badge bg-success">muestra</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr class="collapse detail-row" id="{{ rowid }}">
+                <td colspan="12">
+                    <div class="py-2">
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            <span class="badge bg-light text-dark">Mesas {{ help_tip("Cantidad de mesas del centro en el registro disponible.") }} {{ c.num_mesas or 0 }}</span>
+                            <span class="badge bg-light text-dark">n_eff {{ help_tip("Historicos efectivos ponderados por recencia. 2024 pesa 1.0 y cada ciclo hacia atras pesa 0.85 del anterior.") }} {{ "%.2f"|format(c.n_eff or 0) }}</span>
+                            <span class="badge bg-light text-dark">2024 {{ help_tip("Indica si el centro tiene dato reciente 2024. Para anclar muestra futura se prefiere tener 2024; sin 2024 queda como candidato condicional.") }} {{ "si" if c.tiene_2024 else "no" }}</span>
+                            <span class="badge bg-light text-dark">Confianza {{ help_tip("Semaforo A-D de confianza. Vive separado del score: clase C puede ser candidato condicional; D no debe anclar un estrato.") }} {{ c.semaforo }}</span>
+                            {% if c.ruptura_2024 %}<span class="badge bg-warning text-dark">ruptura 2024 {{ help_tip("El desvio relativo de 2024 se aparta mas de 8pp del promedio previo del centro. Es senal de posible realineamiento, no dato descartado.") }}</span>{% endif %}
+                            {% if c.score is not none %}<span class="badge bg-light text-dark">Score {{ help_tip("Utilidad pura: 50% representatividad relativa, 30% estabilidad relativa, 20% volumen. No incluye confianza.") }} {{ "%.1f"|format(c.score) }}</span>{% endif %}
+                            {% if c.desvio_pp is not none %}<span class="badge bg-light text-dark">Desvio {{ help_tip("Desvio relativo shrunk usado por el score. Bajo desvio significa centro mas representativo de su referencia.") }} {{ "%.1f"|format(c.desvio_pp) }}pp</span>{% endif %}
+                            {% if c.estabilidad_relativa_pp is not none %}<span class="badge bg-light text-dark">Estab. rel. {{ help_tip("MAD shrunk del desvio relativo. Es la estabilidad robusta que usa el score.") }} {{ "%.1f"|format(c.estabilidad_relativa_pp) }}pp</span>{% endif %}
+                            {% if c.brecha_estabilidad_pp is not none %}<span class="badge bg-light text-dark">Estab. brecha {{ help_tip("Variacion cruda de la brecha gobierno-oposicion del centro. Puede ser alta si el pais completo cambio de signo.") }} {{ "%.1f"|format(c.brecha_estabilidad_pp) }}pp</span>{% endif %}
+                        </div>
+                        {% if c.histories|length %}
+                        <div class="history-grid">
+                            {% for h in c.histories %}
+                            <div class="history-item">
+                                <div class="fw-semibold">{{ h.eleccion_ref }}</div>
+                                <div class="small">
+                                    <span class="trend-chip text-danger"><i class="bi bi-square-fill"></i>Gob {{ "%.1f"|format(h.pct_gobierno or 0) }}%</span>
+                                    <span class="trend-chip text-primary ms-2"><i class="bi bi-square-fill"></i>Opo {{ "%.1f"|format(h.pct_oposicion or 0) }}%</span>
+                                </div>
+                                <div class="small-muted">
+                                    Brecha {{ help_tip("Brecha de esa eleccion: pct gobierno menos pct oposicion. Negativa favorece oposicion; positiva favorece gobierno.") }} {{ "%.1f"|format(h.brecha) }}pp
+                                    {% if h.desvio is not none %} - desvio {{ "%.1f"|format(h.desvio) }}pp{% endif %}
+                                </div>
+                                <div class="small-muted">
+                                    {{ h.fuente or "fuente n/d" }} - {{ h.granularidad or "centro" }}
+                                    {% if h.cobertura_pct is not none %} - cobertura {{ "%.1f"|format(h.cobertura_pct) }}%{% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-muted small">Sin resultados historicos por centro. Puede entrar solo bajo criterio operativo.</div>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+</div>
+
+<div class="tab-pane fade" id="pane-actual" role="tabpanel" aria-labelledby="tab-actual" tabindex="0">
+{% if muestra|length > 0 %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">Muestra actual</h5>
+    {% if pct_nac %}
+    <span class="small text-muted">
+        Ref. {{ eleccion_ref or "" }}:
+        Opo {{ pct_nac.oposicion }}% / Gob {{ pct_nac.gobierno }}%
+    </span>
+    {% endif %}
+</div>
+<div class="table-responsive">
+    <table class="table table-sm table-hover bg-white border">
+        <thead class="table-light">
+            <tr>
+                <th>Codigo</th>
                 <th>Centro</th>
-                <th>Estado</th>
-                <th>Municipio</th>
-                <th>Parroquia</th>
-                <th class="text-end">Electores</th>
-                <th class="text-end">Mesas</th>
-                <th class="text-end">%Opo</th>
-                <th class="text-end">%Gob</th>
-                <th class="text-end">Diff</th>
+                <th>Geo</th>
+                <th>Tipo {{ help_tip("Clasificacion legacy guardada en muestra para compatibilidad con pesos y flujos existentes.") }}</th>
+                <th class="text-end">Score {{ help_tip("Score que tenia el centro cuando fue agregado manualmente desde el laboratorio.") }}</th>
+                <th class="text-end">Conf. {{ help_tip("Confianza que tenia el centro cuando fue agregado manualmente desde el laboratorio.") }}</th>
+                <th class="text-end">Electores {{ help_tip("Electores actuales registrados para ese centro.") }}</th>
                 <th></th>
             </tr>
         </thead>
         <tbody>
         {% for m in muestra %}
-            {% set diff = ((m["pct_oposicion"] or 0) - pct_nac.get("oposicion", 0))|abs %}
             <tr>
-                <td><code>{{ m["codigo_centro"] }}</code></td>
-                <td class="small">{{ m["centro_nombre"][:35] }}</td>
-                <td class="small">{{ m["estado"] }}</td>
-                <td class="small">{{ m["municipio"] or "—" }}</td>
-                <td class="small">{{ m["parroquia"] or "—" }}</td>
-                <td class="text-end">{{ "{:,}".format(m["num_electores"] or 0) }}</td>
-                <td class="text-end">{{ m["num_mesas"] or 0 }}</td>
+                <td><code>{{ m.codigo_centro }}</code></td>
+                <td class="small">{{ m.centro_nombre }}</td>
+                <td class="small">{{ m.estado }}{% if m.municipio %} / {{ m.municipio }}{% endif %}</td>
+                <td><span class="badge bg-light text-dark">{{ m.tipo_centro or "estandar" }}</span></td>
+                <td class="text-end">{% if m.score_snapshot is not none %}{{ "%.1f"|format(m.score_snapshot) }}{% else %}-{% endif %}</td>
+                <td class="text-end">{% if m.confianza_snapshot is not none %}{{ "%.0f"|format(m.confianza_snapshot * 100) }}%{% else %}-{% endif %}</td>
+                <td class="text-end">{{ "{:,}".format(m.num_electores or 0) }}</td>
                 <td class="text-end">
-                    {% if m["pct_oposicion"] is not none %}
-                    {{ "%.1f"|format(m["pct_oposicion"]) }}%
-                    {% else %}—{% endif %}
-                </td>
-                <td class="text-end">
-                    {% if m["pct_gobierno"] is not none %}
-                    {{ "%.1f"|format(m["pct_gobierno"]) }}%
-                    {% else %}—{% endif %}
-                </td>
-                <td class="text-end">
-                    {% if m["pct_oposicion"] is not none %}
-                    <span class="badge {% if diff <= 5 %}bg-success{% elif diff <= 10 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
-                        {{ "%.1f"|format(diff) }}
-                    </span>
-                    {% else %}—{% endif %}
-                </td>
-                <td>
-                    <form method="post" action="/muestra/{{ m['id'] }}/quitar" class="d-inline"
-                          onsubmit="return confirm('¿Quitar este centro de la muestra?')">
+                    <form method="post" action="/muestra/{{ m.id }}/quitar" class="d-inline"
+                          onsubmit="return confirm('Quitar este centro de la muestra?')">
                         <button class="btn btn-sm btn-outline-danger" title="Quitar">
                             <i class="bi bi-x-lg"></i>
                         </button>
@@ -118,27 +352,83 @@
         </tbody>
     </table>
 </div>
-
+{% else %}
+<div class="alert alert-info">
+    La eleccion activa no tiene centros en muestra. Use el laboratorio o la propuesta automatica para agregar centros.
+</div>
 {% endif %}
+</div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const tabla = document.getElementById('tablaMuestra');
-    if (!tabla) return;
-    const search = document.createElement('input');
-    search.type = 'text';
-    search.className = 'form-control mb-3';
-    search.placeholder = 'Buscar centro...';
-    search.style.maxWidth = '400px';
-    tabla.parentElement.insertBefore(search, tabla);
-    search.addEventListener('input', function() {
-        const val = this.value.toLowerCase();
-        tabla.querySelectorAll('tbody tr').forEach(function(row) {
-            row.style.display = row.textContent.toLowerCase().includes(val) ? '' : 'none';
-        });
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        new bootstrap.Tooltip(el);
+        el.addEventListener('click', event => event.stopPropagation());
     });
+
+    const table = document.getElementById('tablaLaboratorio');
+    if (!table) return;
+
+    const tbody = table.querySelector('tbody');
+    const headers = table.querySelectorAll('th.sortable');
+    const state = { key: 'uso', dir: 'desc' };
+
+    function valueFor(row, key, type) {
+        const raw = row.dataset['sort' + key.charAt(0).toUpperCase() + key.slice(1)] ?? '';
+        if (type === 'number') {
+            const n = Number(raw);
+            return Number.isFinite(n) ? n : -Infinity;
+        }
+        return String(raw).toLocaleLowerCase('es');
+    }
+
+    function rowPairs() {
+        return Array.from(tbody.querySelectorAll('tr.lab-main-row')).map(main => {
+            const detail = document.getElementById(main.dataset.detail);
+            return { main, detail };
+        });
+    }
+
+    function setHeaderMarks(activeHeader) {
+        headers.forEach(th => {
+            th.classList.toggle('active', th === activeHeader);
+            const mark = th.querySelector('.sort-mark');
+            if (mark) mark.textContent = th === activeHeader ? state.dir : 'sort';
+        });
+    }
+
+    function sortBy(header) {
+        const key = header.dataset.sort;
+        const type = header.dataset.type || 'text';
+        if (state.key === key) {
+            state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            state.key = key;
+            state.dir = type === 'number' ? 'desc' : 'asc';
+        }
+
+        const dir = state.dir === 'asc' ? 1 : -1;
+        const pairs = rowPairs().sort((a, b) => {
+            const av = valueFor(a.main, key, type);
+            const bv = valueFor(b.main, key, type);
+            if (av < bv) return -1 * dir;
+            if (av > bv) return 1 * dir;
+            return 0;
+        });
+
+        const fragment = document.createDocumentFragment();
+        pairs.forEach(pair => {
+            fragment.appendChild(pair.main);
+            if (pair.detail) fragment.appendChild(pair.detail);
+        });
+        tbody.appendChild(fragment);
+        setHeaderMarks(header);
+    }
+
+    headers.forEach(header => header.addEventListener('click', () => sortBy(header)));
 });
 </script>
 {% endblock %}

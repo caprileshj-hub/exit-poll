@@ -1581,9 +1581,33 @@ async def tm_confirm(request: Request):
 # ══════════════════════════════════════════════════════════════════
 
 @app.get("/muestra", response_class=HTMLResponse)
-async def muestra_index(request: Request, msg: str = "", cat: str = "success"):
+async def muestra_index(
+    request: Request,
+    msg: str = "",
+    cat: str = "success",
+    q: str = "",
+    estado: str = "",
+    municipio: str = "",
+    parroquia: str = "",
+    estatus: str = "",
+    clasificacion: str = "",
+):
     db = get_db()
     eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+    sys.path.insert(0, str(BASE_DIR))
+    import muestra_lab
+
+    laboratorio = muestra_lab.construir_laboratorio(
+        db,
+        dict(eleccion) if eleccion else None,
+        q=q,
+        estado=estado,
+        municipio=municipio,
+        parroquia=parroquia,
+        estatus=estatus,
+        clasificacion=clasificacion,
+        limit=300,
+    )
 
     eleccion_ref = _eleccion_ref_referencia(db)
     muestra_actual = []
@@ -1591,7 +1615,8 @@ async def muestra_index(request: Request, msg: str = "", cat: str = "success"):
         muestra_actual = db.execute(
             """SELECT m.id, m.codigo_centro, ct.nombre as centro_nombre,
                       e.nombre as estado, mu.nombre as municipio, p.nombre as parroquia,
-                      m.tipo_centro, ct.num_electores, ct.num_mesas,
+                      m.tipo_centro, m.motivo, m.score_snapshot, m.confianza_snapshot,
+                      ct.num_electores, ct.num_mesas,
                       rh.pct_oposicion, rh.pct_gobierno
                FROM muestra m
                JOIN centros ct ON m.codigo_centro=ct.codigo_cne
@@ -1624,8 +1649,38 @@ async def muestra_index(request: Request, msg: str = "", cat: str = "success"):
     return templates.TemplateResponse(request=request, name="muestra.html", context={
         "eleccion": eleccion,
         "muestra": muestra_actual, "pct_nac": pct_nac,
-        "refs": refs, "msg": msg, "cat": cat
+        "refs": refs, "eleccion_ref": eleccion_ref,
+        "msg": msg, "cat": cat,
+        "lab": laboratorio,
+        "filtros": {
+            "q": q,
+            "estado": estado,
+            "municipio": municipio,
+            "parroquia": parroquia,
+            "estatus": estatus,
+            "clasificacion": clasificacion,
+        },
     })
+
+
+@app.post("/muestra/agregar")
+async def muestra_agregar(request: Request):
+    form = await request.form()
+    codigo = str(form.get("codigo_centro") or "").strip()
+    motivo = str(form.get("motivo") or "Seleccion manual desde laboratorio").strip()
+    db = get_db()
+    eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+    if not eleccion:
+        db.close()
+        return RedirectResponse("/muestra?msg=Active+una+eleccion+primero&cat=warning", status_code=303)
+    sys.path.insert(0, str(BASE_DIR))
+    import muestra_lab
+
+    ok = muestra_lab.agregar_centro(db, eleccion["id"], codigo, motivo=motivo, usuario="local")
+    db.close()
+    if not ok:
+        return RedirectResponse("/muestra?msg=Centro+no+seleccionable+o+sin+registro+activo&cat=warning", status_code=303)
+    return RedirectResponse("/muestra?msg=Centro+agregado+a+la+muestra&cat=success", status_code=303)
 
 
 @app.get("/muestra/generar", response_class=HTMLResponse)

@@ -161,3 +161,112 @@
 - **Regla operativa**: cada vez que se modifica `historico_estudios_seed.json` localmente, el commit y push al repo es suficiente para que Azure sincronice en el próximo restart. No se necesita intervención manual en la BD.
 
 **Estado**: Fija.
+
+---
+
+## ADR-011 - Pestana Muestra como laboratorio asistido de seleccion
+
+**Decision**: La pestana `Muestra` debe evolucionar de un generador automatico de centros a un laboratorio asistido de seleccion. El selector automatico actual seguira existiendo como boton de propuesta inicial, pero la decision final debe ser visible, editable y defendible por un operador humano.
+
+**Contexto**: Para construir una muestra de exit poll, el insumo ideal es doble: la Tabla Mesa o REP de la eleccion objetivo y el resultado de la eleccion inmediatamente anterior desglosado por mesa o centro. En Venezuela esos insumos son dificiles de conseguir y pueden estar incompletos. El sistema ya tiene historicos heterogeneos: resultados por centro, estudios de exit poll agregados, resultados oficiales nacionales o territoriales, y recuperaciones parciales como el Referendum Revocatorio 2004. Es metodologicamente incorrecto colapsar todo eso en un unico score sin mostrar linaje, granularidad y confianza.
+
+**Consecuencias**:
+- La lista maestra de centros debe unir registro permanente, TM/REP de la eleccion activa e historicos conocidos. Ninguna fuente debe filtrar destructivamente el universo.
+- Cada centro debe tener un estado de vida derivado: `activo`, `solo_historico`, `nuevo` o `incierto`.
+- El laboratorio debe separar `score_utilidad` de `confianza_dato`. El score ordena candidatos; la confianza dice cuanto puede creerse ese score.
+- No se debe promediar una serie por centro con una serie territorial sin etiquetarlo. Los estudios agregados sirven como contexto territorial, prior para centros sin dato propio o validacion cruzada, pero no sustituyen el comportamiento historico del centro.
+- La estabilidad historica solo se calcula con datos por mesa o centro agregables a centro.
+- La representatividad debe comparar brechas (`pct_gobierno - pct_oposicion`) contra el ambito relevante de la eleccion objetivo, no solo porcentajes de un bando contra el nacional.
+- El ambito de referencia depende de la eleccion: presidencial nacional; gobernadores estado; alcaldes municipio; legislativas circuito/estado cuando exista.
+- Centros con baja confianza o sin historico suficiente no deben mostrar falsa precision. En vez de un score numerico deben mostrar `dato insuficiente` o semaforo bajo.
+- La muestra publicada debe conservar trazabilidad: quien agrego el centro, cuando, score/confianza al momento y motivo.
+
+**Contratos de datos propuestos para v1**:
+- `centro_codigos`: mapeos entre codigo CNE actual y codigos alternos/historicos, con `tipo_codigo`, `fuente` y `confianza_match`. No limitarlo a 2004; debe soportar futuros codigos alternos, renombres o vinculos manuales.
+- `centro_snapshot`: historial de mesas/electores por `codigo_cne` y `eleccion_ref`, con `fuente`.
+- Metadatos de historicos: preferir una tabla aditiva tipo `resultados_historicos_meta` o `historico_fuentes` antes de modificar agresivamente `resultados_historicos`, para no romper `/historicos`, heatmaps ni visualizaciones existentes.
+- `muestra` debe ganar trazabilidad (`motivo`, `agregado_por`, `score_snapshot`, `confianza_snapshot`, `created_at`) o una tabla asociada equivalente.
+- Las clasificaciones multiples deben modelarse como tags o chips derivados; evitar que un unico `CHECK` de `tipo_centro` bloquee casos como `volumen` + `bastion_azul` + `alta_confianza`.
+
+**Formula inicial explicable**:
+
+```text
+Score = 100 * (0.35*R + 0.20*E + 0.20*V + 0.25*C)
+
+R = representatividad = max(0, 1 - desvio_pp / 15)
+E = estabilidad       = max(0, 1 - estabilidad_pp / 10)
+V = volumen           = log(electores) / log(electores_max_del_estrato)
+C = confianza_dato
+```
+
+Los pesos deben ser configurables en la UI. El score compite dentro del estrato geografico aplicable; la cobertura geografica se garantiza por cuotas, no por inflar el score.
+
+**Metricas de control de la muestra**:
+- Cobertura geografica: estados, municipios y parroquias representados contra el universo disponible.
+- Composicion: centros por clasificacion, nivel de confianza, fuente y granularidad.
+- Distribucion de brecha: histograma de la muestra contra el universo disponible.
+- Backcast: que habria proyectado esta muestra en elecciones historicas disponibles por centro, reportando error de brecha y metricas Mosteller/DEFF cuando apliquen.
+- Alertas: exceso de bastiones, exceso de centros sin historico, subrepresentacion territorial, muestra demasiado sesgada contra el universo historico.
+
+**Alcance v1**:
+- Lista maestra filtrable.
+- Ficha de centro con linaje de datos, elecciones disponibles, tendencia rojo/azul, desviacion contra ambito y advertencias.
+- Agregar/quitar centros manualmente.
+- Panel vivo muestra vs universo.
+- Boton `proponer candidatos` reutilizando el selector actual como precarga editable.
+
+**Fuera de alcance v1**:
+- Optimizador automatico que minimice error de backcast.
+- Reemplazar pesos o calculos de totalizacion.
+- Mezclar datos personales de electores. Todo debe operar con agregados por centro, mesa o territorio.
+
+**Estado**: Aprobada para diseno. Implementar en fases, empezando por contratos de datos aditivos y pantalla exploratoria; no convertir todavia el selector en optimizador automatico.
+
+---
+
+## ADR-012 - Score v2 de centros: utilidad separada de confianza
+
+**Decision**: El laboratorio de `Muestra` adopta un score de utilidad separado del semaforo de confianza. El score no suma confianza ni aplica una penalizacion externa por suficiencia historica; la confianza queda como eje paralelo para habilitar, limitar o condicionar el uso del centro.
+
+**Contexto**: El dictamen del comite tecnico senalo cuatro riesgos del score v1: doble penalizacion por suficiencia historica, mezcla entre utilidad y confianza, sesgo mecanico hacia centros grandes y dependencia excesiva de niveles en vez de comportamiento relativo. En exit polls politicos, especialmente en Venezuela, la disponibilidad historica es incompleta y la eleccion 2024 debe tratarse como dato reciente valioso pero con fuente y cobertura visibles.
+
+**Metodologia implementada**:
+- El score visible es un score de rol `barometro`:
+
+```text
+U = 100 * (0.50*R + 0.30*E + 0.20*V)
+
+R = representatividad relativa
+    max(0, 1 - desvio_shrunk / 15pp)
+
+E = estabilidad relativa robusta
+    max(0, 1 - MAD_shrunk / 10pp)
+
+V = volumen log-normalizado dentro del estado
+    log(electores) / log(max_electores_estado)
+```
+
+- `desvio_shrunk` y `MAD_shrunk` usan shrinkage empirico adaptativo hacia el estrato geografico con `k=1.5`: el encogimiento pesa con series cortas y se apaga cuando `n_eff >= 2.5`. Esto reduce ruido sin aplastar centros con historia suficiente.
+- La estabilidad relativa se mide contra la brecha nacional de cada eleccion, no contra la brecha cruda del centro. Una eleccion atipica que mueve todo el pais no convierte automaticamente a un centro estable en `cambiante`.
+- La estabilidad robusta usa MAD de los desvios relativos, no desviacion estandar, para reducir sensibilidad a outliers con series de 3 a 5 puntos.
+- La confianza A-D se calcula aparte con fuente, granularidad, cobertura, recencia y `n_eff`.
+- `n_eff` pondera historicos por recencia: 2024 pesa 1.0 y cada ciclo historico hacia atras pesa 0.85 del anterior.
+- 2024 se incorpora como historico normal en el marco relativo, pero la fuente queda marcada como `actas_cvzla`, cobertura 81%, y se muestra bandera `ruptura_2024` si el desvio relativo 2024 se aparta mas de 8pp del promedio previo del centro.
+
+**Reglas practicas**:
+- La confianza no debe compensar mala utilidad. Un centro muy documentado pero poco representativo no debe subir artificialmente por el semaforo.
+- Clase A/B puede anclar estratos; clase C es candidato condicional si no hay mejores opciones o si cumple un rol especifico; clase D no debe anclar.
+- Para anclar una muestra futura se exige dato reciente 2024 cuando exista alternativa comparable. Un centro sin 2024 puede conservar alto score de utilidad historica, pero queda como `condicional_sin_2024` y se ordena debajo de `ancla`.
+- El volumen queda en 20% porque es eficiencia operativa, no representatividad estadistica. El peso electoral final se maneja con estratos y pesos, no eligiendo solo centros grandes.
+- La clasificacion `cambiante` se basa en variacion relativa alta o ruptura 2024, no solo en cambio de signo de la brecha cruda.
+- Los bastiones siguen siendo utiles como controles de sesgo de campo y no deben descartarse por no ser barometros nacionales.
+
+**Pendiente metodologico**:
+- Implementar backtesting leave-one-election-out para comparar score v2 contra PPS estratificado, centros mas grandes y score v1.
+- Agregar scores por rol (`seguidor_swing`, `volumen`, `bastion_control`, `bisagra`) antes de construir un optimizador automatico de portafolio.
+- Implementar un boton de seleccion automatica que use estos criterios como preseleccion tecnica editable, no como muestra definitiva.
+- Separar formalmente la seleccion metodologica de la seleccion logistica: accesibilidad, seguridad, disponibilidad de encuestadores, continuidad operativa y sustitutos del mismo estrato/rol pueden descartar un centro aun si tiene el mejor score.
+- Cuando se incorporen nuevos resultados previos, el algoritmo debe suavizar y recalibrar la tendencia de uso de cada centro, no congelar decisiones anteriores.
+- Evaluar incorporacion de historicos 1998 y 2000 si se recuperan localmente con contrato verificable.
+
+**Estado**: Implementada como v2 explicable en el laboratorio; pendiente validacion por backtesting antes de automatizar la seleccion final.

@@ -1235,6 +1235,103 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 
 ---
 
+## 2026-08-13 - Decision de diseno para laboratorio de muestra
+
+### Contexto
+- Se reviso el proximo rediseno de la pestana `Muestra` para seleccionar centros de una nueva eleccion usando TM/REP disponible, registro permanente e historicos heterogeneos.
+- La premisa metodologica queda documentada: el selector automatico actual debe pasar a ser un sugeridor editable, no el mecanismo unico de decision.
+
+### Decision
+- Se agrego `ADR-011` en `DECISIONES.md`.
+- La muestra se redisenara como laboratorio asistido:
+  - lista maestra de centros activos, historicos, nuevos e inciertos;
+  - ficha por centro con linaje de datos, tendencia y advertencias;
+  - separacion estricta entre `score_utilidad` y `confianza_dato`;
+  - comparacion viva de muestra vs universo;
+  - backcast y metricas Mosteller/DEFF cuando existan datos suficientes.
+- Los historicos agregados por territorio se usaran como contexto o prior, no como sustituto directo del comportamiento por centro.
+
+### Alcance inicial
+- Implementacion futura en fases: primero contratos de datos aditivos y pantalla exploratoria; despues sugerencias por estrato; optimizador automatico solo cuando la herramienta manual este validada.
+
+---
+
+## 2026-08-13 - Implementacion v1 laboratorio de muestra
+
+### Cambio
+- Se implemento `backend/muestra_lab.py` como capa de calculo para catalogo maestro, score, confianza, clasificacion y resumen muestra-vs-universo.
+- `/muestra` ahora muestra:
+  - KPIs del universo conocido y muestra actual;
+  - filtros por busqueda, estado, municipio, parroquia, estatus y clasificacion;
+  - tabla de centros con estatus, tipo, historicos disponibles, desvio, estabilidad, confianza y score;
+  - ordenamiento client-side por columnas manteniendo la ficha desplegable asociada al centro;
+  - ficha desplegable con resultados historicos por centro y linaje de fuente/granularidad/cobertura;
+  - accion manual para agregar centros sin borrar la muestra vigente.
+- `/muestra/generar` queda como propuesta automatica editable.
+
+### Datos
+- Se agregaron contratos aditivos:
+  - `historico_fuentes`
+  - `centro_codigos`
+  - `centro_snapshot`
+  - columnas de trazabilidad en `muestra`: `motivo`, `agregado_por`, `score_snapshot`, `confianza_snapshot`, `created_at`.
+- `seed_resultados_historicos.py` ahora puebla metadatos de fuente, snapshots disponibles y los mapeos viejo/nuevo del RR 2004.
+- Correccion de alcance: los archivos oficiales por mesa ya versionados en `backend/data` para 2006, 2012 y 2013 tambien alimentan `resultados_historicos` agregados por centro:
+  - `2006-presidencial`: 10.936 centros.
+  - `2012-presidencial`: 13.818 centros.
+  - `2013-presidencial`: 13.850 centros.
+- Esos tres historicos se registran como `cne_recuperado` con granularidad `mesa`; el laboratorio los usa para tendencia, estabilidad, confianza y snapshots por eleccion.
+
+### Validacion
+- `D:\Test\.venv\Scripts\python.exe -m py_compile backend\app.py backend\muestra_lab.py backend\seed_resultados_historicos.py backend\init_db.py`: OK.
+- `D:\Test\.venv\Scripts\python.exe backend\seed_resultados_historicos.py`: OK.
+- Conteos limpios en `resultados_historicos`: 2004=6.265, 2006=10.936, 2012=13.818, 2013=13.850, 2024=11.925 centros.
+- `D:\Test\.venv\Scripts\pytest.exe -q`: 20 passed.
+- Uvicorn local: `/muestra` responde 200 y renderiza `Laboratorio de centros`.
+- Ajuste de dominio de datos: `/muestra` responde 200 con filtros de municipio/parroquia y tabla ordenable.
+- Ajuste de ficha/orden:
+  - la columna Centro ordena por nombre del centro antes que por codigo CNE;
+  - la ficha muestra todos los historicos disponibles del centro, no solo los 4 mas recientes;
+  - los nombres visibles prefieren el snapshot historico mas completo cuando `centros.nombre` viene truncado;
+  - se reemplazaron separadores propensos a mojibake por guiones ASCII.
+- Correccion metodologica de clasificacion:
+  - `bastion_rojo`/`bastion_azul` se calcula por persistencia de la brecha propia del centro;
+  - la estabilidad visible usa desviacion estandar de la brecha del centro;
+  - el desvio contra el resultado nacional queda como indicador separado de representatividad, no como criterio para llamar cambiante a un bastion estable.
+- Ajuste de interfaz en `/muestra`:
+  - se separo la pantalla en subpestanas `Laboratorio` y `Muestra actual` para reducir ruido visual;
+  - se agregaron ayudas contextuales `(?)` en metricas y cabeceras: mesas, confianza, score, desvio, estabilidad de brecha, brecha, estatus, tipo, electores e historicos.
+- Ajuste de score:
+  - la confianza visible ahora representa confianza de tendencia, no solo calidad de fuente;
+  - se agrego un factor de suficiencia historica: 1 historico queda penalizado, 2 historicos quedan parcialmente penalizados, 3 historicos casi completos y 4+ historicos completos;
+  - el score final tambien se multiplica por esa suficiencia para impedir que un centro con un unico dato historico aparezca como maximo candidato.
+- Ajuste de clasificacion de estabilidad:
+  - `cambiante` ya no se determina por cambio de signo de la brecha cruda, porque una eleccion nacional atipica puede mover todo el pais;
+  - se agrego estabilidad relativa contra la brecha nacional de cada eleccion y esa metrica alimenta `representativo`, `cambiante`, score y ordenamiento;
+  - la tabla muestra `Estab. rel.` como metrica principal y conserva `Estab. brecha` cruda dentro de la ficha desplegable.
+- Aclaratoria de ponderacion:
+  - el tooltip de `Tipo` explica cada categoria visible;
+  - el tooltip de `Score` muestra la ponderacion vigente en la app;
+  - se deja documentado que volumen no domina el score para evitar sesgo hacia centros grandes; debe operar junto con estratos y pesos, no como unico criterio de ranking.
+- Implementacion dictamen comite tecnico - score v2:
+  - se adopto `ADR-012`: utilidad separada de confianza;
+  - el score deja de sumar confianza y deja de aplicar penalizacion externa por suficiencia historica;
+  - la utilidad barometro queda en 50% representatividad relativa, 30% estabilidad relativa robusta y 20% volumen;
+  - la confianza A-D queda como eje paralelo con fuente, granularidad, cobertura, recencia y `n_eff`;
+  - se reemplazo sigma por MAD para estabilidad relativa y se agrego shrinkage adaptativo hacia el estrato con `k=1.5`, apagandolo cuando `n_eff >= 2.5`;
+  - 2024 queda marcado como `actas_cvzla`, cobertura 81%, y se agrega bandera `ruptura_2024` cuando el desvio relativo reciente se aparta mas de 8pp del promedio previo;
+  - la app muestra una nota metodologica de score v2 y tooltips actualizados.
+- Ajuste de seleccion operativa:
+  - se agrego `Uso` como regla paralela al score: `ancla`, `condicional_sin_2024`, `condicional`, `no_ancla` o `sin_score`;
+  - el orden inicial del laboratorio prioriza `Uso` y luego `Score`; ordenar por `Score` sigue disponible para ver utilidad pura;
+  - un centro sin dato 2024 no debe anclar si hay alternativa similar con 2024 y confianza A/B.
+- Pendientes aceptados:
+  - boton de seleccion automatica bajo score v2 como preseleccion editable;
+  - fase logistica posterior a la seleccion metodologica: accesibilidad, seguridad, cobertura de encuestadores, zonas rurales/fronterizas y sustitutos;
+  - recalibrar tendencias cuando se incorporen nuevos resultados historicos previos.
+
+---
+
 ### Pendiente
 - BUG-002 (error muestral de la ficha técnica) requiere definir el n correcto.
 - Deploy a Azure para activar los fixes en producción.

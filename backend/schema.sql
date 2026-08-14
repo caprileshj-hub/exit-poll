@@ -148,6 +148,11 @@ CREATE TABLE IF NOT EXISTS muestra (
     codigo_centro   TEXT NOT NULL REFERENCES centros(codigo_cne),
     tipo_centro     TEXT CHECK(tipo_centro IN ('bisagra','bastion','volumen','estandar')),
     activo          INTEGER DEFAULT 1,
+    motivo          TEXT,
+    agregado_por    TEXT,
+    score_snapshot  REAL,
+    confianza_snapshot REAL,
+    created_at      TEXT DEFAULT (datetime('now')),
     UNIQUE(id_eleccion, codigo_centro)
 );
 
@@ -270,6 +275,41 @@ CREATE TABLE IF NOT EXISTS resultados_historicos (
 
 CREATE INDEX IF NOT EXISTS idx_rh_centro ON resultados_historicos(codigo_centro);
 CREATE INDEX IF NOT EXISTS idx_rh_eleccion ON resultados_historicos(eleccion_ref);
+
+CREATE TABLE IF NOT EXISTS historico_fuentes (
+    eleccion_ref    TEXT PRIMARY KEY,
+    fuente          TEXT NOT NULL,
+    granularidad    TEXT NOT NULL,
+    cobertura_pct   REAL,
+    comparabilidad  TEXT NOT NULL DEFAULT 'directa',
+    notas           TEXT,
+    updated_at      TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS centro_codigos (
+    codigo_cne      TEXT NOT NULL,
+    codigo_alterno  TEXT NOT NULL,
+    tipo_codigo     TEXT NOT NULL,
+    fuente          TEXT NOT NULL,
+    confianza_match REAL NOT NULL DEFAULT 1.0,
+    created_at      TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY(codigo_cne, codigo_alterno, tipo_codigo)
+);
+
+CREATE INDEX IF NOT EXISTS idx_cc_alt ON centro_codigos(codigo_alterno);
+
+CREATE TABLE IF NOT EXISTS centro_snapshot (
+    codigo_cne      TEXT NOT NULL,
+    eleccion_ref    TEXT NOT NULL,
+    nombre_centro   TEXT,
+    num_mesas       INTEGER DEFAULT 0,
+    num_electores   INTEGER DEFAULT 0,
+    fuente          TEXT,
+    created_at      TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY(codigo_cne, eleccion_ref)
+);
+
+CREATE INDEX IF NOT EXISTS idx_cs_ref ON centro_snapshot(eleccion_ref);
 
 -- =============================================================
 -- BLOQUE 7C: ESTUDIOS HISTORICOS Y RESULTADOS OFICIALES
