@@ -2,13 +2,13 @@
 
 > Estado actual del proyecto: qué funciona, qué está pendiente, qué bugs hay abiertos.
 > Actualizar al cierre de cada sesión de trabajo significativa.
-> Última actualización: 2026-06-10
+> Última actualización: 2026-08-14
 
 ---
 
 ## Resumen ejecutivo
 
-Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 1–6 completas. Fase 7 en curso: hardening ingesta IA TM, APK Android (repo separado), cobertura de tests, auditoría interna. Módulo de Estudios Históricos implementado con primer dataset cargado (Presidencial 2006).
+Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 1–6 completas. Fase 7 en curso: hardening ingesta IA TM, APK Android (repo separado), cobertura de tests, auditoría interna. Módulo de Estudios Históricos implementado con primer dataset cargado (Presidencial 2006). Nuevo: Laboratorio asistido de selección de muestra (`/muestra`) con score v2, en fase de auditoría — un bug de correctitud detectado y pendiente de fix (ver BUG-003).
 
 ---
 
@@ -68,6 +68,17 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
   - **Auditoría estadística por tarjeta** (2026-05-19): MAE Mosteller M3, error de brecha, sesgo estructural, RMSE±σ estadal, panel TSE, Capa 1+2 para legislativo 2010
   - `auditor_sesgo.py`: DEFF (Kish ICC=0.04), espiral del silencio, nivel de riesgo metodológico
   - AI v2.4: `SESGO_NO_RESPUESTA_NO_CUANTIFICADO`, corrección MoE por DEFF, prompt con cláusulas de sesgo
+
+### Laboratorio de selección de muestra (2026-08-13)
+- [x] `backend/muestra_lab.py`: catálogo maestro, score de utilidad, confianza A–D y clasificación de centros (ADR-011, ADR-012)
+- [x] `/muestra` rediseñada: subpestañas Laboratorio / Muestra actual, filtros, tabla ordenable con ficha desplegable por centro, tooltips metodológicos
+- [x] Contratos aditivos: `historico_fuentes`, `centro_codigos`, `centro_snapshot`, columnas de trazabilidad en `muestra`
+- [x] Históricos por centro incorporados desde datos por mesa ya versionados: 2006 (10.936 centros), 2012 (13.818), 2013 (13.850); más 2004-revocatorio (6.265) y 2024 (11.925)
+- [x] Score v2: utilidad (50% representatividad relativa + 30% estabilidad relativa robusta MAD + 20% volumen) separada de confianza; shrinkage adaptativo hacia el estrato (`k=1.5`, apagado con `n_eff >= 2.5`)
+- [ ] Botón de selección automática bajo score v2 como preselección editable
+- [ ] Fase logística posterior a la selección metodológica (accesibilidad, seguridad, cobertura de encuestadores, zonas rurales/fronterizas, sustitutos)
+- [ ] Recalibrar tendencias cuando se incorporen nuevos resultados históricos previos
+- Detalle: `BITACORA.md` (2026-08-13), `DECISIONES.md` ADR-011/ADR-012
 
 ### Dashboard de configuración FastAPI
 - [x] Gestión de elecciones y candidatos (con fotos, ámbito geográfico, circuitos)
@@ -133,6 +144,12 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 - **Síntoma**: La fórmula del margen de error usa como *n* los electores de los centros de la muestra (~cientos de miles), no las entrevistas esperadas.
 - **Impacto**: La ficha técnica estilo CIS muestra un MoE irrealmente pequeño.
 - **Acción**: Decidir el *n* correcto (¿entrevistas planificadas por centro × centros? ¿campo configurable?) antes de corregir la fórmula.
+
+### BUG-003: Score v2 del laboratorio de muestra trata 0.0 como "sin dato"
+- **Archivo**: `backend/muestra_lab.py` · función `construir_laboratorio` (cálculo de `r_score`/`e_score`, líneas ~544-545)
+- **Síntoma**: `c["desvio_pp"] or 15.0` y `c["estabilidad_relativa_pp"] or 5.0` tratan `0.0` como valor faltante (falsy en Python), no solo `None`. Mismo patrón que el bug ya corregido en `selector_muestra.py` (`diff_nac` → 999, ver fix 2026-06-10).
+- **Impacto**: Un centro perfectamente representativo (`desvio_pp = 0.0`) recibe `r_score = 0.0` (el peor posible en vez del mejor); un centro perfectamente estable (`estabilidad_relativa_pp = 0.0`) recibe `e_score = 0.5` en vez de `1.0`. Verificado con reproducción directa de las expresiones.
+- **Acción**: Reemplazar el fallback `or` por chequeo explícito `is None`. En `r_score` el `is not None` externo ya cubre el caso `None`, así que basta usar `c["desvio_pp"]` directo.
 
 ## Bugs resueltos
 

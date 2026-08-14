@@ -12,6 +12,28 @@
 
 ---
 
+## 2026-08-13
+
+### feat — Laboratorio asistido de selección de muestra (v1)
+- `backend/muestra_lab.py`: catálogo maestro de centros (activos, históricos, nuevos, inciertos), score de utilidad, confianza A–D con semáforo, clasificación (`bastion_rojo`/`bastion_azul`/`representativo`/`cambiante`/`bisagra`/`volumen`/`estandar`) y comparación muestra vs. universo
+- `/muestra`: subpestañas Laboratorio / Muestra actual, filtros (búsqueda, estado, municipio, parroquia, estatus, clasificación), tabla ordenable client-side con ficha desplegable (linaje de fuente, granularidad, cobertura, histórico completo), tooltips metodológicos, acción manual para agregar centros sin borrar la muestra vigente
+- `/muestra/generar` queda como propuesta automática editable, no como decisión final
+- Contratos aditivos: `historico_fuentes`, `centro_codigos`, `centro_snapshot`, columnas de trazabilidad en `muestra` (`motivo`, `agregado_por`, `score_snapshot`, `confianza_snapshot`, `created_at`)
+- `seed_resultados_historicos.py` (nuevo): puebla metadatos de fuente y snapshots por elección
+- Históricos por centro incorporados desde datos por mesa ya versionados en `backend/data`: 2006 (10.936 centros), 2012 (13.818), 2013 (13.850), registrados como `cne_recuperado`/granularidad `mesa`
+- Decisiones: ADR-011 (laboratorio asistido, no selector único) y ADR-012 (score v2: utilidad 50% representatividad relativa + 30% estabilidad relativa robusta MAD con shrinkage adaptativo (`k=1.5`, apagado en `n_eff >= 2.5`) + 20% volumen; confianza como eje paralelo con fuente/granularidad/cobertura/recencia/`n_eff`; bandera `ruptura_2024`)
+- Campo `Uso` (`ancla`/`condicional_sin_2024`/`condicional`/`no_ancla`/`sin_score`) como regla operativa paralela al score
+- Archivos: `backend/muestra_lab.py`, `backend/app.py`, `backend/init_db.py`, `backend/schema.sql`, `backend/seed_resultados_historicos.py`, `backend/templates/muestra.html`
+- Tests: `pytest -q` 20 passed; verificación manual `/muestra` con Uvicorn local
+- Deploy: requiere redeploy a Azure (pendiente)
+- Detalle: `BITACORA.md` (2026-08-13)
+
+### data — Referéndum Revocatorio 2004: resultados históricos
+- Recuperación parcial por centro desde Esdata/Wayback; 6.265 centros; cobertura 91.4%, registrada en `historico_fuentes` como `esdata_wayback`
+- Detalle: `BITACORA.md` (2026-08-13)
+
+---
+
 ## 2026-06-10
 
 ### fix — Dashboard de referencia filtra por la eleccion_ref más reciente
