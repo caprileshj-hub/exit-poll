@@ -145,13 +145,13 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 - **Impacto**: La ficha técnica estilo CIS muestra un MoE irrealmente pequeño.
 - **Acción**: Decidir el *n* correcto (¿entrevistas planificadas por centro × centros? ¿campo configurable?) antes de corregir la fórmula.
 
-### BUG-003: Score v2 del laboratorio de muestra trata 0.0 como "sin dato"
-- **Archivo**: `backend/muestra_lab.py` · función `construir_laboratorio` (cálculo de `r_score`/`e_score`, líneas ~544-545)
-- **Síntoma**: `c["desvio_pp"] or 15.0` y `c["estabilidad_relativa_pp"] or 5.0` tratan `0.0` como valor faltante (falsy en Python), no solo `None`. Mismo patrón que el bug ya corregido en `selector_muestra.py` (`diff_nac` → 999, ver fix 2026-06-10).
-- **Impacto**: Un centro perfectamente representativo (`desvio_pp = 0.0`) recibe `r_score = 0.0` (el peor posible en vez del mejor); un centro perfectamente estable (`estabilidad_relativa_pp = 0.0`) recibe `e_score = 0.5` en vez de `1.0`. Verificado con reproducción directa de las expresiones.
-- **Acción**: Reemplazar el fallback `or` por chequeo explícito `is None`. En `r_score` el `is not None` externo ya cubre el caso `None`, así que basta usar `c["desvio_pp"]` directo.
-
 ## Bugs resueltos
+
+### RESUELTO (2026-08-14): Score v2 del laboratorio de muestra trataba 0.0 como "sin dato"
+- **Archivo**: `backend/muestra_lab.py` · función `construir_laboratorio` (cálculo de `r_score`/`e_score`)
+- **Síntoma**: `c["desvio_pp"] or 15.0` y `c["estabilidad_relativa_pp"] or 5.0` trataban `0.0` como valor faltante (falsy en Python), no solo `None`. Mismo patrón que el bug ya corregido en `selector_muestra.py` (`diff_nac` → 999, ver fix 2026-06-10).
+- **Impacto**: Un centro perfectamente representativo (`desvio_pp = 0.0`) recibía `r_score = 0.0` (el peor posible en vez del mejor); un centro perfectamente estable (`estabilidad_relativa_pp = 0.0`) recibía `e_score = 0.5` en vez de `1.0`.
+- **Resolución**: `r_score` usa `c["desvio_pp"]` directo (el `is not None` externo ya cubre el caso faltante); `e_score` usa un fallback explícito por `is None` en vez de `or`. Verificado con reproducción directa de las expresiones antes/después; `pytest -q`: 20 passed.
 
 ### RESUELTO (2026-06-10): Dashboard de referencia mezclaba elecciones distintas
 - **Archivos**: `backend/app.py` · funciones de ventaja y `_total_referencia_dashboard`

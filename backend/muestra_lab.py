@@ -541,8 +541,9 @@ def construir_laboratorio(
         max_e = max(1, max_by_estado.get(c.get("estado") or "", 1))
         electores = max(0, int(c.get("num_electores") or 0))
         volumen = math.log(max(2, electores)) / math.log(max(2, max_e)) if electores else 0.0
-        r_score = max(0.0, 1.0 - ((c["desvio_pp"] or 15.0) / 15.0)) if c["desvio_pp"] is not None else 0.0
-        e_score = max(0.0, 1.0 - ((c["estabilidad_relativa_pp"] or 5.0) / 10.0)) if c["n_historicos"] >= 2 else 0.0
+        r_score = max(0.0, 1.0 - (c["desvio_pp"] / 15.0)) if c["desvio_pp"] is not None else 0.0
+        estabilidad_val = c["estabilidad_relativa_pp"] if c["estabilidad_relativa_pp"] is not None else 5.0
+        e_score = max(0.0, 1.0 - (estabilidad_val / 10.0)) if c["n_historicos"] >= 2 else 0.0
         c["volumen_score"] = round(volumen, 3)
         c["score_componentes"] = {
             "R": round(r_score, 3),

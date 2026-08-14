@@ -12,6 +12,17 @@
 
 ---
 
+## 2026-08-14
+
+### fix — Score v2 del laboratorio de muestra trataba 0.0 como "sin dato"
+- `construir_laboratorio` en `backend/muestra_lab.py`: `r_score` y `e_score` usaban `valor or default`, que trata `0.0` como falsy en Python. Un centro con `desvio_pp = 0.0` (perfectamente representativo) recibía el peor `r_score` posible en vez del mejor; uno con `estabilidad_relativa_pp = 0.0` recibía `e_score = 0.5` en vez de `1.0`. Mismo patrón que el fix de `selector_muestra.py` del 2026-06-10
+- `r_score` usa `c["desvio_pp"]` directo (el `is not None` externo ya cubre el caso faltante); `e_score` usa fallback explícito por `is None`
+- Archivos: `backend/muestra_lab.py`, `ESTADO.md`
+- Tests: `pytest -q` 20 passed
+- Deploy: requiere redeploy
+
+---
+
 ## 2026-08-13
 
 ### feat — Laboratorio asistido de selección de muestra (v1)
