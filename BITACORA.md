@@ -1448,3 +1448,24 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 ### Validacion
 - Suite completa: `21 passed`.
 - Prueba local de Uvicorn: `/` respondio 200 en aproximadamente 1,4 segundos mientras la semilla seguia en segundo plano.
+
+---
+
+## 2026-08-16 - Pendientes de recuperacion historica 2007, 2009, 2015 y 2018
+
+### Alcance ya cubierto
+- `2007-referendum` y `2009-enmienda` ya cuentan con resultados electorales agregados por centro recuperados de Esdata/Wayback. Este pendiente no cuestiona esos datasets.
+- `2018-presidencial` ya aparece en `/historicos` como resultado oficial nacional fijo, pero no dispone del desglose requerido por mesa o centro.
+
+### Estudios de exit poll pendientes
+- **2007:** Gmail conserva el reporte agregado de PLM y una hoja con 251 capturas de 131 codigos internos de centro. Falta el estudio completo, la correspondencia entre esos codigos y los centros CNE, y el detalle verificable de ambos bloques A/B.
+- **2009:** Gmail conserva el reporte final agregado y una muestra operativa con nombres de centros. No se encontro la base final de capturas por centro.
+- Las bases `BD3`, `BD6` y `BD9` localizadas para 2009 son versiones anteriores a la votacion o contienen datos de prueba. No deben importarse como resultados reales del estudio.
+
+### Resultados electorales pendientes
+- **2015:** conseguir una fuente trazable con resultados desglosados por mesa o, como minimo, por centro de votacion.
+- **2018:** sustituir o complementar el resultado nacional fijo con una fuente trazable desglosada por mesa o centro.
+
+### Criterio de cierre
+- Un proceso solo deja de estar pendiente cuando existe un archivo fuente preservable, procedencia documentada, identificadores conciliables con el registro de centros y una auditoria de cobertura.
+- Los reportes agregados, graficos finales y archivos de prueba sirven como evidencia metodologica, pero no sustituyen el dataset granular requerido por el laboratorio de muestra.

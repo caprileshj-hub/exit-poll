@@ -76,6 +76,7 @@ The project is in active development. **Phase 7 is underway:**
 - **Historical convention** - In the 2009 amendment referendum, `SI` supported the government proposal and is stored as `votos_gobierno`; `NO` is stored as `votos_oposicion`. The versioned CSV contains no voter names, ID numbers, or person-level records.
 
 ### In Development (Phase 7)
+- Complete the historical research archive: recover the full PLM exit-poll studies for 2007 and 2009, and obtain traceable table- or center-level election results for 2015 and 2018. The existing 2007/2009 Esdata aggregates and the national-only 2018 historical card do not close these research gaps.
 - Production hardening for AI-powered TM normalization: larger-file UX, better manual-resolution workflows, provider rate-limit handling, and stronger fuzzy matching
 - SMS parser and GPS validation in FastAPI backend
 - Android APK (surveyor UI + SMS sending + offline queue)

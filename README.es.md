@@ -76,6 +76,7 @@ El proyecto está en desarrollo activo. **La Fase 7 está en curso:**
 - **Convencion historica** - En la enmienda 2009, `SI` apoyaba la propuesta del gobierno y se almacena como `votos_gobierno`; `NO` se almacena como `votos_oposicion`. El CSV versionado no contiene cedulas, nombres de electores ni registros persona a persona.
 
 ### En desarrollo (Fase 7)
+- Completar el archivo histórico de investigación: recuperar los estudios integrales de exit poll PLM de 2007 y 2009, y obtener resultados electorales trazables por mesa o centro para 2015 y 2018. Los agregados Esdata 2007/2009 ya incorporados y la tarjeta nacional de 2018 no cierran estos pendientes.
 - Hardening de producción para la normalización TM con IA: UX para archivos grandes, mejores flujos de resolución manual, manejo de rate limits de proveedores y fuzzy matching más fuerte
 - Parser SMS y validación GPS en el backend FastAPI
 - APK Android (UI del encuestador + envío SMS + cola offline)

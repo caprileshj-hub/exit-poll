@@ -8,6 +8,11 @@
 
 ## [Unreleased]
 
+### docs — Pendientes de recuperación histórica
+- Se documenta que 2007 y 2009 tienen resultados electorales agregados en el sistema, pero siguen pendientes los estudios de exit poll completos y verificables.
+- Se mantienen pendientes los resultados electorales desglosados por mesa o centro de 2015 y 2018; el registro nacional fijo de 2018 no sustituye ese detalle.
+- Los archivos operativos de prueba localizados para 2009 no deben importarse como observaciones reales.
+
 ### fix — Arranque Azure no bloqueado por semillas históricas
 - El workflow empaqueta dependencias en `deploy_root/.python_packages/lib/site-packages`; el contenedor deja de depender de PyPI durante cada reinicio.
 - `backend/startup.py` y `backend/startup.sh` dejan de ejecutar las semillas históricas antes de iniciar Uvicorn.
