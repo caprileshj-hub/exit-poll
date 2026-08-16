@@ -8,6 +8,12 @@
 
 ## [Unreleased]
 
+### fix — Arranque Azure no bloqueado por semillas históricas
+- `backend/startup.py` y `backend/startup.sh` dejan de ejecutar las semillas históricas antes de iniciar Uvicorn.
+- `backend/app.py` programa una única actualización histórica en un hilo de fondo, evitando que la lectura de Excel/CSV y la escritura SQLite excedan el tiempo de arranque de App Service.
+- Se conserva `init_showcase.py` para inicializar una base completamente vacía antes de servir tráfico.
+- `test_startup.py` verifica que FastAPI completa su evento de arranque sin esperar a que termine una semilla lenta.
+
 ### fix — Dominio visual y disponibilidad GPS en laboratorio de muestra
 - `backend/templates/muestra.html`: la tabla del laboratorio usa anchos de columna estables y desplazamiento horizontal para evitar que las métricas salgan de la pantalla o pierdan alineación con sus cabeceras.
 - Se agrega la columna sortable `GPS`, que indica únicamente si el centro tiene latitud y longitud disponibles para una futura gestión de geocerca.

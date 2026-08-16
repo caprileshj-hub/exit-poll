@@ -33,10 +33,8 @@ def main() -> None:
     if table_count(db_path, "centros") == 0:
         run([sys.executable, "init_showcase.py"])
 
-    # Always re-seed historicos — idempotente via ON CONFLICT DO UPDATE
-    run([sys.executable, "seed_resultados_historicos.py"])
-    run([sys.executable, "seed_historico_estudios.py"])
-
+    # FastAPI actualiza los historicos en segundo plano una vez que Uvicorn
+    # ya puede responder al health check de App Service.
     port = os.environ.get("PORT", "8000")
     os.execvp("uvicorn", ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", port])
 

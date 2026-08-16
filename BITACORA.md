@@ -1426,3 +1426,23 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 ### Validacion
 - La suite completa responde `20 passed`.
 - `python -m py_compile` valida `backend/muestra_lab.py`, `backend/seed_resultados_historicos.py` y ambos importadores históricos.
+
+---
+
+## 2026-08-15 - Recuperacion de Azure tras 503 de arranque
+
+### Diagnostico
+- `estacomp.systems` y el hostname interno de App Service devolvian `503 Application Error`.
+- DNS y TLS del dominio raiz eran correctos: ambos hostnames resolvian al mismo App Service.
+- GitHub Actions completo correctamente build y OneDeploy para `6e03990`; la falla ocurria despues del despliegue, durante el arranque del proceso.
+- `startup.py` sembraba todos los historicos de forma sincronica y FastAPI repetia la misma operacion en su evento `startup`. La semilla procesa cuatro CSV y tres Excel y tardo aproximadamente 32 segundos en el entorno local, con riesgo de superar el limite de arranque en el plan B1.
+
+### Cambio
+- `startup.py` y `startup.sh` inician Uvicorn sin repetir la semilla historica.
+- FastAPI conserva la actualizacion idempotente, pero la ejecuta una sola vez mediante `asyncio.to_thread()` y una tarea de fondo guardada en `app.state.historicos_seed_task`.
+- Una base completamente vacia sigue pasando por `init_showcase.py` antes de iniciar Uvicorn.
+- Se agrego `test_startup.py` para impedir que una semilla lenta vuelva a bloquear el evento de arranque.
+
+### Validacion
+- Suite completa: `21 passed`.
+- Prueba local de Uvicorn: `/` respondio 200 en aproximadamente 1,4 segundos mientras la semilla seguia en segundo plano.
