@@ -9,6 +9,7 @@
 ## [Unreleased]
 
 ### fix — Arranque Azure no bloqueado por semillas históricas
+- El workflow empaqueta dependencias en `deploy_root/.python_packages/lib/site-packages`; el contenedor deja de depender de PyPI durante cada reinicio.
 - `backend/startup.py` y `backend/startup.sh` dejan de ejecutar las semillas históricas antes de iniciar Uvicorn.
 - `backend/app.py` programa una única actualización histórica en un hilo de fondo, evitando que la lectura de Excel/CSV y la escritura SQLite excedan el tiempo de arranque de App Service.
 - Se conserva `init_showcase.py` para inicializar una base completamente vacía antes de servir tráfico.

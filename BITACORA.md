@@ -1438,6 +1438,8 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - `startup.py` sembraba todos los historicos de forma sincronica y FastAPI repetia la misma operacion en su evento `startup`. La semilla procesa cuatro CSV y tres Excel y tardo aproximadamente 32 segundos en el entorno local, con riesgo de superar el limite de arranque en el plan B1.
 
 ### Cambio
+- GitHub Actions instala las dependencias dentro de `.python_packages/lib/site-packages` como parte del artefacto OneDeploy.
+- `startup.py` y `startup.sh` eliminan `pip install` del runtime, configuran `PYTHONPATH` al paquete desplegado e inician Uvicorn con `python -m uvicorn`.
 - `startup.py` y `startup.sh` inician Uvicorn sin repetir la semilla historica.
 - FastAPI conserva la actualizacion idempotente, pero la ejecuta una sola vez mediante `asyncio.to_thread()` y una tarea de fondo guardada en `app.state.historicos_seed_task`.
 - Una base completamente vacia sigue pasando por `init_showcase.py` antes de iniciar Uvicorn.

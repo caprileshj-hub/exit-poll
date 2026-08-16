@@ -24,7 +24,11 @@ def table_count(db_path: Path, table: str) -> int:
 def main() -> None:
     os.chdir(ROOT)
 
-    run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "-q"])
+    packages = ROOT / ".python_packages" / "lib" / "site-packages"
+    python_path = os.environ.get("PYTHONPATH", "")
+    os.environ["PYTHONPATH"] = os.pathsep.join(
+        part for part in (str(packages), python_path) if part
+    )
 
     db_path = ROOT / "exitpoll.db"
     # Always run migrations — init_db.py uses CREATE TABLE IF NOT EXISTS (idempotente)
@@ -36,7 +40,10 @@ def main() -> None:
     # FastAPI actualiza los historicos en segundo plano una vez que Uvicorn
     # ya puede responder al health check de App Service.
     port = os.environ.get("PORT", "8000")
-    os.execvp("uvicorn", ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", port])
+    os.execv(
+        sys.executable,
+        [sys.executable, "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", port],
+    )
 
 
 if __name__ == "__main__":

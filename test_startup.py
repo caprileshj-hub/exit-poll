@@ -1,7 +1,14 @@
 import asyncio
 import threading
+from pathlib import Path
 
 from backend import app as app_backend
+
+
+def test_startup_no_instala_dependencias_en_runtime():
+    source = Path("backend/startup.py").read_text(encoding="utf-8")
+    assert "pip\", \"install" not in source
+    assert ".python_packages" in source
 
 
 def test_seed_historicos_startup_no_bloquea(monkeypatch):

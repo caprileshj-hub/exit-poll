@@ -5,7 +5,7 @@ set -e
 
 cd /home/site/wwwroot
 
-pip install -r requirements.txt -q
+export PYTHONPATH="/home/site/wwwroot/.python_packages/lib/site-packages:${PYTHONPATH}"
 
 # Siempre correr migraciones — init_db.py usa CREATE TABLE IF NOT EXISTS (idempotente)
 echo "[startup] Aplicando migraciones..."
@@ -20,4 +20,4 @@ fi
 
 # FastAPI actualiza los historicos en segundo plano para no bloquear el
 # health check de App Service.
-exec uvicorn app:app --host 0.0.0.0 --port "${PORT:-8000}"
+exec python -m uvicorn app:app --host 0.0.0.0 --port "${PORT:-8000}"

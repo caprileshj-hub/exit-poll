@@ -18,13 +18,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
-        run: pip install -r backend/requirements.txt
-
       - name: Package app for Azure
         run: |
           mkdir -p deploy_root
           cp -R backend/. deploy_root/
+          pip install -r backend/requirements.txt --target deploy_root/.python_packages/lib/site-packages
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
