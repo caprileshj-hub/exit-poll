@@ -234,7 +234,7 @@ Los pesos deben ser configurables en la UI. El score compite dentro del estrato 
 - El score visible es un score de rol `barometro`:
 
 ```text
-U = 100 * (0.50*R + 0.30*E + 0.20*V)
+U = min(100, 100 * (0.50*R + 0.30*E + 0.20*V) + Bc)
 
 R = representatividad relativa
     max(0, 1 - desvio_shrunk / 15pp)
@@ -244,11 +244,15 @@ E = estabilidad relativa robusta
 
 V = volumen log-normalizado dentro del estado
     log(electores) / log(max_electores_estado)
+
+Bc = bonus capado de convergencia temporal
+     0 a 8 puntos si el desvio relativo baja con el tiempo
 ```
 
 - `desvio_shrunk` y `MAD_shrunk` usan shrinkage empirico adaptativo hacia el estrato geografico con `k=1.5`: el encogimiento pesa con series cortas y se apaga cuando `n_eff >= 2.5`. Esto reduce ruido sin aplastar centros con historia suficiente.
 - La estabilidad relativa se mide contra la brecha nacional de cada eleccion, no contra la brecha cruda del centro. Una eleccion atipica que mueve todo el pais no convierte automaticamente a un centro estable en `cambiante`.
 - La estabilidad robusta usa MAD de los desvios relativos, no desviacion estandar, para reducir sensibilidad a outliers con series de 3 a 5 puntos.
+- La convergencia temporal requiere al menos 3 historicos comparables. Ajusta una pendiente sobre el desvio relativo ordenado en el tiempo; si el desvio baja, agrega hasta 8 puntos al score. Si el desvio sube, no resta puntos adicionales porque esa perdida ya se refleja en representatividad y estabilidad.
 - La confianza A-D se calcula aparte con fuente, granularidad, cobertura, recencia y `n_eff`.
 - `n_eff` pondera historicos por recencia: 2024 pesa 1.0 y cada ciclo historico hacia atras pesa 0.85 del anterior.
 - 2024 se incorpora como historico normal en el marco relativo, pero la fuente queda marcada como `actas_cvzla`, cobertura 81%, y se muestra bandera `ruptura_2024` si el desvio relativo 2024 se aparta mas de 8pp del promedio previo del centro.

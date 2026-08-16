@@ -50,7 +50,7 @@ The project is in active development. **Phase 7 is underway:**
 ### Completed
 - **Database** — SQLite with WAL mode, foreign keys, permanent voting-center registry, election-specific eligibility, audit tables, and client access model
 - **TM Ingestion Pipeline** — Keeps the legacy Excel/CSV differential loader for known 2015/2018 formats and adds an AI-assisted multi-format ingestion flow for new CNE files; manually-entered GPS coordinates and risk ratings are never overwritten
-- **Sample Design** — Assisted laboratory for selecting centers from the active and historical universe; combines utility score, data confidence, center-level trend, source lineage, and an editable automatic proposal. Uses center/table-level aggregates from 2004, 2006, 2012, 2013, and 2024 when available.
+- **Sample Design** — Assisted laboratory for selecting centers from the active and historical universe; combines utility score, data confidence, center-level trend, source lineage, and an editable automatic proposal. Uses center/table-level aggregates from 2004, 2006, 2007, 2009, 2012, 2013, and 2024 when available.
 - **Hierarchical Weight Calculator** — Four-level weighting (precinct → municipality → state → national) with geographic exception rules for Distrito Capital, La Guaira, and Miranda-Caracas
 - **Heatmap Generator** — Folium-based choropleth at state (ADM1) and municipality (ADM2) level; spatial lookup cached for 332 municipalities
 - **Standalone HTML Dashboard** — Single-file output: Folium map (58%) + Plotly trend charts (42%); click on state polygon to see local trend; blue-white-red symmetric palette with ±3% technical tie threshold
@@ -64,6 +64,16 @@ The project is in active development. **Phase 7 is underway:**
 - **2004 Recall Referendum** - Center-level aggregate dataset in `backend/resultados_rr2004.csv`, seeded as `2004-revocatorio` into `resultados_historicos` through `backend/seed_resultados_historicos.py`. The recoverable source is Esdata/Wayback; it contains no voter names, ID numbers, or person-level records.
 - **Recovered coverage** - 6,265 centers, 8,956,463 valid votes, and 12,980,497 REP 2004 electors. Coverage is not 100% of the official enabled-center universe; it should be read as a partial historical recovery for center-level trend analysis. Even so, it covers more than 90% of national vote/elector volume.
 - **Historical convention** - In the recall referendum, `NO` ratifies the government and is stored as `votos_gobierno`; `SI` recalls the president and is stored as `votos_oposicion`. `codigo_centro` and `codigo_cne_nuevo` are the new CNE code; `codigo_viejo` and `codigo_cne_viejo` preserve the old Esdata identifier.
+
+### Historical Dataset 2007 Constitutional Referendum
+- **2007 Constitutional Referendum** - Center-level aggregate dataset in `backend/resultados_ref2007.csv`, seeded as `2007-referendum` into `resultados_historicos` through `backend/seed_resultados_historicos.py`.
+- **Recovered coverage** - 9,002 centers with results, 29,072 source tables with results and 4,542 source tables without results. Coverage is registered as 86.5% and must be read as a first-bulletin recovery, not a complete official universe.
+- **Historical convention** - The source has blocks A and B. `SI` supported the government reform proposal and `NO` opposed it. The stored center trend combines the SI/NO ratio across both blocks while preserving approximate voter volume by averaging valid votes across blocks. The versioned CSV contains no voter names, ID numbers, or person-level records.
+
+### Historical Dataset 2009 Constitutional Amendment
+- **2009 Constitutional Amendment** - Center-level aggregate dataset in `backend/resultados_enmienda2009.csv`, seeded as `2009-enmienda` into `resultados_historicos` through `backend/seed_resultados_historicos.py`.
+- **Recovered coverage** - 11,233 centers, 34,250 tables with exported center aggregates, 11,504,321 valid votes, and 16,684,405 electors. The source is Esdata/Wayback's `ENMIENDA2009_2boletin` file and is treated as high-coverage but second-bulletin historical recovery.
+- **Historical convention** - In the 2009 amendment referendum, `SI` supported the government proposal and is stored as `votos_gobierno`; `NO` is stored as `votos_oposicion`. The versioned CSV contains no voter names, ID numbers, or person-level records.
 
 ### In Development (Phase 7)
 - Production hardening for AI-powered TM normalization: larger-file UX, better manual-resolution workflows, provider rate-limit handling, and stronger fuzzy matching
@@ -211,6 +221,8 @@ exit_poll/
 │   ├── init_db.py              # DB initialization / reset
 │   ├── convertidor_tm.py       # CNE TM converter (2015/2018 formats)
 │   ├── convertidor_cne2024.py  # CNE 2024 results ingestion (11,927 centers)
+│   ├── import_2007_esdata.py   # Esdata/Wayback 2007 referendum aggregate importer
+│   ├── import_2009_esdata.py   # Esdata/Wayback 2009 amendment aggregate importer
 │   ├── import_2012_gobernadores.py # Regionales 2012 historical governor collection
 │   ├── cargador_tm.py          # Differential TM loader
 │   ├── agent.py                # AI provider abstraction and structured calls

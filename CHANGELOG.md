@@ -8,7 +8,26 @@
 
 ## [Unreleased]
 
-<!-- Agregar aquí los cambios del próximo commit antes de pushear -->
+### fix — Dominio visual y disponibilidad GPS en laboratorio de muestra
+- `backend/templates/muestra.html`: la tabla del laboratorio usa anchos de columna estables y desplazamiento horizontal para evitar que las métricas salgan de la pantalla o pierdan alineación con sus cabeceras.
+- Se agrega la columna sortable `GPS`, que indica únicamente si el centro tiene latitud y longitud disponibles para una futura gestión de geocerca.
+- `backend/muestra_lab.py`: expone `tiene_gps` y el radio configurado del centro sin mostrar ni alterar sus coordenadas en la tabla.
+
+### feat — Convergencia temporal en score de muestra
+- `backend/muestra_lab.py`: agrega componente `C` de convergencia temporal. Con 3+ historicos comparables, mide si el desvio relativo del centro contra el resultado nacional baja con el tiempo.
+- El score conserva la base 50% representatividad, 30% estabilidad y 20% volumen, y suma un bonus capado de hasta 8 puntos por convergencia; si el centro se aleja, no hay castigo adicional.
+- `backend/templates/muestra.html`: nueva columna sortable `Conv.` y badges/tooltip en la ficha del centro.
+- `DECISIONES.md`: ADR-012 actualizada con la formula del bonus de convergencia.
+
+### feat — Datasets históricos Referéndum 2007 y Enmienda 2009
+- `backend/import_2007_esdata.py`: importador reproducible desde Esdata/Wayback `resultados_elecc_2007.xls.zip`; procesa hojas de mesas con resultado y sin resultado.
+- `backend/import_2009_esdata.py`: importador reproducible desde Esdata/Wayback `ENMIENDA2009_2boletin.xls.zip`; descarga temporal, extrae el XLS y exporta solo agregados por centro.
+- `backend/resultados_ref2007.csv`: 9.002 centros con resultado, 29.072 mesas fuente con resultado y 4.542 mesas fuente sin resultado; cobertura parcial de primer boletín.
+- `backend/resultados_enmienda2009.csv`: 11.233 centros, 34.250 mesas exportadas, 11.504.321 votos válidos y 16.684.405 electores; sin datos personales.
+- `backend/seed_resultados_historicos.py`: siembra `2007-referendum` y `2009-enmienda` en `resultados_historicos`, `centro_snapshot`, `historico_fuentes` y mapeos de códigos alternos.
+- `backend/muestra_lab.py`: `seed_default_historical_metadata()` ahora completa metadatos faltantes sin sobrescribir la fuente ya sembrada; conserva `esdata_wayback/mesa` para 2007/2009 y `cne_recuperado/mesa` para 2006/2012/2013.
+- Convención metodológica 2007: `SI` se almacena como gobierno y `NO` como oposición; bloques A/B se combinan por ratio SI/NO preservando volumen aproximado de votantes.
+- Convención metodológica: en la enmienda 2009, `SI` se almacena como gobierno y `NO` como oposición; fuente `esdata_wayback`, granularidad `mesa`, cobertura 99%, segundo boletín CNE.
 
 ---
 

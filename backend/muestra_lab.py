@@ -38,6 +38,8 @@ UTILITY_WEIGHTS = {
     "estabilidad": 0.30,
     "volumen": 0.20,
 }
+CONVERGENCE_BONUS_MAX = 8.0
+CONVERGENCE_FULL_PP = 8.0
 
 
 def ensure_muestra_lab_tables(conn) -> None:
@@ -107,6 +109,33 @@ def seed_default_historical_metadata(conn) -> None:
                 "directa",
                 "Recuperacion parcial por centro desde Esdata/Wayback; no cubre el 100% de centros habilitados.",
             )
+        elif ref == "2007-referendum":
+            meta = (
+                ref,
+                "esdata_wayback",
+                "mesa",
+                86.5,
+                "directa",
+                "Referendum constitucional 2007, primer boletin CNE recuperado desde Esdata/Wayback; combina bloques A/B en una tendencia por centro.",
+            )
+        elif ref == "2009-enmienda":
+            meta = (
+                ref,
+                "esdata_wayback",
+                "mesa",
+                99.0,
+                "directa",
+                "Enmienda constitucional 2009, segundo boletin CNE recuperado desde Esdata/Wayback; SI se almacena como gobierno y NO como oposicion.",
+            )
+        elif ref in {"2006-presidencial", "2012-presidencial", "2013-presidencial"}:
+            meta = (
+                ref,
+                "cne_recuperado",
+                "mesa",
+                100.0,
+                "directa",
+                "Resultado oficial por mesa desde archivo historico Esdata/CNE.",
+            )
         elif ref == "2024-presidencial":
             meta = (
                 ref,
@@ -129,13 +158,7 @@ def seed_default_historical_metadata(conn) -> None:
             INSERT INTO historico_fuentes
                 (eleccion_ref, fuente, granularidad, cobertura_pct, comparabilidad, notas)
             VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(eleccion_ref) DO UPDATE SET
-                fuente=excluded.fuente,
-                granularidad=excluded.granularidad,
-                cobertura_pct=excluded.cobertura_pct,
-                comparabilidad=excluded.comparabilidad,
-                notas=excluded.notas,
-                updated_at=datetime('now')
+            ON CONFLICT(eleccion_ref) DO NOTHING
         """, meta)
     conn.commit()
 
@@ -206,6 +229,37 @@ def _weighted_mean(values: list[float], weights: list[float]) -> float | None:
         return None
     total = sum(w for _, w in pairs)
     return sum(v * w for v, w in pairs) / total if total else None
+
+
+def _temporal_convergence(histories: list[dict[str, Any]]) -> tuple[float | None, float]:
+    """Mide si el desvio relativo baja con el tiempo.
+
+    Devuelve mejora estimada en puntos porcentuales y score 0-1. Requiere al
+    menos tres historicos con brecha nacional comparable; si la pendiente
+    empeora, el bonus es cero para evitar doble castigo.
+    """
+    points = [
+        h for h in histories
+        if h.get("desvio") is not None and h.get("brecha_ref") is not None
+    ]
+    if len(points) < 3:
+        return None, 0.0
+    points.sort(key=lambda h: (_year(str(h.get("eleccion_ref") or "")), str(h.get("eleccion_ref") or "")))
+    xs = [float(i) for i, _ in enumerate(points)]
+    ys = [float(h["desvio"]) for h in points]
+    weights = [max(0.10, float(h.get("confianza_dato") or 0.0)) for h in points]
+    w_total = sum(weights)
+    if w_total <= 0:
+        return None, 0.0
+    x_bar = sum(x * w for x, w in zip(xs, weights)) / w_total
+    y_bar = sum(y * w for y, w in zip(ys, weights)) / w_total
+    denom = sum(w * (x - x_bar) ** 2 for x, w in zip(xs, weights))
+    if denom <= 0:
+        return None, 0.0
+    slope = sum(w * (x - x_bar) * (y - y_bar) for x, y, w in zip(xs, ys, weights)) / denom
+    improvement_pp = -slope * (len(points) - 1)
+    score = max(0.0, min(1.0, improvement_pp / CONVERGENCE_FULL_PP))
+    return improvement_pp, score
 
 
 def _median(values: list[float]) -> float | None:
@@ -373,6 +427,7 @@ def construir_laboratorio(
     centers: dict[str, dict[str, Any]] = {}
     for r in conn.execute("""
         SELECT c.codigo_cne, c.nombre, c.num_electores, c.num_mesas, c.activo,
+               c.lat, c.lon, c.radio_m,
                e.nombre AS estado, mu.nombre AS municipio, p.nombre AS parroquia
         FROM centros c
         JOIN estados e ON e.id = c.id_estado
@@ -383,6 +438,8 @@ def construir_laboratorio(
         codigo = c["codigo_cne"]
         activo_actual = bool(c.get("activo")) or (eleccion and has_ec and codigo in active_current)
         c["estatus"] = "activo" if activo_actual else "incierto"
+        c["tiene_gps"] = c.get("lat") is not None and c.get("lon") is not None
+        c["geocerca_radio_m"] = int(c.get("radio_m") or 300)
         centers[codigo] = c
 
     for codigo in histories_by_center:
@@ -402,6 +459,11 @@ def construir_laboratorio(
                 "estado": "Historico",
                 "municipio": None,
                 "parroquia": None,
+                "lat": None,
+                "lon": None,
+                "radio_m": None,
+                "tiene_gps": False,
+                "geocerca_radio_m": 300,
                 "estatus": "solo_historico",
             }
 
@@ -462,12 +524,15 @@ def construir_laboratorio(
         residual_weights = [float(h.get("recency_weight") or 0.0) for h in histories if h.get("brecha_ref") is not None]
         desvio_obs = _weighted_mean(desvio_values, desvio_weights)
         estabilidad_obs = _mad(residuales) if len(residuales) >= 2 else None
+        convergencia_pp, convergencia_score = _temporal_convergence(histories)
         c["desvio_obs_pp"] = round(desvio_obs, 2) if desvio_obs is not None else None
         c["estabilidad_obs_pp"] = round(estabilidad_obs, 2) if estabilidad_obs is not None else None
         c["desvio_pp"] = c["desvio_obs_pp"]
         c["estabilidad_pp"] = round(statistics.pstdev(desvio_values), 2) if len(desvio_values) >= 2 else None
         c["estabilidad_relativa_pp"] = c["estabilidad_obs_pp"]
         c["brecha_estabilidad_pp"] = round(statistics.pstdev(brechas), 2) if len(brechas) >= 2 else None
+        c["convergencia_pp"] = round(convergencia_pp, 2) if convergencia_pp is not None else None
+        c["convergencia_score"] = round(convergencia_score, 3)
         c["n_eff"] = round(n_eff, 2)
         c["tiene_2024"] = any(h.get("eleccion_ref") == "2024-presidencial" for h in histories)
         c["confianza"] = round(conf, 3)
@@ -548,6 +613,7 @@ def construir_laboratorio(
             "R": round(r_score, 3),
             "E": round(e_score, 3),
             "V": round(volumen, 3),
+            "C": round(float(c.get("convergencia_score") or 0.0), 3),
         }
         if c["n_historicos"] == 0 or c["desvio_pp"] is None:
             c["score"] = None
@@ -557,7 +623,8 @@ def construir_laboratorio(
                 + UTILITY_WEIGHTS["estabilidad"] * e_score
                 + UTILITY_WEIGHTS["volumen"] * volumen
             )
-            c["score"] = round(100.0 * raw_score, 1)
+            convergence_bonus = CONVERGENCE_BONUS_MAX * float(c.get("convergencia_score") or 0.0)
+            c["score"] = round(min(100.0, (100.0 * raw_score) + convergence_bonus), 1)
         c["uso_recomendado"], c["uso_prioridad"] = _uso_recomendado(c)
         catalog.append(c)
 

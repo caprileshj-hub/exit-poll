@@ -43,6 +43,26 @@ DATASETS = [
         "comparabilidad": "directa",
         "notas": "Recuperacion parcial por centro desde Esdata/Wayback; no cubre el 100% de centros habilitados.",
     },
+    {
+        "path": BASE_DIR / "resultados_ref2007.csv",
+        "eleccion_ref": "2007-referendum",
+        "codigo_col": "codigo_centro",
+        "fuente": "esdata_wayback",
+        "granularidad": "mesa",
+        "cobertura_pct": 86.5,
+        "comparabilidad": "directa",
+        "notas": "Referendum constitucional 2007, primer boletin CNE recuperado desde Esdata/Wayback; combina bloques A/B en una tendencia por centro, preservando volumen aproximado de votantes.",
+    },
+    {
+        "path": BASE_DIR / "resultados_enmienda2009.csv",
+        "eleccion_ref": "2009-enmienda",
+        "codigo_col": "codigo_centro",
+        "fuente": "esdata_wayback",
+        "granularidad": "mesa",
+        "cobertura_pct": 99.0,
+        "comparabilidad": "directa",
+        "notas": "Enmienda constitucional 2009, segundo boletin CNE recuperado desde Esdata/Wayback y agregado por centro; SI se almacena como gobierno y NO como oposicion.",
+    },
 ]
 
 EXCEL_DATASETS = [

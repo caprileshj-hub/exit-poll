@@ -1335,3 +1335,94 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 ### Pendiente
 - BUG-002 (error muestral de la ficha técnica) requiere definir el n correcto.
 - Deploy a Azure para activar los fixes en producción.
+
+---
+
+## 2026-08-15 - Datasets historicos Referendum 2007 y Enmienda 2009
+
+### Contexto
+- Se incorporo la recuperacion de Esdata/Wayback para el referendum constitucional nacional 2007.
+- Se incorporo la recuperacion de Esdata/Wayback para el referendum nacional de enmienda constitucional 2009.
+- La fuente 2007 es `resultados_elecc_2007.xls.zip`, con hojas de mesas con resultado y mesas sin resultado. El binario no se versiona; el proyecto conserva solo el CSV agregado por centro.
+- La fuente recuperada es `ENMIENDA2009_2boletin.xls.zip`, con resultados por mesa. El binario no se versiona; el proyecto conserva solo el CSV agregado por centro.
+
+### Cambio
+- Se agrego `backend/import_2007_esdata.py` como importador reproducible.
+- Se agrego `backend/import_2009_esdata.py` como importador reproducible.
+- Se agrego `backend/resultados_ref2007.csv` con 9.002 centros agregados con resultado.
+- Se agrego `backend/resultados_enmienda2009.csv` con 11.233 centros agregados.
+- `backend/seed_resultados_historicos.py` ahora siembra `2007-referendum` y `2009-enmienda` en:
+  - `resultados_historicos`
+  - `centro_snapshot`
+  - `historico_fuentes`
+  - `centro_codigos` cuando aplica codigo viejo/nuevo.
+- `backend/muestra_lab.py` ahora completa metadatos faltantes sin sobrescribir los sembrados por `seed_resultados_historicos.py`; esto evita degradar 2007/2009 a fuente `otro` al abrir `/muestra`.
+- Se actualizaron `README.md`, `README.es.md` y `CHANGELOG.md`.
+
+### Criterio metodologico
+- En el referendum constitucional 2007, `SI` apoyaba la propuesta de reforma del gobierno y se almacena como `votos_gobierno`.
+- `NO` se almacena como `votos_oposicion`.
+- Como 2007 tuvo bloques A/B, la tendencia por centro combina la relacion SI/NO de ambos bloques y preserva volumen aproximado de votantes promediando votos validos entre bloques.
+- Fuente `esdata_wayback`, granularidad `mesa`, cobertura registrada `86.5`, notas de primer boletin CNE y recuperacion parcial.
+- En la enmienda 2009, `SI` apoyaba la propuesta del gobierno y se almacena como `votos_gobierno`.
+- `NO` se almacena como `votos_oposicion`.
+- Fuente `esdata_wayback`, granularidad `mesa`, cobertura registrada `99.0`, notas de segundo boletin CNE.
+- El CSV versionado no contiene cedulas, nombres de electores ni registros persona a persona.
+
+### Validacion
+- `D:\Test\.venv\Scripts\python.exe backend\import_2007_esdata.py`: OK.
+  - 29.072 mesas fuente con resultado.
+  - 4.542 mesas fuente sin resultado.
+  - 11.132 centros fuente.
+  - 9.002 centros exportados.
+- `D:\Test\.venv\Scripts\python.exe backend\import_2009_esdata.py`: OK.
+  - 34.541 filas de mesa en fuente.
+  - 34.185 mesas con votos SI/NO.
+  - 11.422 centros fuente.
+  - 11.233 centros exportados.
+- `D:\Test\.venv\Scripts\python.exe -m py_compile backend\import_2007_esdata.py backend\import_2009_esdata.py backend\seed_resultados_historicos.py`: OK.
+- `D:\Test\.venv\Scripts\python.exe backend\seed_resultados_historicos.py`: OK.
+  - `2007-referendum`: 9.002 centros.
+  - `2009-enmienda`: 11.233 centros.
+  - Totales 2007 sembrados: 8.870.584 votos validos aproximados, 4.357.243 gobierno, 4.513.341 oposicion.
+  - Totales sembrados: 11.504.321 votos validos, 6.310.482 gobierno, 5.193.839 oposicion.
+- `/muestra`: 200; metadata verificada despues de cargar la ruta:
+  - `2007-referendum`: `esdata_wayback`, `mesa`, cobertura 86.5.
+  - `2009-enmienda`: `esdata_wayback`, `mesa`, cobertura 99.0.
+
+---
+
+## 2026-08-15 - Convergencia temporal en score de muestra
+
+### Contexto
+- Se agrego la hipotesis metodologica de que un centro gana valor barometrico si su distancia contra el resultado nacional disminuye con el tiempo.
+- La metrica no reemplaza confianza A-D ni la representatividad actual; actua como senal adicional de calibracion historica.
+
+### Cambio
+- `backend/muestra_lab.py` agrega `_temporal_convergence()`.
+- Requiere al menos 3 historicos comparables con brecha nacional.
+- Calcula una pendiente ponderada del `desvio` relativo en el tiempo.
+- Si el desvio baja, agrega un bonus capado de 0 a 8 puntos al score.
+- Si el desvio sube, el bonus queda en 0 y no se castiga adicionalmente para evitar doble penalizacion.
+- `backend/templates/muestra.html` agrega la columna sortable `Conv.` y badges explicativos en la ficha del centro.
+- `DECISIONES.md` actualiza ADR-012 con la formula:
+  - `U = min(100, 100*(0.50*R + 0.30*E + 0.20*V) + Bc)`.
+
+### Validacion
+- `/muestra`: 200.
+- `D:\Test\.venv\Scripts\python.exe -m py_compile backend\muestra_lab.py backend\app.py`: OK.
+- Se verificaron ejemplos del top del laboratorio con componente `C` en `score_componentes`.
+
+---
+
+## 2026-08-15 - Ajuste visual y disponibilidad GPS en laboratorio
+
+### Cambio
+- La tabla del laboratorio queda contenida en un área con desplazamiento horizontal, con anchos de columna estables y cabeceras alineadas con sus datos.
+- Se agrega la columna sortable `GPS` como indicador binario de disponibilidad de latitud y longitud por centro.
+- La ficha del centro informa si existen coordenadas y muestra el radio de geocerca configurado; la tabla no expone los valores de latitud o longitud.
+- `backend/muestra_lab.py` entrega `tiene_gps` y `geocerca_radio_m`, usando 300 metros como valor por defecto cuando no existe un radio específico.
+
+### Validacion
+- La suite completa responde `20 passed`.
+- `python -m py_compile` valida `backend/muestra_lab.py`, `backend/seed_resultados_historicos.py` y ambos importadores históricos.

@@ -7,7 +7,38 @@
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; }
     .kpi { background: #fff; border: 1px solid #e9ecef; border-radius: 8px; padding: .85rem; }
     .kpi .value { font-size: 1.45rem; font-weight: 700; line-height: 1.1; }
+    .lab-scroll {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: visible;
+        border: 1px solid #dee2e6;
+        background: #fff;
+    }
+    .lab-scroll-hint {
+        display: flex;
+        align-items: center;
+        gap: .35rem;
+        color: #64748b;
+        font-size: .78rem;
+        margin: -.25rem 0 .4rem;
+    }
+    .lab-table {
+        min-width: 1740px;
+        table-layout: fixed;
+        margin-bottom: 0;
+        border: 0 !important;
+    }
     .lab-table th, .lab-table td { vertical-align: middle; }
+    .lab-table th {
+        white-space: normal;
+        line-height: 1.15;
+        font-size: .78rem;
+    }
+    .lab-table td {
+        overflow-wrap: anywhere;
+    }
+    .lab-table .num-col { text-align: right; white-space: nowrap; }
+    .lab-table .badge { white-space: normal; }
     .score-pill { min-width: 58px; display: inline-block; }
     .trend-chip { display: inline-flex; align-items: center; gap: .25rem; }
     .center-name { max-width: 340px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -15,7 +46,7 @@
     .history-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: .65rem; }
     .history-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: .65rem; background: #fff; }
     .small-muted { font-size: .78rem; color: #6c757d; }
-    .sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+    .sortable { cursor: pointer; user-select: none; }
     .sortable .sort-mark { color: #94a3b8; font-size: .75rem; margin-left: .2rem; }
     .sortable.active .sort-mark { color: #0d6efd; }
     .help-tip {
@@ -113,6 +144,7 @@
     <strong>Metodologia score v2:</strong>
     el score mide utilidad de seleccion, no certeza del dato.
     Formula barometro: 50% representatividad relativa, 30% estabilidad relativa robusta y 20% volumen log-normalizado.
+    La convergencia temporal agrega un bonus capado cuando el centro reduce su desvio frente al resultado nacional a traves de 3+ historicos.
     La confianza A-D y la presencia de 2024 quedan como ejes paralelos; un centro sin 2024 puede ser util, pero no debe anclar si existe una opcion similar con 2024.
 </div>
 
@@ -171,8 +203,25 @@
     </div>
 </form>
 
-<div class="table-responsive">
-    <table class="table table-sm table-hover bg-white border lab-table" id="tablaLaboratorio">
+<div class="lab-scroll-hint"><i class="bi bi-arrows"></i> Desplace horizontalmente para ver todas las metricas.</div>
+<div class="lab-scroll">
+    <table class="table table-sm table-hover bg-white lab-table" id="tablaLaboratorio">
+        <colgroup>
+            <col style="width: 250px;">
+            <col style="width: 170px;">
+            <col style="width: 95px;">
+            <col style="width: 125px;">
+            <col style="width: 150px;">
+            <col style="width: 70px;">
+            <col style="width: 115px;">
+            <col style="width: 70px;">
+            <col style="width: 95px;">
+            <col style="width: 110px;">
+            <col style="width: 95px;">
+            <col style="width: 95px;">
+            <col style="width: 80px;">
+            <col style="width: 90px;">
+        </colgroup>
         <thead class="table-light">
             <tr>
                 <th class="sortable" data-sort="centro" data-type="text">Centro <span class="sort-mark">sort</span></th>
@@ -180,12 +229,14 @@
                 <th class="sortable" data-sort="estatus" data-type="text">Estatus {{ help_tip("Activo: aparece en el registro permanente o TM vigente. Nuevo: activo sin historico por centro. Solo historico: existe en resultados viejos pero no es seleccionable.") }} <span class="sort-mark">sort</span></th>
                 <th class="sortable" data-sort="tipo" data-type="text">Tipo {{ help_tip("bastion_azul: oposicion fuerte y persistente. bastion_rojo: gobierno fuerte y persistente. representativo: baja distancia y baja variacion contra la referencia nacional. bisagra: brecha reciente pequena. volumen: centro grande dentro de su estado. cambiante: variacion relativa alta. sin_historico: activo sin serie. solo_historico: existe en datos viejos pero no activo. estandar: sin rasgo dominante.") }} <span class="sort-mark">sort</span></th>
                 <th class="sortable active" data-sort="uso" data-type="number">Uso {{ help_tip("ancla: tiene 2024, n_eff suficiente y confianza A/B. condicional_sin_2024: buen historico pero sin dato reciente 2024; usar solo si no hay alternativa similar con 2024. condicional: util pero con confianza C o n_eff limitado. no_ancla: no debe sostener un estrato.") }} <span class="sort-mark">desc</span></th>
-                <th class="text-end sortable" data-sort="electores" data-type="number">Electores {{ help_tip("Electores registrados en el centro segun el ultimo registro disponible o la TM vigente.") }} <span class="sort-mark">sort</span></th>
-                <th class="text-end sortable" data-sort="historicos" data-type="number">Hist. {{ help_tip("Cantidad cruda de elecciones historicas. En la ficha se muestra n_eff, que pondera por recencia.") }} <span class="sort-mark">sort</span></th>
-                <th class="text-end sortable" data-sort="desvio" data-type="number">Desvio {{ help_tip("Desvio relativo shrunk: distancia promedio contra la brecha nacional, ponderada por recencia. El shrinkage hacia el estrato se aplica con series cortas y se apaga con n_eff >= 2.5.") }} <span class="sort-mark">sort</span></th>
-                <th class="text-end sortable" data-sort="estabilidad" data-type="number">Estab. rel. {{ help_tip("MAD del desvio relativo contra la brecha nacional. Usa shrinkage adaptativo hacia el estrato y menor valor significa movimiento mas estable contra la referencia.") }} <span class="sort-mark">sort</span></th>
-                <th class="text-end sortable" data-sort="confianza" data-type="number">Conf. {{ help_tip("Eje paralelo al score: fuente, granularidad, cobertura, recencia y n_eff. No se suma al score para evitar que documentacion compense mala utilidad.") }} <span class="sort-mark">sort</span></th>
-                <th class="text-end sortable" data-sort="score" data-type="number">Score {{ help_tip("Utilidad barometro pura: 50% representatividad relativa, 30% estabilidad relativa y 20% volumen log-normalizado. Puede ordenar por esta columna si quiere ver utilidad sin la regla de uso/ancla.") }} <span class="sort-mark">sort</span></th>
+                <th class="text-center sortable" data-sort="gps" data-type="number">GPS {{ help_tip("Indica si el centro tiene latitud y longitud cargadas para poder gestionar geocerca del encuestador.") }} <span class="sort-mark">sort</span></th>
+                <th class="num-col sortable" data-sort="electores" data-type="number">Electores {{ help_tip("Electores registrados en el centro segun el ultimo registro disponible o la TM vigente.") }} <span class="sort-mark">sort</span></th>
+                <th class="num-col sortable" data-sort="historicos" data-type="number">Hist. {{ help_tip("Cantidad cruda de elecciones historicas. En la ficha se muestra n_eff, que pondera por recencia.") }} <span class="sort-mark">sort</span></th>
+                <th class="num-col sortable" data-sort="desvio" data-type="number">Desvio {{ help_tip("Desvio relativo shrunk: distancia promedio contra la brecha nacional, ponderada por recencia. El shrinkage hacia el estrato se aplica con series cortas y se apaga con n_eff >= 2.5.") }} <span class="sort-mark">sort</span></th>
+                <th class="num-col sortable" data-sort="estabilidad" data-type="number">Estab. rel. {{ help_tip("MAD del desvio relativo contra la brecha nacional. Usa shrinkage adaptativo hacia el estrato y menor valor significa movimiento mas estable contra la referencia.") }} <span class="sort-mark">sort</span></th>
+                <th class="num-col sortable" data-sort="convergencia" data-type="number">Conv. {{ help_tip("Convergencia temporal: mejora estimada en puntos si el desvio del centro contra el resultado nacional baja con el tiempo. Requiere 3+ historicos y solo suma un bonus capado al score; si empeora, no resta doblemente.") }} <span class="sort-mark">sort</span></th>
+                <th class="num-col sortable" data-sort="confianza" data-type="number">Conf. {{ help_tip("Eje paralelo al score: fuente, granularidad, cobertura, recencia y n_eff. No se suma al score para evitar que documentacion compense mala utilidad.") }} <span class="sort-mark">sort</span></th>
+                <th class="num-col sortable" data-sort="score" data-type="number">Score {{ help_tip("Utilidad barometro: 50% representatividad relativa, 30% estabilidad relativa y 20% volumen log-normalizado, mas bonus capado de convergencia temporal. Puede ordenar por esta columna si quiere ver utilidad sin la regla de uso/ancla.") }} <span class="sort-mark">sort</span></th>
                 <th></th>
             </tr>
         </thead>
@@ -199,10 +250,12 @@
                 data-sort-estatus="{{ c.estatus }}"
                 data-sort-tipo="{{ c.clasificacion }}"
                 data-sort-uso="{{ c.uso_prioridad }}"
+                data-sort-gps="{{ 1 if c.tiene_gps else 0 }}"
                 data-sort-electores="{{ c.num_electores or 0 }}"
                 data-sort-historicos="{{ c.n_historicos }}"
                 data-sort-desvio="{{ c.desvio_pp if c.desvio_pp is not none else 9999 }}"
                 data-sort-estabilidad="{{ c.estabilidad_relativa_pp if c.estabilidad_relativa_pp is not none else 9999 }}"
+                data-sort-convergencia="{{ c.convergencia_score or 0 }}"
                 data-sort-confianza="{{ c.confianza }}"
                 data-sort-score="{{ c.score if c.score is not none else -1 }}">
                 <td>
@@ -224,23 +277,31 @@
                         {{ c.uso_recomendado }}
                     </span>
                 </td>
-                <td class="text-end">{{ "{:,}".format(c.num_electores or 0) }}</td>
-                <td class="text-end">{{ c.n_historicos }}</td>
-                <td class="text-end">{% if c.desvio_pp is not none %}{{ "%.1f"|format(c.desvio_pp) }}pp{% else %}-{% endif %}</td>
-                <td class="text-end">{% if c.estabilidad_relativa_pp is not none %}{{ "%.1f"|format(c.estabilidad_relativa_pp) }}pp{% else %}-{% endif %}</td>
-                <td class="text-end">
+                <td class="text-center">
+                    {% if c.tiene_gps %}
+                    <span class="badge bg-success" title="Tiene coordenadas"><i class="bi bi-check-lg"></i></span>
+                    {% else %}
+                    <span class="badge bg-light text-muted border" title="Sin coordenadas"><i class="bi bi-dash-lg"></i></span>
+                    {% endif %}
+                </td>
+                <td class="num-col">{{ "{:,}".format(c.num_electores or 0) }}</td>
+                <td class="num-col">{{ c.n_historicos }}</td>
+                <td class="num-col">{% if c.desvio_pp is not none %}{{ "%.1f"|format(c.desvio_pp) }}pp{% else %}-{% endif %}</td>
+                <td class="num-col">{% if c.estabilidad_relativa_pp is not none %}{{ "%.1f"|format(c.estabilidad_relativa_pp) }}pp{% else %}-{% endif %}</td>
+                <td class="num-col">{% if c.convergencia_pp is not none %}{{ "%+.1f"|format(c.convergencia_pp) }}pp{% else %}-{% endif %}</td>
+                <td class="num-col">
                     <span class="badge {% if c.semaforo in ['A','B'] %}bg-success{% elif c.semaforo == 'C' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
                         {{ c.semaforo }} {{ "%.0f"|format(c.confianza * 100) }}%
                     </span>
                 </td>
-                <td class="text-end">
+                <td class="num-col">
                     {% if c.score is not none %}
                     <span class="badge bg-dark score-pill">{{ "%.1f"|format(c.score) }}</span>
                     {% else %}
                     <span class="badge bg-light text-muted score-pill">insuf.</span>
                     {% endif %}
                 </td>
-                <td class="text-end">
+                <td class="text-center">
                     <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#{{ rowid }}" title="Ficha">
                         <i class="bi bi-eye"></i>
                     </button>
@@ -258,17 +319,19 @@
                 </td>
             </tr>
             <tr class="collapse detail-row" id="{{ rowid }}">
-                <td colspan="12">
+                <td colspan="14">
                     <div class="py-2">
                         <div class="d-flex flex-wrap gap-2 mb-2">
                             <span class="badge bg-light text-dark">Mesas {{ help_tip("Cantidad de mesas del centro en el registro disponible.") }} {{ c.num_mesas or 0 }}</span>
+                            <span class="badge bg-light text-dark">GPS {{ help_tip("Indica si el centro tiene coordenadas para geocerca. Si no las tiene, debe cargarse latitud/longitud antes de exigir validacion geografica al encuestador.") }} {{ "si" if c.tiene_gps else "no" }}</span>
                             <span class="badge bg-light text-dark">n_eff {{ help_tip("Historicos efectivos ponderados por recencia. 2024 pesa 1.0 y cada ciclo hacia atras pesa 0.85 del anterior.") }} {{ "%.2f"|format(c.n_eff or 0) }}</span>
                             <span class="badge bg-light text-dark">2024 {{ help_tip("Indica si el centro tiene dato reciente 2024. Para anclar muestra futura se prefiere tener 2024; sin 2024 queda como candidato condicional.") }} {{ "si" if c.tiene_2024 else "no" }}</span>
                             <span class="badge bg-light text-dark">Confianza {{ help_tip("Semaforo A-D de confianza. Vive separado del score: clase C puede ser candidato condicional; D no debe anclar un estrato.") }} {{ c.semaforo }}</span>
                             {% if c.ruptura_2024 %}<span class="badge bg-warning text-dark">ruptura 2024 {{ help_tip("El desvio relativo de 2024 se aparta mas de 8pp del promedio previo del centro. Es senal de posible realineamiento, no dato descartado.") }}</span>{% endif %}
-                            {% if c.score is not none %}<span class="badge bg-light text-dark">Score {{ help_tip("Utilidad pura: 50% representatividad relativa, 30% estabilidad relativa, 20% volumen. No incluye confianza.") }} {{ "%.1f"|format(c.score) }}</span>{% endif %}
+                            {% if c.score is not none %}<span class="badge bg-light text-dark">Score {{ help_tip("Utilidad barometro: 50% representatividad relativa, 30% estabilidad relativa, 20% volumen y bonus capado de convergencia temporal. No incluye confianza.") }} {{ "%.1f"|format(c.score) }}</span>{% endif %}
                             {% if c.desvio_pp is not none %}<span class="badge bg-light text-dark">Desvio {{ help_tip("Desvio relativo shrunk usado por el score. Bajo desvio significa centro mas representativo de su referencia.") }} {{ "%.1f"|format(c.desvio_pp) }}pp</span>{% endif %}
                             {% if c.estabilidad_relativa_pp is not none %}<span class="badge bg-light text-dark">Estab. rel. {{ help_tip("MAD shrunk del desvio relativo. Es la estabilidad robusta que usa el score.") }} {{ "%.1f"|format(c.estabilidad_relativa_pp) }}pp</span>{% endif %}
+                            {% if c.convergencia_pp is not none %}<span class="badge bg-light text-dark">Conv. {{ help_tip("Mejora estimada del desvio relativo con el tiempo. Positivo significa que el centro se ha acercado al resultado nacional; negativo significa que se ha alejado y no recibe bonus.") }} {{ "%+.1f"|format(c.convergencia_pp) }}pp</span>{% endif %}
                             {% if c.brecha_estabilidad_pp is not none %}<span class="badge bg-light text-dark">Estab. brecha {{ help_tip("Variacion cruda de la brecha gobierno-oposicion del centro. Puede ser alta si el pais completo cambio de signo.") }} {{ "%.1f"|format(c.brecha_estabilidad_pp) }}pp</span>{% endif %}
                         </div>
                         {% if c.histories|length %}
