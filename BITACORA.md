@@ -1469,3 +1469,22 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 ### Criterio de cierre
 - Un proceso solo deja de estar pendiente cuando existe un archivo fuente preservable, procedencia documentada, identificadores conciliables con el registro de centros y una auditoria de cobertura.
 - Los reportes agregados, graficos finales y archivos de prueba sirven como evidencia metodologica, pero no sustituyen el dataset granular requerido por el laboratorio de muestra.
+
+---
+
+## 2026-08-21 - Evidencia CNE archivada para Presidencial 2018
+
+### Hallazgo
+- La enumeracion publica de subdominios de `cne.gob.ve` muestra hosts historicamente relevantes para resultados: `resultados.cne.gob.ve`, `resultados2024.cne.gob.ve`, `resultados2021.cne.gob.ve`, `resultadosanreg2025.cne.gob.ve` y `www4.cne.gob.ve`.
+- `www4.cne.gob.ve/ResultadosElecciones2018/` tiene capturas de Wayback con la pantalla nacional 2018 y endpoints AJAX archivados.
+- La captura nacional conserva ficha tecnica y porcentajes por candidato via `grafico_participacion.php`.
+
+### Cambio
+- Se agrego `backend/data/2018/cne_archivado_nacional.json` como evidencia versionada de la fuente CNE/Wayback 2018.
+- Se actualizo `backend/historico_1998_2024.csv` para registrar 2012/2013 como copia publica CNE scrapeable y 2018 como fuente CNE archivada solo nacional.
+- Se actualizo la fuente de `2018-presidencial` en `backend/data/historico_estudios_seed.json` a `Wikipedia/CNE agregado nacional + CNE 2018 archivado en Wayback`.
+- README y README.es documentan que 2018 sigue siendo una tarjeta oficial nacional, no un dataset granular para el laboratorio de muestra.
+
+### Pendiente
+- Los endpoints territoriales archivados probados para 2018 devolvieron `Esperando Totalizacion de Datos`; no hay todavia resultados por mesa o centro.
+- El pendiente 2018 solo se cierra si aparece una fuente trazable y preservable con granularidad por mesa o centro y auditoria de cobertura.

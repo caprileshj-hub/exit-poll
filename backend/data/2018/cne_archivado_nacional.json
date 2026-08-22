@@ -1,0 +1,69 @@
+{
+  "eleccion_ref": "2018-presidencial",
+  "ambito": "NACIONAL",
+  "estado": "exploratorio_agregado",
+  "fuentes": [
+    {
+      "tipo": "subdominios",
+      "url": "https://crt.name/v1/search?apex=cne.gob.ve",
+      "hallazgo": "El dominio tuvo subdominios resultados.cne.gob.ve, resultados2024.cne.gob.ve, resultados2021.cne.gob.ve, resultadosanreg2025.cne.gob.ve y www4.cne.gob.ve."
+    },
+    {
+      "tipo": "captura_wayback",
+      "url": "https://web.archive.org/web/20180524084116id_/http://www4.cne.gob.ve/ResultadosElecciones2018/",
+      "hallazgo": "Captura CNE 2018 con resultado nacional parcial y ficha tecnica embebida."
+    },
+    {
+      "tipo": "captura_wayback_ajax",
+      "url": "https://web.archive.org/web/20180524084116id_/http://www4.cne.gob.ve/ResultadosElecciones2018/grafico_participacion.php",
+      "hallazgo": "Endpoint de grafico con porcentajes nacionales por candidato."
+    }
+  ],
+  "captura_cne_2018_05_24": {
+    "actas_totales": 34179,
+    "actas_escrutadas": 33780,
+    "actas_escrutadas_pct": 98.83,
+    "electores_inscritos": 20527571,
+    "electores_actas_transmitidas": 20369698,
+    "electores_actas_transmitidas_pct": 99.23,
+    "votos_validos": 9205849,
+    "votos_nulos": 177480,
+    "votantes_escrutados": 9383329,
+    "participacion_pct": 46.07,
+    "candidatos_visibles_html": [
+      {
+        "nombre": "NICOLAS MADURO",
+        "votos": 6245862,
+        "pct_validos_grafico": 67.84
+      },
+      {
+        "nombre": "HENRI FALCON",
+        "votos": 1927387,
+        "pct_validos_grafico": 20.93
+      }
+    ],
+    "candidatos_grafico": [
+      {
+        "nombre": "NICOLAS MADURO",
+        "pct_validos": 67.84
+      },
+      {
+        "nombre": "HENRI FALCON",
+        "pct_validos": 20.93
+      },
+      {
+        "nombre": "JAVIER BERTUCCI",
+        "pct_validos": 10.82
+      },
+      {
+        "nombre": "REINALDO QUIJADA",
+        "pct_validos": 0.39
+      }
+    ]
+  },
+  "limites": [
+    "No es una fuente por mesa ni por centro.",
+    "Los endpoints territoriales archivados probados no devolvieron resultados: respondieron Esperando Totalizacion de Datos.",
+    "La tarjeta historica 2018 debe seguir tratandose como resultado oficial nacional, no como dataset de referencia granular para el laboratorio de muestra."
+  ]
+}

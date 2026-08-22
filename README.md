@@ -75,6 +75,11 @@ The project is in active development. **Phase 7 is underway:**
 - **Recovered coverage** - 11,233 centers, 34,250 tables with exported center aggregates, 11,504,321 valid votes, and 16,684,405 electors. The source is Esdata/Wayback's `ENMIENDA2009_2boletin` file and is treated as high-coverage but second-bulletin historical recovery.
 - **Historical convention** - In the 2009 amendment referendum, `SI` supported the government proposal and is stored as `votos_gobierno`; `NO` is stored as `votos_oposicion`. The versioned CSV contains no voter names, ID numbers, or person-level records.
 
+### Historical Source 2018 Presidential
+- **2018 Presidential** - `2018-presidencial` remains a national-only official historical card, not a center-level dataset for sample scoring.
+- **Archived CNE evidence** - `backend/data/2018/cne_archivado_nacional.json` records the public subdomain trail and Wayback captures for `www4.cne.gob.ve/ResultadosElecciones2018/`. The archived CNE page preserves national technical-sheet values and candidate percentages through `grafico_participacion.php`.
+- **Known limitation** - The tested archived territorial AJAX endpoints did not return usable state, center, or table results; they returned the CNE placeholder `Esperando Totalizacion de Datos`. The 2018 granular-result recovery remains open until a traceable table- or center-level source is found.
+
 ### In Development (Phase 7)
 - Complete the historical research archive: recover the full PLM exit-poll studies for 2007 and 2009, and obtain traceable table- or center-level election results for 2015 and 2018. The existing 2007/2009 Esdata aggregates and the national-only 2018 historical card do not close these research gaps.
 - Production hardening for AI-powered TM normalization: larger-file UX, better manual-resolution workflows, provider rate-limit handling, and stronger fuzzy matching

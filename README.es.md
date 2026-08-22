@@ -75,6 +75,11 @@ El proyecto está en desarrollo activo. **La Fase 7 está en curso:**
 - **Cobertura recuperada** - 11.233 centros, 34.250 mesas exportadas en agregados por centro, 11.504.321 votos validos y 16.684.405 electores. La fuente es el archivo Esdata/Wayback `ENMIENDA2009_2boletin` y debe tratarse como recuperacion historica de alta cobertura, pero de segundo boletin.
 - **Convencion historica** - En la enmienda 2009, `SI` apoyaba la propuesta del gobierno y se almacena como `votos_gobierno`; `NO` se almacena como `votos_oposicion`. El CSV versionado no contiene cedulas, nombres de electores ni registros persona a persona.
 
+### Fuente historica Presidencial 2018
+- **Presidencial 2018** - `2018-presidencial` sigue siendo una tarjeta historica oficial solo nacional, no un dataset por centro para el score de muestra.
+- **Evidencia CNE archivada** - `backend/data/2018/cne_archivado_nacional.json` registra la pista publica de subdominios y las capturas de Wayback para `www4.cne.gob.ve/ResultadosElecciones2018/`. La pagina CNE archivada conserva valores de ficha tecnica nacional y porcentajes por candidato a traves de `grafico_participacion.php`.
+- **Limite conocido** - Los endpoints AJAX territoriales archivados que se probaron no devolvieron resultados por estado, centro o mesa; devolvieron el placeholder CNE `Esperando Totalizacion de Datos`. La recuperacion granular 2018 queda abierta hasta encontrar una fuente trazable por mesa o centro.
+
 ### En desarrollo (Fase 7)
 - Completar el archivo histórico de investigación: recuperar los estudios integrales de exit poll PLM de 2007 y 2009, y obtener resultados electorales trazables por mesa o centro para 2015 y 2018. Los agregados Esdata 2007/2009 ya incorporados y la tarjeta nacional de 2018 no cierran estos pendientes.
 - Hardening de producción para la normalización TM con IA: UX para archivos grandes, mejores flujos de resolución manual, manejo de rate limits de proveedores y fuzzy matching más fuerte
