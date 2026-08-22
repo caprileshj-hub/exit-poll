@@ -34,8 +34,12 @@ def main() -> None:
     # Always run migrations — init_db.py uses CREATE TABLE IF NOT EXISTS (idempotente)
     run([sys.executable, "init_db.py"])
 
-    if table_count(db_path, "centros") == 0:
+    centros = table_count(db_path, "centros")
+    if centros == 0:
         run([sys.executable, "init_showcase.py"])
+    elif centros < 10000 and (ROOT / "tm_2018_con_gps.csv").exists():
+        print(f"[startup] BD parcial ({centros} centros) - cargando TM 2018...", flush=True)
+        run([sys.executable, "cargador_tm.py", "tm_2018_con_gps.csv"])
 
     # FastAPI actualiza los historicos en segundo plano una vez que Uvicorn
     # ya puede responder al health check de App Service.
