@@ -32,6 +32,13 @@ def init_db(reset: bool = False) -> sqlite3.Connection:
 
 def migrar(conn: sqlite3.Connection):
     """Aplica migraciones incrementales sobre una BD existente."""
+    cols_estados = {r[1] for r in conn.execute('PRAGMA table_info(estados)')}
+    if 'codigo_cne' not in cols_estados:
+        conn.execute('ALTER TABLE estados ADD COLUMN codigo_cne TEXT')
+        conn.execute("UPDATE estados SET codigo_cne = printf('%02d', id) WHERE codigo_cne IS NULL OR TRIM(codigo_cne) = ''")
+        conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_estados_codigo_cne ON estados(codigo_cne)')
+        conn.commit()
+        print('[~] Migracion: estados.codigo_cne anadida')
     cols = {r[1] for r in conn.execute('PRAGMA table_info(municipios)')}
     if 'es_excepcion' not in cols:
         conn.execute('ALTER TABLE municipios ADD COLUMN es_excepcion INTEGER DEFAULT 0')

@@ -363,6 +363,15 @@ def _apply_estado_display(row: dict[str, Any], inferred: bool = False) -> None:
     row["geo_incompleta"] = display is None
 
 
+def _estados_by_codigo(conn) -> dict[str, str]:
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(estados)").fetchall()}
+    if "codigo_cne" in cols:
+        rows = conn.execute("SELECT codigo_cne, nombre FROM estados").fetchall()
+        return {str(r["codigo_cne"]).zfill(2): r["nombre"] for r in rows}
+    rows = conn.execute("SELECT id, nombre FROM estados").fetchall()
+    return {str(r["id"]).zfill(2): r["nombre"] for r in rows}
+
+
 def _uso_recomendado(row: dict[str, Any]) -> tuple[str, int]:
     if row.get("score") is None:
         return "sin_score", 0
@@ -509,10 +518,7 @@ def construir_laboratorio(
         _apply_estado_display(c)
         centers[codigo] = c
 
-    estados_by_codigo = {
-        str(r["codigo_cne"]).zfill(2): r["nombre"]
-        for r in conn.execute("SELECT codigo_cne, nombre FROM estados").fetchall()
-    }
+    estados_by_codigo = _estados_by_codigo(conn)
     for codigo in histories_by_center:
         if codigo not in centers:
             snap = conn.execute("""
