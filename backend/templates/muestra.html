@@ -14,6 +14,30 @@
         border: 1px solid #dee2e6;
         background: #fff;
     }
+    /* Barra de desplazamiento horizontal duplicada arriba de la tabla: la del
+       contenedor queda al final de las 300 filas y obliga a bajar para usarla. */
+    .lab-scroll-top {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border: 1px solid #dee2e6;
+        border-bottom: 0;
+        background: #f8fafc;
+    }
+    .lab-scroll-top > div { height: 1px; }
+    /* Windows oculta las barras hasta que se hace scroll; aqui se dejan fijas. */
+    .lab-scroll, .lab-scroll-top {
+        scrollbar-width: thin;
+        scrollbar-color: #94a3b8 #e2e8f0;
+    }
+    .lab-scroll::-webkit-scrollbar,
+    .lab-scroll-top::-webkit-scrollbar { height: 12px; }
+    .lab-scroll::-webkit-scrollbar-track,
+    .lab-scroll-top::-webkit-scrollbar-track { background: #e2e8f0; }
+    .lab-scroll::-webkit-scrollbar-thumb,
+    .lab-scroll-top::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 6px; }
+    .lab-scroll::-webkit-scrollbar-thumb:hover,
+    .lab-scroll-top::-webkit-scrollbar-thumb:hover { background: #64748b; }
     .lab-scroll-hint {
         display: flex;
         align-items: center;
@@ -49,6 +73,26 @@
     .sortable { cursor: pointer; user-select: none; }
     .sortable .sort-mark { color: #94a3b8; font-size: .75rem; margin-left: .2rem; }
     .sortable.active .sort-mark { color: #0d6efd; }
+    /* Filtro por columna categorica: el orden agrupa, pero para estatus/tipo/
+       uso/gps lo util es descartar lo que no interesa. Conviven con el sort. */
+    .col-filtro {
+        display: block;
+        width: 100%;
+        margin-top: .3rem;
+        padding: .05rem 1.1rem .05rem .3rem;
+        font-size: .72rem;
+        font-weight: 400;
+        line-height: 1.4;
+        cursor: pointer;
+        background-position: right .15rem center;
+    }
+    .col-filtro.activo {
+        border-color: #0d6efd;
+        background-color: #e7f1ff;
+        font-weight: 600;
+        color: #0a58ca;
+    }
+    .lab-filtros-estado { display: flex; align-items: center; gap: .5rem; }
     .help-tip {
         border: 0;
         background: transparent;
@@ -203,8 +247,17 @@
     </div>
 </form>
 
-<div class="lab-scroll-hint"><i class="bi bi-arrows"></i> Desplace horizontalmente para ver todas las metricas.</div>
-<div class="lab-scroll">
+<div class="lab-scroll-hint justify-content-between">
+    <span><i class="bi bi-arrows"></i> Desplace horizontalmente con la barra (arriba o abajo de la tabla) para ver todas las metricas.</span>
+    <span class="lab-filtros-estado d-none" id="labFiltrosEstado">
+        <span id="labVisibles"></span>
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="labLimpiarFiltros">
+            <i class="bi bi-x-lg"></i> Limpiar filtros
+        </button>
+    </span>
+</div>
+<div class="lab-scroll-top" id="labScrollTop"><div></div></div>
+<div class="lab-scroll" id="labScroll">
     <table class="table table-sm table-hover bg-white lab-table" id="tablaLaboratorio">
         <colgroup>
             <col style="width: 250px;">
@@ -212,7 +265,7 @@
             <col style="width: 95px;">
             <col style="width: 125px;">
             <col style="width: 150px;">
-            <col style="width: 70px;">
+            <col style="width: 95px;">
             <col style="width: 115px;">
             <col style="width: 70px;">
             <col style="width: 95px;">
@@ -226,10 +279,14 @@
             <tr>
                 <th class="sortable" data-sort="centro" data-type="text">Centro <span class="sort-mark">sort</span></th>
                 <th class="sortable" data-sort="geo" data-type="text">Geo <span class="sort-mark">sort</span></th>
-                <th class="sortable" data-sort="estatus" data-type="text">Estatus {{ help_tip("Activo: aparece en el registro permanente o TM vigente. Nuevo: activo sin historico por centro. Solo historico: existe en resultados viejos pero no es seleccionable.") }} <span class="sort-mark">sort</span></th>
-                <th class="sortable" data-sort="tipo" data-type="text">Tipo {{ help_tip("bastion_azul: oposicion fuerte y persistente. bastion_rojo: gobierno fuerte y persistente. representativo: baja distancia y baja variacion contra la referencia nacional. bisagra: brecha reciente pequena. volumen: centro grande dentro de su estado. cambiante: variacion relativa alta. sin_historico: activo sin serie. solo_historico: existe en datos viejos pero no activo. estandar: sin rasgo dominante.") }} <span class="sort-mark">sort</span></th>
-                <th class="sortable active" data-sort="uso" data-type="number">Uso {{ help_tip("ancla: tiene 2024, n_eff suficiente y confianza A/B. condicional_sin_2024: buen historico pero sin dato reciente 2024; usar solo si no hay alternativa similar con 2024. condicional: util pero con confianza C o n_eff limitado. no_ancla: no debe sostener un estrato.") }} <span class="sort-mark">desc</span></th>
-                <th class="text-center sortable" data-sort="gps" data-type="number">GPS {{ help_tip("Indica si el centro tiene latitud y longitud cargadas para poder gestionar geocerca del encuestador.") }} <span class="sort-mark">sort</span></th>
+                <th class="sortable" data-sort="estatus" data-type="text">Estatus {{ help_tip("Activo: aparece en el registro permanente o TM vigente. Nuevo: activo sin historico por centro. Solo historico: existe en resultados viejos pero no es seleccionable.") }} <span class="sort-mark">sort</span>
+                    <select class="col-filtro form-select form-select-sm" data-col="estatus" aria-label="Filtrar por Estatus"><option value="">(todos)</option></select></th>
+                <th class="sortable" data-sort="tipo" data-type="text">Tipo {{ help_tip("bastion_azul: oposicion fuerte y persistente. bastion_rojo: gobierno fuerte y persistente. representativo: baja distancia y baja variacion contra la referencia nacional. bisagra: brecha reciente pequena. volumen: centro grande dentro de su estado. cambiante: variacion relativa alta. sin_historico: activo sin serie. solo_historico: existe en datos viejos pero no activo. estandar: sin rasgo dominante.") }} <span class="sort-mark">sort</span>
+                    <select class="col-filtro form-select form-select-sm" data-col="tipo" aria-label="Filtrar por Tipo"><option value="">(todos)</option></select></th>
+                <th class="sortable active" data-sort="uso" data-type="number">Uso {{ help_tip("ancla: tiene 2024, n_eff suficiente y confianza A/B. condicional_sin_2024: buen historico pero sin dato reciente 2024; usar solo si no hay alternativa similar con 2024. condicional: util pero con confianza C o n_eff limitado. no_ancla: no debe sostener un estrato.") }} <span class="sort-mark">desc</span>
+                    <select class="col-filtro form-select form-select-sm" data-col="uso" aria-label="Filtrar por Uso"><option value="">(todos)</option></select></th>
+                <th class="text-center sortable" data-sort="gps" data-type="number">GPS {{ help_tip("Indica si el centro tiene latitud y longitud cargadas para poder gestionar geocerca del encuestador.") }} <span class="sort-mark">sort</span>
+                    <select class="col-filtro form-select form-select-sm" data-col="gps" aria-label="Filtrar por GPS"><option value="">(todos)</option></select></th>
                 <th class="num-col sortable" data-sort="electores" data-type="number">Electores {{ help_tip("Electores registrados en el centro segun el ultimo registro disponible o la TM vigente.") }} <span class="sort-mark">sort</span></th>
                 <th class="num-col sortable" data-sort="historicos" data-type="number">Hist. {{ help_tip("Cantidad cruda de elecciones historicas. En la ficha se muestra n_eff, que pondera por recencia.") }} <span class="sort-mark">sort</span></th>
                 <th class="num-col sortable" data-sort="desvio" data-type="number">Desvio {{ help_tip("Desvio relativo shrunk: distancia promedio contra la brecha nacional, ponderada por recencia. El shrinkage hacia el estrato se aplica con series cortas y se apaga con n_eff >= 2.5.") }} <span class="sort-mark">sort</span></th>
@@ -251,6 +308,8 @@
                 data-sort-tipo="{{ c.clasificacion }}"
                 data-sort-uso="{{ c.uso_prioridad }}"
                 data-sort-gps="{{ 1 if c.tiene_gps else 0 }}"
+                data-filtro-uso="{{ c.uso_recomendado }}"
+                data-filtro-gps="{{ 'con GPS' if c.tiene_gps else 'sin GPS' }}"
                 data-sort-electores="{{ c.num_electores or 0 }}"
                 data-sort-historicos="{{ c.n_historicos }}"
                 data-sort-desvio="{{ c.desvio_pp if c.desvio_pp is not none else 9999 }}"
@@ -435,6 +494,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const table = document.getElementById('tablaLaboratorio');
     if (!table) return;
 
+    // Mantiene en sincronia la barra horizontal de arriba con la de la tabla.
+    const scroller = document.getElementById('labScroll');
+    const topBar = document.getElementById('labScrollTop');
+    if (scroller && topBar) {
+        const spacer = topBar.firstElementChild;
+        const ajustarAncho = () => {
+            spacer.style.width = table.scrollWidth + 'px';
+            // si no hay desborde no tiene sentido mostrar la barra duplicada
+            topBar.style.display = table.scrollWidth > scroller.clientWidth ? '' : 'none';
+        };
+        ajustarAncho();
+        window.addEventListener('resize', ajustarAncho);
+        if (window.ResizeObserver) new ResizeObserver(ajustarAncho).observe(table);
+
+        let sincronizando = false;
+        const enlazar = (origen, destino) => origen.addEventListener('scroll', () => {
+            if (sincronizando) return;
+            sincronizando = true;
+            destino.scrollLeft = origen.scrollLeft;
+            sincronizando = false;
+        });
+        enlazar(topBar, scroller);
+        enlazar(scroller, topBar);
+    }
+
     const tbody = table.querySelector('tbody');
     const headers = table.querySelectorAll('th.sortable');
     const state = { key: 'uso', dir: 'desc' };
@@ -492,6 +576,61 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     headers.forEach(header => header.addEventListener('click', () => sortBy(header)));
+
+    // ---- Filtros por columna categorica (conviven con el sort) ----
+    const selectores = Array.from(table.querySelectorAll('select.col-filtro'));
+    const cajaEstado = document.getElementById('labFiltrosEstado');
+    const textoVisibles = document.getElementById('labVisibles');
+    const btnLimpiar = document.getElementById('labLimpiarFiltros');
+
+    // De donde sale el valor de cada columna filtrable en la fila.
+    const ORIGEN = {
+        estatus: row => row.dataset.sortEstatus,
+        tipo: row => row.dataset.sortTipo,
+        uso: row => row.dataset.filtroUso,
+        gps: row => row.dataset.filtroGps,
+    };
+    const valorDe = (row, col) => (ORIGEN[col] ? ORIGEN[col](row) : '') || '';
+
+    function aplicarFiltros() {
+        const activos = selectores
+            .filter(sel => sel.value)
+            .map(sel => ({ col: sel.dataset.col, valor: sel.value }));
+
+        let visibles = 0;
+        const pares = rowPairs();
+        pares.forEach(({ main, detail }) => {
+            const pasa = activos.every(f => valorDe(main, f.col) === f.valor);
+            main.classList.toggle('d-none', !pasa);
+            // la fila de ficha usa collapse de bootstrap; solo se oculta ademas
+            if (detail) detail.classList.toggle('d-none', !pasa);
+            if (pasa) visibles += 1;
+        });
+
+        selectores.forEach(sel => sel.classList.toggle('activo', Boolean(sel.value)));
+        if (cajaEstado) cajaEstado.classList.toggle('d-none', activos.length === 0);
+        if (textoVisibles) {
+            textoVisibles.textContent = `${visibles} de ${pares.length} visibles`;
+        }
+    }
+
+    selectores.forEach(sel => {
+        const col = sel.dataset.col;
+        const valores = Array.from(
+            new Set(rowPairs().map(({ main }) => valorDe(main, col)).filter(Boolean))
+        ).sort((a, b) => a.localeCompare(b, 'es'));
+        valores.forEach(v => sel.add(new Option(v, v)));
+        // el th ordena al hacer click; el select no debe dispararlo
+        sel.addEventListener('click', event => event.stopPropagation());
+        sel.addEventListener('change', aplicarFiltros);
+    });
+
+    if (btnLimpiar) {
+        btnLimpiar.addEventListener('click', () => {
+            selectores.forEach(sel => { sel.value = ''; });
+            aplicarFiltros();
+        });
+    }
 });
 </script>
 {% endblock %}
