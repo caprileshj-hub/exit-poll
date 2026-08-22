@@ -93,6 +93,46 @@
         color: #0a58ca;
     }
     .lab-filtros-estado { display: flex; align-items: center; gap: .5rem; }
+    .lab-pager {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: .7rem .8rem;
+        border: 1px solid #dbe3ee;
+        border-radius: 8px;
+        background: linear-gradient(180deg, #fff, #f8fafc);
+    }
+    .lab-pager-count {
+        min-width: 240px;
+        font-size: .86rem;
+        color: #475569;
+    }
+    .lab-pager-count strong {
+        color: #0f172a;
+        font-size: 1rem;
+    }
+    .lab-pager-track {
+        flex: 1;
+        min-width: 120px;
+        max-width: 360px;
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e2e8f0;
+    }
+    .lab-pager-track > span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: #0d6efd;
+    }
+    .lab-pager-actions {
+        display: flex;
+        gap: .4rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
     .help-tip {
         border: 0;
         background: transparent;
@@ -110,6 +150,41 @@
 <button type="button" class="help-tip" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ text }}">
     <i class="bi bi-question-circle"></i>
 </button>
+{%- endmacro %}
+
+{% macro lab_page_button(filtros, target_offset, enabled, label, icon, btn_class) -%}
+<form method="get" action="/muestra" class="d-inline">
+    <input type="hidden" name="q" value="{{ filtros.q }}">
+    <input type="hidden" name="estado" value="{{ filtros.estado }}">
+    <input type="hidden" name="municipio" value="{{ filtros.municipio }}">
+    <input type="hidden" name="parroquia" value="{{ filtros.parroquia }}">
+    <input type="hidden" name="estatus" value="{{ filtros.estatus }}">
+    <input type="hidden" name="clasificacion" value="{{ filtros.clasificacion }}">
+    <input type="hidden" name="offset" value="{{ target_offset }}">
+    <button class="btn btn-sm {{ btn_class }}" {% if not enabled %}disabled{% endif %}>
+        <i class="bi {{ icon }} me-1"></i>{{ label }}
+    </button>
+</form>
+{%- endmacro %}
+
+{% macro lab_pager(lab, filtros, extra_class="") -%}
+{% set p = lab.paginacion %}
+{% if p.total > p.limit %}
+<div class="lab-pager {{ extra_class }}">
+    <div class="lab-pager-count">
+        <strong>{{ "{:,}".format(p.fin) }}</strong> de {{ "{:,}".format(p.total) }}
+        <span class="text-muted">centros filtrados</span>
+        <div class="small text-muted">Pagina {{ p.pagina }} de {{ p.paginas }} - mostrando {{ "{:,}".format(p.inicio) }}-{{ "{:,}".format(p.fin) }}</div>
+    </div>
+    <div class="lab-pager-track" aria-hidden="true">
+        <span style="width: {{ ((100 * p.fin / p.total) if p.total else 0)|round(0) }}%;"></span>
+    </div>
+    <div class="lab-pager-actions">
+        {{ lab_page_button(filtros, p.offset_anterior, p.hay_anterior, "Anteriores", "bi-chevron-left", "btn-outline-secondary") }}
+        {{ lab_page_button(filtros, p.offset_siguiente, p.hay_siguiente, "Mostrar siguientes", "bi-chevron-right", "btn-primary") }}
+    </div>
+</div>
+{% endif %}
 {%- endmacro %}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -181,7 +256,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="mb-0">Laboratorio de centros</h5>
-    <span class="small text-muted">{{ lab.resumen.mostrados }} de {{ lab.resumen.filtrados }} centros filtrados</span>
+    <span class="small text-muted">{{ "{:,}".format(lab.paginacion.fin) }} de {{ "{:,}".format(lab.paginacion.total) }} centros filtrados</span>
 </div>
 
 <div class="alert alert-light border small mb-3">
@@ -247,6 +322,8 @@
     </div>
 </form>
 
+{{ lab_pager(lab, filtros, "mb-3") }}
+
 <div class="lab-scroll-hint justify-content-between">
     <span><i class="bi bi-arrows"></i> Desplace horizontalmente con la barra (arriba o abajo de la tabla) para ver todas las metricas.</span>
     <span class="lab-filtros-estado d-none" id="labFiltrosEstado">
@@ -303,7 +380,7 @@
             <tr class="lab-main-row"
                 data-detail="{{ rowid }}"
                 data-sort-centro="{{ (c.nombre ~ ' ' ~ c.codigo_cne)|lower }}"
-                data-sort-geo="{{ (c.estado ~ ' ' ~ (c.municipio or '') ~ ' ' ~ (c.parroquia or ''))|lower }}"
+                data-sort-geo="{{ ((c.estado_display or 'Sin geografia') ~ ' ' ~ (c.municipio or '') ~ ' ' ~ (c.parroquia or ''))|lower }}"
                 data-sort-estatus="{{ c.estatus }}"
                 data-sort-tipo="{{ c.clasificacion }}"
                 data-sort-uso="{{ c.uso_prioridad }}"
@@ -322,8 +399,14 @@
                     <div class="center-name small">{{ c.nombre }}</div>
                 </td>
                 <td class="small">
-                    {{ c.estado }}{% if c.municipio %}<br>{{ c.municipio }}{% endif %}
+                    {% if c.estado_display %}
+                    {{ c.estado_display }}{% if c.municipio %}<br>{{ c.municipio }}{% endif %}
                     {% if c.parroquia %}<br><span class="text-muted">{{ c.parroquia }}</span>{% endif %}
+                    {% if c.geo_inferida %}<br><span class="badge bg-light text-muted border">inferida por codigo</span>{% endif %}
+                    {% else %}
+                    <span class="text-muted">Sin geografia</span><br>
+                    <span class="badge bg-light text-muted border">historico sin match</span>
+                    {% endif %}
                 </td>
                 <td>
                     <span class="badge {% if c.estatus == 'activo' %}bg-success{% elif c.estatus == 'nuevo' %}bg-primary{% elif c.estatus == 'solo_historico' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
@@ -423,6 +506,8 @@
         </tbody>
     </table>
 </div>
+
+{{ lab_pager(lab, filtros, "mt-3") }}
 
 </div>
 

@@ -7,7 +7,9 @@ No usa datos personales ni toca las tablas de votos en vivo.
 from __future__ import annotations
 
 import math
+import re
 import statistics
+import unicodedata
 from collections import Counter, defaultdict
 from typing import Any
 
@@ -37,6 +39,36 @@ UTILITY_WEIGHTS = {
     "representatividad": 0.50,
     "estabilidad": 0.30,
     "volumen": 0.20,
+}
+
+ESTADO_LABELS = {
+    "AMAZONAS": "Amazonas",
+    "ANZOATEGUI": "Anzoategui",
+    "APURE": "Apure",
+    "ARAGUA": "Aragua",
+    "BARINAS": "Barinas",
+    "BOLIVAR": "Bolivar",
+    "CARABOBO": "Carabobo",
+    "COJEDES": "Cojedes",
+    "DELTA AMAC": "Delta Amacuro",
+    "DELTA AMACURO": "Delta Amacuro",
+    "DISTRITO CAPITAL": "Distrito Capital",
+    "FALCON": "Falcon",
+    "GUARICO": "Guarico",
+    "LARA": "Lara",
+    "MERIDA": "Merida",
+    "MIRANDA": "Miranda",
+    "MONAGAS": "Monagas",
+    "NUEVA ESPARTA": "Nueva Esparta",
+    "PORTUGUESA": "Portuguesa",
+    "SUCRE": "Sucre",
+    "TACHIRA": "Tachira",
+    "TRUJILLO": "Trujillo",
+    "VARGAS": "Vargas/La Guaira",
+    "LA GUAIRA": "Vargas/La Guaira",
+    "YARACUY": "Yaracuy",
+    "ZULIA": "Zulia",
+    "EXTERIOR": "Exterior",
 }
 CONVERGENCE_BONUS_MAX = 8.0
 CONVERGENCE_FULL_PP = 8.0
@@ -293,9 +325,42 @@ def _shrink(observed: float | None, stratum_prior: float | None, n_eff: float, k
 
 
 def _stratum_key(row: dict[str, Any]) -> str:
-    estado = row.get("estado") or "Nacional"
+    estado = row.get("estado_filtro") or row.get("estado") or "Nacional"
     municipio = row.get("municipio") or ""
     return f"{estado}|{municipio}" if municipio else estado
+
+
+def _plain_key(value: str | None) -> str:
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = text.upper().replace(".", " ")
+    text = re.sub(r"\bEDO\b", " ", text)
+    text = re.sub(r"\bDTTO\b", "DISTRITO", text)
+    text = re.sub(r"\bNVA\b", "NUEVA", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def _estado_display(value: str | None) -> str | None:
+    key = _plain_key(value)
+    if not key or key == "HISTORICO":
+        return None
+    if "VARGAS" in key or "GUAIRA" in key:
+        return "Vargas/La Guaira"
+    if key in {"DISTRITO CAPITAL", "CAPITAL"}:
+        return "Distrito Capital"
+    if key in {"NUEVA ESPARTA", "NUEVAESPARTA"}:
+        return "Nueva Esparta"
+    return ESTADO_LABELS.get(key, str(value or "").strip().title() or None)
+
+
+def _apply_estado_display(row: dict[str, Any], inferred: bool = False) -> None:
+    display = _estado_display(row.get("estado"))
+    row["estado_raw"] = row.get("estado")
+    row["estado_display"] = display
+    row["estado_filtro"] = display
+    row["geo_inferida"] = bool(inferred and display)
+    row["geo_incompleta"] = display is None
 
 
 def _uso_recomendado(row: dict[str, Any]) -> tuple[str, int]:
@@ -367,6 +432,7 @@ def construir_laboratorio(
     estatus: str = "",
     clasificacion: str = "",
     limit: int = 300,
+    offset: int = 0,
 ) -> dict[str, Any]:
     """Devuelve datos para la pantalla laboratorio de muestra."""
     ensure_muestra_lab_tables(conn)
@@ -440,8 +506,13 @@ def construir_laboratorio(
         c["estatus"] = "activo" if activo_actual else "incierto"
         c["tiene_gps"] = c.get("lat") is not None and c.get("lon") is not None
         c["geocerca_radio_m"] = int(c.get("radio_m") or 300)
+        _apply_estado_display(c)
         centers[codigo] = c
 
+    estados_by_codigo = {
+        str(r["codigo_cne"]).zfill(2): r["nombre"]
+        for r in conn.execute("SELECT codigo_cne, nombre FROM estados").fetchall()
+    }
     for codigo in histories_by_center:
         if codigo not in centers:
             snap = conn.execute("""
@@ -450,13 +521,16 @@ def construir_laboratorio(
                 WHERE codigo_cne=?
                 ORDER BY eleccion_ref DESC LIMIT 1
             """, (codigo,)).fetchone()
+            codigo_str = str(codigo or "").strip()
+            estado_inferido = estados_by_codigo.get(codigo_str[:2]) if len(codigo_str) >= 2 else None
+            inferred = bool(estado_inferido)
             centers[codigo] = {
                 "codigo_cne": codigo,
                 "nombre": snap["nombre_centro"] if snap and snap["nombre_centro"] else "Centro historico sin registro activo",
                 "num_electores": snap["num_electores"] if snap else 0,
                 "num_mesas": snap["num_mesas"] if snap else 0,
                 "activo": 0,
-                "estado": "Historico",
+                "estado": estado_inferido,
                 "municipio": None,
                 "parroquia": None,
                 "lat": None,
@@ -466,6 +540,7 @@ def construir_laboratorio(
                 "geocerca_radio_m": 300,
                 "estatus": "solo_historico",
             }
+            _apply_estado_display(centers[codigo], inferred=inferred)
 
     snapshot_names: dict[str, str] = {}
     for r in conn.execute("""
@@ -493,7 +568,7 @@ def construir_laboratorio(
 
     electores_by_estado: dict[str, list[int]] = defaultdict(list)
     for c in centers.values():
-        electores_by_estado[c.get("estado") or ""].append(int(c.get("num_electores") or 0))
+        electores_by_estado[c.get("estado_filtro") or ""].append(int(c.get("num_electores") or 0))
     p90_by_estado = {}
     for edo, vals in electores_by_estado.items():
         vals = sorted(v for v in vals if v > 0)
@@ -600,10 +675,10 @@ def construir_laboratorio(
         )
         c["desvio_pp"] = round(desvio_shrunk, 2) if desvio_shrunk is not None else None
         c["estabilidad_relativa_pp"] = round(estabilidad_shrunk, 2) if estabilidad_shrunk is not None else None
-        c["clasificacion"] = _clasificar(c, c["histories"], p90_by_estado.get(c.get("estado") or "", 0))
+        c["clasificacion"] = _clasificar(c, c["histories"], p90_by_estado.get(c.get("estado_filtro") or "", 0))
         c["tipo_legacy"] = _legacy_tipo(c["clasificacion"])
 
-        max_e = max(1, max_by_estado.get(c.get("estado") or "", 1))
+        max_e = max(1, max_by_estado.get(c.get("estado_filtro") or "", 1))
         electores = max(0, int(c.get("num_electores") or 0))
         volumen = math.log(max(2, electores)) / math.log(max(2, max_e)) if electores else 0.0
         r_score = max(0.0, 1.0 - ((c["desvio_pp"] or 15.0) / 15.0)) if c["desvio_pp"] is not None else 0.0
@@ -638,7 +713,7 @@ def construir_laboratorio(
             or query in str(c.get("parroquia") or "").lower()
         ]
     if estado:
-        catalog = [c for c in catalog if c.get("estado") == estado]
+        catalog = [c for c in catalog if c.get("estado_filtro") == estado]
     if municipio:
         catalog = [c for c in catalog if c.get("municipio") == municipio]
     if parroquia:
@@ -649,7 +724,36 @@ def construir_laboratorio(
         catalog = [c for c in catalog if c.get("clasificacion") == clasificacion]
 
     catalog.sort(key=lambda c: (c["score"] is None, -c.get("uso_prioridad", 0), -(c["score"] or 0), -(c.get("num_electores") or 0)))
-    limited = catalog[:limit]
+    try:
+        limit = int(limit)
+    except (TypeError, ValueError):
+        limit = 300
+    limit = max(1, min(limit, 1000))
+    try:
+        offset = int(offset)
+    except (TypeError, ValueError):
+        offset = 0
+    offset = max(0, offset)
+    total_filtrados = len(catalog)
+    if total_filtrados and offset >= total_filtrados:
+        offset = ((total_filtrados - 1) // limit) * limit
+    limited = catalog[offset:offset + limit]
+    inicio = offset + 1 if total_filtrados else 0
+    fin = min(offset + len(limited), total_filtrados)
+    paginas = math.ceil(total_filtrados / limit) if total_filtrados else 0
+    paginacion = {
+        "limit": limit,
+        "offset": offset,
+        "inicio": inicio,
+        "fin": fin,
+        "total": total_filtrados,
+        "pagina": (offset // limit) + 1 if total_filtrados else 0,
+        "paginas": paginas,
+        "hay_anterior": offset > 0,
+        "hay_siguiente": offset + limit < total_filtrados,
+        "offset_anterior": max(0, offset - limit),
+        "offset_siguiente": offset + limit,
+    }
 
     sample_codes = {r["codigo_centro"] for r in sample_rows}
     sample_catalog = [c for c in centers.values() if c["codigo_cne"] in sample_codes]
@@ -671,17 +775,18 @@ def construir_laboratorio(
     return {
         "centros": limited,
         "resumen": resumen,
+        "paginacion": paginacion,
         "refs": sorted(ref_totals.keys(), reverse=True),
         "fuentes": meta,
-        "estados": sorted({c.get("estado") for c in centers.values() if c.get("estado")}),
+        "estados": sorted({c.get("estado_filtro") for c in centers.values() if c.get("estado_filtro")}),
         "municipios": sorted({
             c.get("municipio") for c in centers.values()
-            if c.get("municipio") and (not estado or c.get("estado") == estado)
+            if c.get("municipio") and (not estado or c.get("estado_filtro") == estado)
         }),
         "parroquias": sorted({
             c.get("parroquia") for c in centers.values()
             if c.get("parroquia")
-            and (not estado or c.get("estado") == estado)
+            and (not estado or c.get("estado_filtro") == estado)
             and (not municipio or c.get("municipio") == municipio)
         }),
         "clasificaciones": sorted({c.get("clasificacion") for c in centers.values() if c.get("clasificacion")}),

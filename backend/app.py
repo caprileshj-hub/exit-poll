@@ -1602,6 +1602,7 @@ async def muestra_index(
     parroquia: str = "",
     estatus: str = "",
     clasificacion: str = "",
+    offset: int = 0,
 ):
     db = get_db()
     eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
@@ -1618,6 +1619,7 @@ async def muestra_index(
         estatus=estatus,
         clasificacion=clasificacion,
         limit=300,
+        offset=offset,
     )
 
     eleccion_ref = _eleccion_ref_referencia(db)
@@ -1670,6 +1672,7 @@ async def muestra_index(
             "parroquia": parroquia,
             "estatus": estatus,
             "clasificacion": clasificacion,
+            "offset": offset,
         },
     })
 
