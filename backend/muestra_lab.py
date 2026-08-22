@@ -361,15 +361,54 @@ def _apply_estado_display(row: dict[str, Any], inferred: bool = False) -> None:
     row["estado_filtro"] = display
     row["geo_inferida"] = bool(inferred and display)
     row["geo_incompleta"] = display is None
+    row["estatus_display"] = "historico" if row.get("estatus") == "solo_historico" else row.get("estatus")
 
 
-def _estados_by_codigo(conn) -> dict[str, str]:
+def _estado_maps(conn) -> tuple[dict[str, str], dict[str, int]]:
     cols = {r[1] for r in conn.execute("PRAGMA table_info(estados)").fetchall()}
     if "codigo_cne" in cols:
-        rows = conn.execute("SELECT codigo_cne, nombre FROM estados").fetchall()
-        return {str(r["codigo_cne"]).zfill(2): r["nombre"] for r in rows}
+        rows = conn.execute("SELECT id, codigo_cne, nombre FROM estados").fetchall()
+        return (
+            {str(r["codigo_cne"]).zfill(2): r["nombre"] for r in rows},
+            {str(r["codigo_cne"]).zfill(2): r["id"] for r in rows},
+        )
     rows = conn.execute("SELECT id, nombre FROM estados").fetchall()
-    return {str(r["id"]).zfill(2): r["nombre"] for r in rows}
+    return (
+        {str(r["id"]).zfill(2): r["nombre"] for r in rows},
+        {str(r["id"]).zfill(2): r["id"] for r in rows},
+    )
+
+
+def _municipios_by_codigo(conn, estado_ids_by_codigo: dict[str, int]) -> dict[tuple[str, str], str]:
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(municipios)").fetchall()}
+    if "codigo_cne" not in cols:
+        return {}
+    estado_codigo_by_id = {estado_id: codigo for codigo, estado_id in estado_ids_by_codigo.items()}
+    rows = conn.execute("SELECT id_estado, codigo_cne, nombre FROM municipios").fetchall()
+    return {
+        (estado_codigo_by_id[r["id_estado"]], str(r["codigo_cne"]).zfill(2)): r["nombre"]
+        for r in rows
+        if r["id_estado"] in estado_codigo_by_id
+    }
+
+
+def _infer_geo_from_codigo(
+    codigo: str,
+    estados_by_codigo: dict[str, str],
+    municipios_by_codigo: dict[tuple[str, str], str],
+) -> tuple[str | None, str | None, bool]:
+    codigo = str(codigo or "").strip()
+    candidates: list[tuple[str, str | None]] = []
+    if len(codigo) >= 4:
+        candidates.append((codigo[:2], codigo[2:4]))
+    if codigo.startswith("98") and len(codigo) >= 6:
+        candidates.insert(0, (codigo[2:4], codigo[4:6]))
+    for estado_codigo, municipio_codigo in candidates:
+        estado = estados_by_codigo.get(estado_codigo)
+        if estado:
+            municipio = municipios_by_codigo.get((estado_codigo, municipio_codigo or ""))
+            return estado, municipio, True
+    return None, None, False
 
 
 def _uso_recomendado(row: dict[str, Any]) -> tuple[str, int]:
@@ -397,8 +436,6 @@ def _semaforo(confianza: float) -> str:
 
 
 def _clasificar(row: dict[str, Any], histories: list[dict[str, Any]], p90_electores: int) -> str:
-    if row["estatus"] == "solo_historico":
-        return "solo_historico"
     if not histories:
         return "sin_historico"
     latest = histories[0]
@@ -518,7 +555,8 @@ def construir_laboratorio(
         _apply_estado_display(c)
         centers[codigo] = c
 
-    estados_by_codigo = _estados_by_codigo(conn)
+    estados_by_codigo, estado_ids_by_codigo = _estado_maps(conn)
+    municipios_by_codigo = _municipios_by_codigo(conn, estado_ids_by_codigo)
     for codigo in histories_by_center:
         if codigo not in centers:
             snap = conn.execute("""
@@ -528,8 +566,11 @@ def construir_laboratorio(
                 ORDER BY eleccion_ref DESC LIMIT 1
             """, (codigo,)).fetchone()
             codigo_str = str(codigo or "").strip()
-            estado_inferido = estados_by_codigo.get(codigo_str[:2]) if len(codigo_str) >= 2 else None
-            inferred = bool(estado_inferido)
+            estado_inferido, municipio_inferido, inferred = _infer_geo_from_codigo(
+                codigo_str,
+                estados_by_codigo,
+                municipios_by_codigo,
+            )
             centers[codigo] = {
                 "codigo_cne": codigo,
                 "nombre": snap["nombre_centro"] if snap and snap["nombre_centro"] else "Centro historico sin registro activo",
@@ -537,7 +578,7 @@ def construir_laboratorio(
                 "num_mesas": snap["num_mesas"] if snap else 0,
                 "activo": 0,
                 "estado": estado_inferido,
-                "municipio": None,
+                "municipio": municipio_inferido,
                 "parroquia": None,
                 "lat": None,
                 "lon": None,
@@ -640,6 +681,7 @@ def construir_laboratorio(
 
         if c["estatus"] != "solo_historico" and n_hist == 0:
             c["estatus"] = "nuevo"
+            c["estatus_display"] = "nuevo"
 
         stratum = _stratum_key(c)
         if desvio_obs is not None:

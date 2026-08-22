@@ -304,7 +304,7 @@
         <select name="estatus" class="form-select">
             <option value="">Todos</option>
             {% for s in ["activo", "nuevo", "incierto", "solo_historico"] %}
-            <option value="{{ s }}" {% if filtros.estatus == s %}selected{% endif %}>{{ s }}</option>
+            <option value="{{ s }}" {% if filtros.estatus == s %}selected{% endif %}>{{ "historico" if s == "solo_historico" else s }}</option>
             {% endfor %}
         </select>
     </div>
@@ -356,9 +356,9 @@
             <tr>
                 <th class="sortable" data-sort="centro" data-type="text">Centro <span class="sort-mark">sort</span></th>
                 <th class="sortable" data-sort="geo" data-type="text">Geo <span class="sort-mark">sort</span></th>
-                <th class="sortable" data-sort="estatus" data-type="text">Estatus {{ help_tip("Activo: aparece en el registro permanente o TM vigente. Nuevo: activo sin historico por centro. Solo historico: existe en resultados viejos pero no es seleccionable.") }} <span class="sort-mark">sort</span>
+                <th class="sortable" data-sort="estatus" data-type="text">Estatus {{ help_tip("Activo: aparece en el registro permanente o TM vigente. Nuevo: activo sin historico por centro. Historico: existe en resultados viejos pero no es seleccionable.") }} <span class="sort-mark">sort</span>
                     <select class="col-filtro form-select form-select-sm" data-col="estatus" aria-label="Filtrar por Estatus"><option value="">(todos)</option></select></th>
-                <th class="sortable" data-sort="tipo" data-type="text">Tipo {{ help_tip("bastion_azul: oposicion fuerte y persistente. bastion_rojo: gobierno fuerte y persistente. representativo: baja distancia y baja variacion contra la referencia nacional. bisagra: brecha reciente pequena. volumen: centro grande dentro de su estado. cambiante: variacion relativa alta. sin_historico: activo sin serie. solo_historico: existe en datos viejos pero no activo. estandar: sin rasgo dominante.") }} <span class="sort-mark">sort</span>
+                <th class="sortable" data-sort="tipo" data-type="text">Tipo {{ help_tip("bastion_azul: oposicion fuerte y persistente. bastion_rojo: gobierno fuerte y persistente. representativo: baja distancia y baja variacion contra la referencia nacional. bisagra: brecha reciente pequena. volumen: centro grande dentro de su estado. cambiante: variacion relativa alta. sin_historico: activo sin serie. estandar: sin rasgo dominante.") }} <span class="sort-mark">sort</span>
                     <select class="col-filtro form-select form-select-sm" data-col="tipo" aria-label="Filtrar por Tipo"><option value="">(todos)</option></select></th>
                 <th class="sortable active" data-sort="uso" data-type="number">Uso {{ help_tip("ancla: tiene 2024, n_eff suficiente y confianza A/B. condicional_sin_2024: buen historico pero sin dato reciente 2024; usar solo si no hay alternativa similar con 2024. condicional: util pero con confianza C o n_eff limitado. no_ancla: no debe sostener un estrato.") }} <span class="sort-mark">desc</span>
                     <select class="col-filtro form-select form-select-sm" data-col="uso" aria-label="Filtrar por Uso"><option value="">(todos)</option></select></th>
@@ -381,7 +381,7 @@
                 data-detail="{{ rowid }}"
                 data-sort-centro="{{ (c.nombre ~ ' ' ~ c.codigo_cne)|lower }}"
                 data-sort-geo="{{ ((c.estado_display or 'Sin geografia') ~ ' ' ~ (c.municipio or '') ~ ' ' ~ (c.parroquia or ''))|lower }}"
-                data-sort-estatus="{{ c.estatus }}"
+                data-sort-estatus="{{ c.estatus_display }}"
                 data-sort-tipo="{{ c.clasificacion }}"
                 data-sort-uso="{{ c.uso_prioridad }}"
                 data-sort-gps="{{ 1 if c.tiene_gps else 0 }}"
@@ -410,7 +410,7 @@
                 </td>
                 <td>
                     <span class="badge {% if c.estatus == 'activo' %}bg-success{% elif c.estatus == 'nuevo' %}bg-primary{% elif c.estatus == 'solo_historico' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
-                        {{ c.estatus }}
+                        {{ c.estatus_display }}
                     </span>
                 </td>
                 <td><span class="badge bg-light text-dark">{{ c.clasificacion }}</span></td>
