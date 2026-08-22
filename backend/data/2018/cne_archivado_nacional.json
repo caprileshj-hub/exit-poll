@@ -17,6 +17,16 @@
       "tipo": "captura_wayback_ajax",
       "url": "https://web.archive.org/web/20180524084116id_/http://www4.cne.gob.ve/ResultadosElecciones2018/grafico_participacion.php",
       "hallazgo": "Endpoint de grafico con porcentajes nacionales por candidato."
+    },
+    {
+      "tipo": "captura_wayback_final",
+      "url": "https://web.archive.org/web/20240619094749/http://www.cne.gob.ve/ResultadosElecciones2018/",
+      "hallazgo": "Captura final de la app CNE actualizada al 28-05-2018; conserva totales nacionales finales visibles, pero los endpoints territoriales preservados por Wayback no reproducen el desglose por POST."
+    },
+    {
+      "tipo": "estadales_provisionales",
+      "url": "backend/data/2018/resultados_estadales_provisional.csv",
+      "hallazgo": "Mejor evidencia disponible por estado; no reconciliada completamente contra totales nacionales finales."
     }
   ],
   "captura_cne_2018_05_24": {
@@ -62,8 +72,9 @@
     ]
   },
   "limites": [
-    "No es una fuente por mesa ni por centro.",
-    "Los endpoints territoriales archivados probados no devolvieron resultados: respondieron Esperando Totalizacion de Datos.",
+    "La fuente nacional CNE/Wayback no es una fuente por mesa ni por centro.",
+    "Se agrego una tabla estadal provisional, pero sus sumas por candidato no reconcilian completamente contra los totales nacionales finales.",
+    "Los endpoints territoriales archivados probados no devolvieron resultados por POST: respondieron Esperando Totalizacion de Datos o selectores vacios.",
     "La tarjeta historica 2018 debe seguir tratandose como resultado oficial nacional, no como dataset de referencia granular para el laboratorio de muestra."
   ]
 }

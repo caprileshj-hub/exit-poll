@@ -78,7 +78,8 @@ El proyecto está en desarrollo activo. **La Fase 7 está en curso:**
 ### Fuente historica Presidencial 2018
 - **Presidencial 2018** - `2018-presidencial` sigue siendo una tarjeta historica oficial solo nacional, no un dataset por centro para el score de muestra.
 - **Evidencia CNE archivada** - `backend/data/2018/cne_archivado_nacional.json` registra la pista publica de subdominios y las capturas de Wayback para `www4.cne.gob.ve/ResultadosElecciones2018/`. La pagina CNE archivada conserva valores de ficha tecnica nacional y porcentajes por candidato a traves de `grafico_participacion.php`.
-- **Limite conocido** - Los endpoints AJAX territoriales archivados que se probaron no devolvieron resultados por estado, centro o mesa; devolvieron el placeholder CNE `Esperando Totalizacion de Datos`. La recuperacion granular 2018 queda abierta hasta encontrar una fuente trazable por mesa o centro.
+- **Mejora estadal provisional** - `backend/data/2018/resultados_estadales_provisional.csv` conserva la mejor evidencia disponible por estado. La participacion suma contra el total nacional final, pero los votos por candidato no reconcilian completamente (brecha material en Bertucci), por lo que se etiqueta como `provisional_no_reconciliado`.
+- **Limite conocido** - Los endpoints AJAX territoriales archivados que se probaron no devolvieron resultados por municipio, centro o mesa; devolvieron el placeholder CNE `Esperando Totalizacion de Datos` o selectores vacios. La recuperacion granular 2018 queda abierta hasta encontrar una fuente primaria trazable por municipio, mesa o centro.
 
 ### En desarrollo (Fase 7)
 - Completar el archivo histórico de investigación: recuperar los estudios integrales de exit poll PLM de 2007 y 2009, y obtener resultados electorales trazables por mesa o centro para 2015 y 2018. Los agregados Esdata 2007/2009 ya incorporados y la tarjeta nacional de 2018 no cierran estos pendientes.

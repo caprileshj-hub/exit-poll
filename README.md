@@ -78,7 +78,8 @@ The project is in active development. **Phase 7 is underway:**
 ### Historical Source 2018 Presidential
 - **2018 Presidential** - `2018-presidencial` remains a national-only official historical card, not a center-level dataset for sample scoring.
 - **Archived CNE evidence** - `backend/data/2018/cne_archivado_nacional.json` records the public subdomain trail and Wayback captures for `www4.cne.gob.ve/ResultadosElecciones2018/`. The archived CNE page preserves national technical-sheet values and candidate percentages through `grafico_participacion.php`.
-- **Known limitation** - The tested archived territorial AJAX endpoints did not return usable state, center, or table results; they returned the CNE placeholder `Esperando Totalizacion de Datos`. The 2018 granular-result recovery remains open until a traceable table- or center-level source is found.
+- **Provisional state-level improvement** - `backend/data/2018/resultados_estadales_provisional.csv` preserves the best available state-level evidence. Turnout reconciles to the final national total, but candidate votes do not reconcile completely (material Bertucci gap), so it is labeled `provisional_no_reconciliado`.
+- **Known limitation** - The tested archived territorial AJAX endpoints did not return usable municipality, center, or table results; they returned the CNE placeholder `Esperando Totalizacion de Datos` or empty selectors. The 2018 granular-result recovery remains open until a primary traceable municipality-, table-, or center-level source is found.
 
 ### In Development (Phase 7)
 - Complete the historical research archive: recover the full PLM exit-poll studies for 2007 and 2009, and obtain traceable table- or center-level election results for 2015 and 2018. The existing 2007/2009 Esdata aggregates and the national-only 2018 historical card do not close these research gaps.

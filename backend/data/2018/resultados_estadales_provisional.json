@@ -1,0 +1,76 @@
+{
+  "eleccion_ref": "2018-presidencial",
+  "ambito": "ESTADAL",
+  "estado": "provisional_no_reconciliado",
+  "archivo": "backend/data/2018/resultados_estadales_provisional.csv",
+  "descripcion": "Resultados presidenciales 2018 agregados por estado, incorporados como mejor evidencia disponible mientras no se ubique la Gaceta Electoral o una descarga oficial CNE por municipio, centro o mesa.",
+  "procedencia": [
+    {
+      "tipo": "archivo_usuario",
+      "archivo_original": "D:/Downloads/Resultados por Estado \u2014 Presidenciales Venezuela 2018 (CSV).csv",
+      "nota": "CSV generado por Perplexity a partir de boletines/fuentes secundarias; normalizado a UTF-8 y nombres ASCII para el repo."
+    },
+    {
+      "tipo": "pdf_usuario",
+      "archivo_original": "D:/Downloads/Resultados por Estado \u2014 Presidenciales Venezuela 2018.pdf",
+      "nota": "PDF generado por Perplexity/ReportLab; no es una Gaceta Electoral ni documento oficial CNE."
+    },
+    {
+      "tipo": "captura_wayback_cne",
+      "url": "https://web.archive.org/web/20240619094749/http://www.cne.gob.ve/ResultadosElecciones2018/",
+      "nota": "Captura CNE final actualizada al 28-05-2018; conserva la app de divulgacion y totales nacionales finales visibles."
+    },
+    {
+      "tipo": "fuente_secundaria",
+      "url": "https://es.wikipedia.org/wiki/Elecciones_presidenciales_de_Venezuela_de_2018",
+      "nota": "Tabla de resultados por estado atribuida al Consejo Nacional Electoral."
+    },
+    {
+      "tipo": "fuente_secundaria",
+      "url": "https://www.resumenlatinoamericano.org/2018/05/21/venezuela-elecciones-presidenciales-resultados-por-estados/",
+      "nota": "Publicacion periodistica con desglose por estado en boletines tempranos."
+    },
+    {
+      "tipo": "informe_observacion",
+      "url": "https://oevenezolano.org/wp-content/uploads/2020/05/Informe-Presidenciales-2018-Parte-II-2018.pdf",
+      "nota": "Informe OEV citado por el PDF de Perplexity para contexto y totales nacionales."
+    }
+  ],
+  "validacion": {
+    "filas_estado": 24,
+    "sumas_estadales": {
+      "electores_inscritos": 20418393,
+      "participacion": 9389056,
+      "maduro_votos": 6248778,
+      "falcon_votos": 1927841,
+      "bertucci_votos": 996636,
+      "quijada_votos": 36432
+    },
+    "referencia_nacional_cne_final": {
+      "electores_inscritos": 20526978,
+      "participacion": 9389056,
+      "maduro_votos": 6248864,
+      "falcon_votos": 1927958,
+      "bertucci_votos": 1015895,
+      "quijada_votos": 36246
+    },
+    "deltas_suma_estadal_menos_nacional": {
+      "electores_inscritos": -108585,
+      "participacion": 0,
+      "maduro_votos": -86,
+      "falcon_votos": -117,
+      "bertucci_votos": -19259,
+      "quijada_votos": 186
+    }
+  },
+  "uso_recomendado": [
+    "Usar como mejora provisional para analisis estadal exploratorio.",
+    "No usar como resultados oficiales definitivos por municipio, centro o mesa.",
+    "No cerrar el pendiente granular 2018 hasta ubicar una fuente primaria preservable o una tabla reconciliada."
+  ],
+  "pendientes": [
+    "Ubicar la Gaceta Electoral del 28-05-2018 o una copia preservable equivalente.",
+    "Verificar si josebhuerta.com u otro espejo expone resultados por municipio.",
+    "Reconciliar la brecha material de Javier Bertucci antes de promover el archivo a fuente estadal definitiva."
+  ]
+}

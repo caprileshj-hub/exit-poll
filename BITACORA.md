@@ -1488,3 +1488,21 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 ### Pendiente
 - Los endpoints territoriales archivados probados para 2018 devolvieron `Esperando Totalizacion de Datos`; no hay todavia resultados por mesa o centro.
 - El pendiente 2018 solo se cierra si aparece una fuente trazable y preservable con granularidad por mesa o centro y auditoria de cobertura.
+
+---
+
+## 2026-08-21 - Resultados estadales provisionales Presidencial 2018
+
+### Criterio pragmatico
+- Dado que la Gaceta Electoral 2018 no se ha podido descargar desde una fuente primaria y el portal CNE archivado depende de respuestas POST que Wayback no reproduce, se incorpora el mejor desglose disponible por estado como insumo provisional.
+- El archivo no se trata como cierre del pendiente granular: mejora el nivel nacional a nivel estadal, pero no reemplaza una fuente oficial por municipio, centro o mesa.
+
+### Cambio
+- Se agrego `backend/data/2018/resultados_estadales_provisional.csv` con 24 filas estadales de electores, participacion y votos de Maduro, Falcon, Bertucci y Quijada.
+- Se agrego `backend/data/2018/resultados_estadales_provisional.json` con procedencia, fuentes consultadas, sumas y deltas contra los totales nacionales CNE finales.
+- `backend/data/2018/cne_archivado_nacional.json`, `backend/historico_1998_2024.csv`, README y README.es documentan la nueva evidencia y su estatus `provisional_no_reconciliado`.
+
+### Validacion
+- Participacion estadal suma 9.389.056, igual al total nacional final citado.
+- Los votos por candidato no reconcilian completamente: Maduro -86, Falcon -117, Bertucci -19.259 y Quijada +186 contra el total nacional final. La brecha de Bertucci es material y mantiene la fuente en estado provisional.
+- `josebhuerta.com/historico_electoral.php` devolvio 503 durante la verificacion; queda como pista para intentar municipio en otra pasada.
