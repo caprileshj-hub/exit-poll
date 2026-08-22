@@ -16,9 +16,6 @@ CENTROS=$(python -c "import sqlite3; c=sqlite3.connect('exitpoll.db'); print(c.e
 if [ "$CENTROS" = "0" ]; then
     echo "[startup] BD vacía — sembrando datos demo..."
     python init_showcase.py
-elif [ "$CENTROS" -lt "10000" ] && [ -f "tm_2018_con_gps.csv" ]; then
-    echo "[startup] BD parcial (${CENTROS} centros) - cargando TM 2018..."
-    python cargador_tm.py tm_2018_con_gps.csv
 fi
 
 # FastAPI actualiza los historicos en segundo plano para no bloquear el

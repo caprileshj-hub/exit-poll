@@ -74,6 +74,32 @@
         </div>
     </div>
     {% else %}
+    {% if oficial_solo %}
+    <div class="col-6 col-md-3">
+        <div class="card card-kpi p-3 text-center">
+            <div class="val text-danger">{{ nac.o_gov or '&#8212;' }}{% if nac.o_gov is not none %}%{% endif %}</div>
+            <small class="text-muted">Oficial Gov</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-kpi p-3 text-center" style="border-color:#2980b9">
+            <div class="val text-primary">{{ nac.o_opos or '&#8212;' }}{% if nac.o_opos is not none %}%{% endif %}</div>
+            <small class="text-muted">Oficial Opos</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-kpi p-3 text-center" style="border-color:#6c757d">
+            <div class="val text-secondary">{{ nac.o_otros or '&#8212;' }}{% if nac.o_otros is not none %}%{% endif %}</div>
+            <small class="text-muted">Otros</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-kpi p-3 text-center" style="border-color:#198754">
+            <div class="val" style="font-size:1.35rem">{{ "{:,}".format(nac.o_votos or 0) }}</div>
+            <small class="text-muted">Votos validos</small>
+        </div>
+    </div>
+    {% else %}
     <div class="col-6 col-md-3">
         <div class="card card-kpi p-3 text-center">
             <div class="val text-danger">{{ nac.e_gov or '&#8212;' }}{% if nac.e_gov is not none %}%{% endif %}</div>
@@ -98,6 +124,7 @@
             <small class="text-muted">Oficial Opos</small>
         </div>
     </div>
+    {% endif %}
     {% endif %}
 </div>
 
@@ -721,15 +748,19 @@
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <h5 class="card-title mb-3"><i class="bi bi-graph-up me-2"></i>Tendencia del estudio por turno</h5>
-        {% if legislativo.sin_tendencia %}
+        {% if legislativo.sin_tendencia or oficial_solo %}
         <div class="text-center text-muted py-4">
             <i class="bi bi-dash-circle fs-3 d-block mb-2"></i>
+            {% if oficial_solo %}
+            Esta ficha contiene resultados oficiales agregados; no tiene serie de tendencia por turnos.
+            {% else %}
             Este estudio no tiene serie de tendencia; solo resultados finales.
+            {% endif %}
         </div>
         {% else %}
         <div id="chart-turnos" style="height:340px;"></div>
         {% endif %}
-        {% if not legislativo.sin_tendencia and (not turnos_json or turnos_json == '[]') %}
+        {% if not oficial_solo and not legislativo.sin_tendencia and (not turnos_json or turnos_json == '[]') %}
         <div class="text-center text-muted py-4">
             <i class="bi bi-clock fs-3 d-block mb-2"></i>
             No hay datos por turno cargados.

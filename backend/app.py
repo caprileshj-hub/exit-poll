@@ -13,6 +13,7 @@ import json
 import asyncio
 import sqlite3
 import shutil
+import subprocess
 import tempfile
 import uuid
 import io
@@ -39,6 +40,27 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 
+def _detect_app_version() -> str:
+    for key in ("APP_COMMIT_SHA", "GITHUB_SHA", "COMMIT_SHA", "WEBSITE_DEPLOYMENT_ID"):
+        value = (os.environ.get(key) or "").strip()
+        if value:
+            return value[:12]
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short=12", "HEAD"],
+            cwd=BASE_DIR.parent,
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=2,
+        ).strip()
+    except Exception:
+        return "dev-local"
+
+
+APP_VERSION = _detect_app_version()
+templates.env.globals["app_version"] = APP_VERSION
+
+
 def _seed_historicos() -> None:
     sys.path.insert(0, str(BASE_DIR))
     import seed_resultados_historicos
@@ -61,6 +83,14 @@ async def seed_historicos_startup() -> None:
     current = getattr(app.state, "historicos_seed_task", None)
     if current is None or current.done():
         app.state.historicos_seed_task = asyncio.create_task(_seed_historicos_background())
+
+
+@app.get("/version", response_class=JSONResponse)
+async def version_info():
+    return {
+        "version": APP_VERSION,
+        "db_path": str(DB_PATH),
+    }
 
 
 # ── helpers ──────────────────────────────────────────────────────
@@ -4026,6 +4056,7 @@ async def historico_estudio_detalle(request: Request, ref: str):
     pivot = _estudios_pivot(conn, ref)
     nac = next((r for r in pivot if r["ambito"] == "NACIONAL"), {})
     estados_rows = [r for r in pivot if r["ambito"] != "NACIONAL"]
+    oficial_solo = nac.get("e_gov") is None and nac.get("o_gov") is not None
 
     # Metadatos
     meta_e = conn.execute(
@@ -4173,6 +4204,7 @@ async def historico_estudio_detalle(request: Request, ref: str):
         "turnos_json": _json.dumps(turnos),
         "o_gov_nac": nac.get("o_gov"),
         "o_opos_nac": nac.get("o_opos"),
+        "oficial_solo": oficial_solo,
         "analisis": analisis,
         "analisis_leg": analisis_leg,
         "legislativo": legislativo,

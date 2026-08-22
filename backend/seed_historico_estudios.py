@@ -4,19 +4,102 @@ This is intentionally data-only and idempotent. It avoids re-reading the
 large Excel cores during Azure requests or restarts.
 """
 
+import csv
 import json
 import sqlite3
+import unicodedata
 from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "exitpoll.db"
 SEED_PATH = BASE_DIR / "data" / "historico_estudios_seed.json"
+ESTADAL_2018_PATH = BASE_DIR / "data" / "2018" / "resultados_estadales_provisional.csv"
+
+ESTADO_AMBITOS = {
+    "amazonas": "22",
+    "anzoategui": "02",
+    "apure": "03",
+    "aragua": "04",
+    "barinas": "05",
+    "bolivar": "06",
+    "carabobo": "07",
+    "cojedes": "08",
+    "delta amacuro": "23",
+    "distrito capital": "01",
+    "falcon": "09",
+    "guarico": "10",
+    "lara": "11",
+    "merida": "12",
+    "miranda": "13",
+    "monagas": "14",
+    "nueva esparta": "15",
+    "portuguesa": "16",
+    "sucre": "17",
+    "tachira": "18",
+    "trujillo": "19",
+    "vargas": "24",
+    "la guaira": "24",
+    "yaracuy": "20",
+    "zulia": "21",
+}
 
 
 def _load_seed() -> dict:
     with SEED_PATH.open("r", encoding="utf-8") as fh:
         return json.load(fh)
+
+
+def _norm_name(value: str) -> str:
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    return " ".join(text.strip().lower().split())
+
+
+def _seed_2018_estadales(conn: sqlite3.Connection) -> int:
+    if not ESTADAL_2018_PATH.exists():
+        return 0
+    loaded = 0
+    with ESTADAL_2018_PATH.open("r", encoding="utf-8-sig", newline="") as fh:
+        for row in csv.DictReader(fh):
+            estado = (row.get("estado") or "").strip()
+            ambito = ESTADO_AMBITOS.get(_norm_name(estado))
+            if not ambito:
+                continue
+            maduro = int(float(row.get("maduro_votos") or 0))
+            falcon = int(float(row.get("falcon_votos") or 0))
+            bertucci = int(float(row.get("bertucci_votos") or 0))
+            quijada = int(float(row.get("quijada_votos") or 0))
+            validos = maduro + falcon + bertucci + quijada
+            if validos <= 0:
+                continue
+            conn.execute("""
+                INSERT INTO historico_oficial
+                    (eleccion_ref, ambito, nombre, nombre_eleccion, fecha_eleccion,
+                     pct_gov, pct_opos, pct_otros, total_votos, fuente)
+                VALUES (?, ?, ?, 'Presidencial 2018', '2018-05-20',
+                        ?, ?, ?, ?, 'Perplexity/CNE agregado estadal provisional')
+                ON CONFLICT(eleccion_ref, ambito) DO UPDATE SET
+                    nombre=excluded.nombre,
+                    nombre_eleccion=excluded.nombre_eleccion,
+                    fecha_eleccion=excluded.fecha_eleccion,
+                    pct_gov=excluded.pct_gov,
+                    pct_opos=excluded.pct_opos,
+                    pct_otros=excluded.pct_otros,
+                    total_votos=excluded.total_votos,
+                    fuente=excluded.fuente,
+                    updated_at=datetime('now')
+            """, (
+                "2018-presidencial",
+                ambito,
+                "Vargas/La Guaira" if ambito == "24" else estado,
+                round(100 * maduro / validos, 2),
+                round(100 * falcon / validos, 2),
+                round(100 * (bertucci + quijada) / validos, 2),
+                validos,
+            ))
+            loaded += 1
+    return loaded
 
 
 def _migrate_turnos_ambito(conn: sqlite3.Connection) -> None:
@@ -107,6 +190,8 @@ def seed_historico_estudios(db_path: str | Path = DB_PATH) -> dict[str, int]:
                     updated_at=datetime('now')
             """, row)
             counts["historico_oficial"] += 1
+
+        counts["historico_oficial"] += _seed_2018_estadales(conn)
 
         for row in data.get("historico_estudios_turnos", []):
             row = dict(row); row.setdefault("ambito", "NACIONAL")
