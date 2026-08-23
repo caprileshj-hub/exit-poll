@@ -13,6 +13,11 @@ import unicodedata
 from collections import Counter, defaultdict
 from typing import Any
 
+try:
+    from historico_normalizacion import ensure_historico_normalizado_schema
+except ImportError:  # pragma: no cover - package import path
+    from .historico_normalizacion import ensure_historico_normalizado_schema
+
 
 FUENTE_FACTOR = {
     "cne_oficial": 1.0,
@@ -123,6 +128,7 @@ def ensure_muestra_lab_tables(conn) -> None:
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_cs_ref ON centro_snapshot(eleccion_ref)")
+    ensure_historico_normalizado_schema(conn)
     conn.commit()
 
 

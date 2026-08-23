@@ -50,7 +50,7 @@ The project is in active development. **Phase 7 is underway:**
 ### Completed
 - **Database** — SQLite with WAL mode, foreign keys, permanent voting-center registry, election-specific eligibility, audit tables, and client access model
 - **TM Ingestion Pipeline** — Keeps the legacy Excel/CSV differential loader for known 2015/2018 formats and adds an AI-assisted multi-format ingestion flow for new CNE files; manually-entered GPS coordinates and risk ratings are never overwritten
-- **Sample Design** — Assisted laboratory for selecting centers from the active and historical universe; combines utility score, data confidence, center-level trend, source lineage, and an editable automatic proposal. Uses center/table-level aggregates from 2004, 2006, 2007, 2009, 2012, 2013, and 2024 when available.
+- **Sample Design** — Assisted laboratory for selecting centers from the active and historical universe; combines utility score, data confidence, center-level trend, source lineage, and an editable automatic proposal. Uses center/table-level aggregates from 2004, 2006, 2007, 2009, 2012, 2013, 2018, and 2024 when available.
 - **Hierarchical Weight Calculator** — Four-level weighting (precinct → municipality → state → national) with geographic exception rules for Distrito Capital, La Guaira, and Miranda-Caracas
 - **Heatmap Generator** — Folium-based choropleth at state (ADM1) and municipality (ADM2) level; spatial lookup cached for 332 municipalities
 - **Standalone HTML Dashboard** — Single-file output: Folium map (58%) + Plotly trend charts (42%); click on state polygon to see local trend; blue-white-red symmetric palette with ±3% technical tie threshold
@@ -75,14 +75,18 @@ The project is in active development. **Phase 7 is underway:**
 - **Recovered coverage** - 11,233 centers, 34,250 tables with exported center aggregates, 11,504,321 valid votes, and 16,684,405 electors. The source is Esdata/Wayback's `ENMIENDA2009_2boletin` file and is treated as high-coverage but second-bulletin historical recovery.
 - **Historical convention** - In the 2009 amendment referendum, `SI` supported the government proposal and is stored as `votos_gobierno`; `NO` is stored as `votos_oposicion`. The versioned CSV contains no voter names, ID numbers, or person-level records.
 
+- **Normalized 2004+ contract** - `resultados_historicos` preserves its legacy columns and adds normalized fields for electors, voters, valid votes, null votes, government/opposition/other votes, valid-vote percentages, turnout, exterior inclusion, granularity, source, source cut, notes, and known table counts. Null votes are not mixed into `votos_otros`.
+
 ### Historical Source 2018 Presidential
-- **2018 Presidential** - `2018-presidencial` remains a national-only official historical card, not a center-level dataset for sample scoring.
+- **2018 Presidential** - `2018-presidencial` now has a provisional center-level dataset in `backend/data/2018/resultados_venpres_a_2018.csv`, generated from VENPRES-A (`10.7910/DVN/NO1XJ2`) with `backend/import_2018_venpres_a.py`.
+- **VENPRES-A coverage** - 14,400 centers, 33,716 tables, 20,517,997 electors, 9,360,318 voters, 9,203,220 valid votes, 157,098 null votes. Maduro is stored as government (6,227,663), Falcon as opposition (1,924,469), and Bertucci+Quijada as other (1,051,088).
+- **Documented transformation** - In the source XLSX, `mesas` is the number of tables in the center. `voto_c` is treated as voters; `votos_validos` is recalculated from candidate votes so `votantes = votos_validos + votos_nulos`.
 - **Archived CNE evidence** - `backend/data/2018/cne_archivado_nacional.json` records the public subdomain trail and Wayback captures for `www4.cne.gob.ve/ResultadosElecciones2018/`. The archived CNE page preserves national technical-sheet values and candidate percentages through `grafico_participacion.php`.
 - **Provisional state-level improvement** - `backend/data/2018/resultados_estadales_provisional.csv` preserves the best available state-level evidence. Turnout reconciles to the final national total, but candidate votes do not reconcile completely (material Bertucci gap), so it is labeled `provisional_no_reconciliado`.
-- **Known limitation** - The tested archived territorial AJAX endpoints did not return usable municipality, center, or table results; they returned the CNE placeholder `Esperando Totalizacion de Datos` or empty selectors. The 2018 granular-result recovery remains open until a primary traceable municipality-, table-, or center-level source is found.
+- **Known limitation** - VENPRES-A is accepted provisionally as granular historical archaeology, but it does not replace a second public center-level source or the final national CNE cut. Differences against the final national cut remain documented by source and coverage.
 
 ### In Development (Phase 7)
-- Complete the historical research archive: recover the full PLM exit-poll studies for 2007 and 2009, and obtain traceable table- or center-level election results for 2015 and 2018. The existing 2007/2009 Esdata aggregates and the national-only 2018 historical card do not close these research gaps.
+- Complete the historical research archive: recover the full PLM exit-poll studies for 2007 and 2009, obtain traceable table- or center-level election results for 2015, and seek a second public granular 2018 source. The existing 2007/2009 Esdata aggregates and VENPRES-A 2018 do not close the historical-study normalization phase.
 - Production hardening for AI-powered TM normalization: larger-file UX, better manual-resolution workflows, provider rate-limit handling, and stronger fuzzy matching
 - SMS parser and GPS validation in FastAPI backend
 - Android APK (surveyor UI + SMS sending + offline queue)
@@ -230,6 +234,7 @@ exit_poll/
 │   ├── convertidor_cne2024.py  # CNE 2024 results ingestion (11,927 centers)
 │   ├── import_2007_esdata.py   # Esdata/Wayback 2007 referendum aggregate importer
 │   ├── import_2009_esdata.py   # Esdata/Wayback 2009 amendment aggregate importer
+│   ├── import_2018_venpres_a.py # VENPRES-A 2018 center-level normalizer
 │   ├── import_2012_gobernadores.py # Regionales 2012 historical governor collection
 │   ├── cargador_tm.py          # Differential TM loader
 │   ├── agent.py                # AI provider abstraction and structured calls

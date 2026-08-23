@@ -50,7 +50,7 @@ El proyecto está en desarrollo activo. **La Fase 7 está en curso:**
 ### Completado
 - **Base de datos** — SQLite en modo WAL, foreign keys, registro permanente de centros de votación, elegibilidad por elección, tablas de auditoría y modelo de acceso para clientes
 - **Pipeline de ingesta TM** — Mantiene el cargador diferencial legacy Excel/CSV para los formatos conocidos 2015/2018 y agrega un flujo de ingesta multi-formato asistido por IA para archivos CNE nuevos; las coordenadas GPS y calificaciones de riesgo ingresadas manualmente nunca se sobrescriben
-- **Diseño de muestra** — Laboratorio asistido para seleccionar centros desde el universo activo e histórico; combina score de utilidad, confianza del dato, tendencia por centro, trazabilidad de fuentes y propuesta automática editable. Usa resultados por centro/mesa agregados de 2004, 2006, 2007, 2009, 2012, 2013 y 2024 cuando están disponibles.
+- **Diseño de muestra** — Laboratorio asistido para seleccionar centros desde el universo activo e histórico; combina score de utilidad, confianza del dato, tendencia por centro, trazabilidad de fuentes y propuesta automática editable. Usa resultados por centro/mesa agregados de 2004, 2006, 2007, 2009, 2012, 2013, 2018 y 2024 cuando están disponibles.
 - **Calculador de pesos jerárquico** — Ponderación de cuatro niveles (parroquia → municipio → estado → nacional) con reglas de excepción geográfica para Distrito Capital, La Guaira y Miranda-Caracas
 - **Generador de heatmap** — Choropleth con Folium a nivel estado (ADM1) y municipio (ADM2); lookup espacial cacheado para 332 municipios
 - **Dashboard HTML autónomo** — Salida de un solo archivo: mapa Folium (58%) + gráficos de tendencia Plotly (42%); clic en el polígono de un estado muestra su tendencia local; paleta simétrica azul-blanco-rojo con umbral de empate técnico ±3%
@@ -75,14 +75,18 @@ El proyecto está en desarrollo activo. **La Fase 7 está en curso:**
 - **Cobertura recuperada** - 11.233 centros, 34.250 mesas exportadas en agregados por centro, 11.504.321 votos validos y 16.684.405 electores. La fuente es el archivo Esdata/Wayback `ENMIENDA2009_2boletin` y debe tratarse como recuperacion historica de alta cobertura, pero de segundo boletin.
 - **Convencion historica** - En la enmienda 2009, `SI` apoyaba la propuesta del gobierno y se almacena como `votos_gobierno`; `NO` se almacena como `votos_oposicion`. El CSV versionado no contiene cedulas, nombres de electores ni registros persona a persona.
 
+- **Contrato normalizado 2004+** - `resultados_historicos` conserva el contrato legado y agrega campos normalizados: `electores_inscritos`, `votantes`, `votos_validos`, `votos_nulos`, `votos_gobierno`, `votos_oposicion`, `votos_otros`, porcentajes sobre votos validos, `participacion`, `incluye_exterior`, `granularidad`, `fuente`, `corte_fuente`, notas y mesas cubiertas cuando existen. Los nulos no se mezclan con `votos_otros`.
+
 ### Fuente historica Presidencial 2018
-- **Presidencial 2018** - `2018-presidencial` sigue siendo una tarjeta historica oficial solo nacional, no un dataset por centro para el score de muestra.
+- **Presidencial 2018** - `2018-presidencial` ahora tiene dataset granular provisional por centro en `backend/data/2018/resultados_venpres_a_2018.csv`, generado desde VENPRES-A (`10.7910/DVN/NO1XJ2`) con `backend/import_2018_venpres_a.py`.
+- **Cobertura VENPRES-A** - 14.400 centros, 33.716 mesas, 20.517.997 electores, 9.360.318 votantes, 9.203.220 votos validos, 157.098 nulos. Maduro se almacena como gobierno (6.227.663), Falcon como oposicion (1.924.469) y Bertucci+Quijada como otros (1.051.088).
+- **Transformacion documentada** - En el XLSX fuente, `mesas` es cantidad de mesas por centro. La columna `voto_c` se trata como votantes; `votos_validos` se recalcula desde candidatos para mantener `votantes = votos_validos + votos_nulos`.
 - **Evidencia CNE archivada** - `backend/data/2018/cne_archivado_nacional.json` registra la pista publica de subdominios y las capturas de Wayback para `www4.cne.gob.ve/ResultadosElecciones2018/`. La pagina CNE archivada conserva valores de ficha tecnica nacional y porcentajes por candidato a traves de `grafico_participacion.php`.
 - **Mejora estadal provisional** - `backend/data/2018/resultados_estadales_provisional.csv` conserva la mejor evidencia disponible por estado. La participacion suma contra el total nacional final, pero los votos por candidato no reconcilian completamente (brecha material en Bertucci), por lo que se etiqueta como `provisional_no_reconciliado`.
-- **Limite conocido** - Los endpoints AJAX territoriales archivados que se probaron no devolvieron resultados por municipio, centro o mesa; devolvieron el placeholder CNE `Esperando Totalizacion de Datos` o selectores vacios. La recuperacion granular 2018 queda abierta hasta encontrar una fuente primaria trazable por municipio, mesa o centro.
+- **Limite conocido** - VENPRES-A queda aceptado provisionalmente como arqueologia granular historica, pero no reemplaza una segunda fuente publica centro por centro ni el resultado nacional final CNE. La diferencia contra el corte nacional final queda documentada por fuente/cobertura.
 
 ### En desarrollo (Fase 7)
-- Completar el archivo histórico de investigación: recuperar los estudios integrales de exit poll PLM de 2007 y 2009, y obtener resultados electorales trazables por mesa o centro para 2015 y 2018. Los agregados Esdata 2007/2009 ya incorporados y la tarjeta nacional de 2018 no cierran estos pendientes.
+- Completar el archivo histórico de investigación: recuperar los estudios integrales de exit poll PLM de 2007 y 2009, obtener resultados electorales trazables por mesa o centro para 2015 y buscar una segunda fuente pública granular 2018. Los agregados Esdata 2007/2009 y VENPRES-A 2018 no cierran la normalización de estudios históricos.
 - Hardening de producción para la normalización TM con IA: UX para archivos grandes, mejores flujos de resolución manual, manejo de rate limits de proveedores y fuzzy matching más fuerte
 - Parser SMS y validación GPS en el backend FastAPI
 - APK Android (UI del encuestador + envío SMS + cola offline)
@@ -230,6 +234,7 @@ exit_poll/
 │   ├── convertidor_cne2024.py  # Ingesta resultados CNE 2024 (11.927 centros)
 │   ├── import_2007_esdata.py   # Importador agregado Referendum 2007 Esdata/Wayback
 │   ├── import_2009_esdata.py   # Importador agregado Enmienda 2009 Esdata/Wayback
+│   ├── import_2018_venpres_a.py # Normalizador VENPRES-A 2018 por centro
 │   ├── import_2012_gobernadores.py # Colección histórica Gobernadores 2012
 │   ├── cargador_tm.py          # Cargador diferencial de TM
 │   ├── agent.py                # Abstracción de proveedores IA y llamadas estructuradas

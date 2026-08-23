@@ -7,6 +7,11 @@ import sqlite3
 import argparse
 import os
 
+try:
+    from historico_normalizacion import ensure_historico_normalizado_schema
+except ImportError:  # pragma: no cover - package import path
+    from .historico_normalizacion import ensure_historico_normalizado_schema
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH  = os.path.join(BASE_DIR, 'exitpoll.db')
 SQL_PATH = os.path.join(BASE_DIR, 'schema.sql')
@@ -95,6 +100,7 @@ def migrar(conn: sqlite3.Connection):
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_cs_ref ON centro_snapshot(eleccion_ref)")
+    ensure_historico_normalizado_schema(conn)
     conn.commit()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS config (

@@ -274,3 +274,32 @@ Bc = bonus capado de convergencia temporal
 - Evaluar incorporacion de historicos 1998 y 2000 si se recuperan localmente con contrato verificable.
 
 **Estado**: Implementada como v2 explicable en el laboratorio; pendiente validacion por backtesting antes de automatizar la seleccion final.
+
+---
+
+## ADR-013 - Contrato normalizado de resultados electorales historicos
+
+**Decision**: Para elecciones operativas desde 2004, `resultados_historicos` mantiene sus columnas legadas y agrega campos normalizados aditivos: `electores_inscritos`, `votantes`, `votos_validos`, `votos_nulos`, `votos_gobierno`, `votos_oposicion`, `votos_otros`, porcentajes politicos sobre validos, `participacion`, `incluye_exterior`, `granularidad`, `fuente`, `corte_fuente`, notas, mesas y detalle JSON cuando hace falta conservar subgrupos.
+
+**Contexto**: Las fuentes historicas mezclan cortes, coberturas y denominadores. Algunos importadores antiguos excluian exterior o sumaban nulos dentro de otros. Para arqueologia electoral, la fuente original se conserva, pero los derivados deben tener la misma semantica entre anos.
+
+**Reglas**:
+- `votos_otros` contiene candidatos distintos de gobierno/oposicion; no contiene nulos.
+- Porcentajes de gobierno/oposicion/otros se calculan sobre `votos_validos`.
+- Participacion se calcula como `votantes / electores_inscritos`.
+- `NULL` significa desconocido/no disponible; cero significa cero real.
+- `incluye_exterior` debe explicitar si el corte nacional conserva exterior.
+- 1998 y 2000 quedan como antecedentes; no se fuerzan equivalencias con codigos CNE modernos en esta fase.
+
+**VENPRES-A 2018**:
+- Se acepta provisionalmente `2018-presidencial` desde VENPRES-A (`10.7910/DVN/NO1XJ2`) como dataset granular historico por centro.
+- En el XLSX fuente, `mesas` representa cantidad de mesas por centro.
+- `voto_c` se trata como votantes y `votos_validos` se recalcula desde candidatos.
+- Maduro se almacena como gobierno, Falcon como oposicion y Bertucci+Quijada como otros; el detalle se conserva en `detalle_otros_json`.
+
+**Consecuencias**:
+- La UI actual sigue leyendo el contrato legado.
+- Las validaciones y futuras fichas deben usar los campos normalizados.
+- Las discrepancias arqueologicas se reportan con deltas; no se corrigen silenciosamente.
+
+**Estado**: Implementada para resultados electorales; pendiente normalizacion de estudios historicos y fichas.

@@ -2,13 +2,13 @@
 
 > Estado actual del proyecto: qué funciona, qué está pendiente, qué bugs hay abiertos.
 > Actualizar al cierre de cada sesión de trabajo significativa.
-> Última actualización: 2026-06-10
+> Última actualización: 2026-08-23
 
 ---
 
 ## Resumen ejecutivo
 
-Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 1–6 completas. Fase 7 en curso: hardening ingesta IA TM, APK Android (repo separado), cobertura de tests, auditoría interna. Módulo de Estudios Históricos implementado con primer dataset cargado (Presidencial 2006).
+Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 1–6 completas. Fase 7 en curso: hardening ingesta IA TM, APK Android (repo separado), cobertura de tests, auditoría interna. Módulo de Históricos opera con resultados normalizados por centro/mesa desde 2004 e incorpora VENPRES-A 2018 como dataset granular provisional.
 
 ---
 
@@ -38,6 +38,8 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 - [x] BD SQLite completa: WAL, FK, 19+ tablas en 8 bloques funcionales
 - [x] Migración incremental en `init_db.py` (sin `--reset` necesario para nuevas tablas)
 - [x] Integración CNE 2024: 11.927 centros en `resultados_historicos`
+- [x] Normalización histórica 2004+: campos aditivos para electores, votantes, válidos, nulos, exterior, fuente/corte y mesas cubiertas sin romper el contrato legado
+- [x] VENPRES-A 2018: 14.400 centros, 33.716 mesas y trazabilidad DOI `10.7910/DVN/NO1XJ2` en `resultados_historicos`
 - [x] Seed histórico 2006: 11.118 centros, 33.002 mesas, 580 reportes de campo
 
 ### Pipeline de ingesta TM
@@ -100,6 +102,10 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
   - Rutas FastAPI críticas: `/candidatos`, `/pesos`, `/visualizacion`, `/tm`
   - `calcular_resultado_ponderado()` en `simulador_showcase.py`
   - Calculador pesos por tipo de elección (asamblea pendiente; regional cubierto en `test_geo_pesos`)
+- [ ] **Normalizar estudios históricos y fichas** contra la nueva referencia oficial estandarizada
+  - Distinguir NULL/no disponible de cero
+  - Recalcular fichas contra `resultados_historicos` normalizado
+  - Mantener estudios de exit poll separados de resultados electorales oficiales
 
 ### Media prioridad
 - [ ] **Dashboard auditoría interna**: semáforo centros, panel encuestadores, alertas fraude (acceso interno exclusivo)

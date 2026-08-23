@@ -268,8 +268,20 @@ CREATE TABLE IF NOT EXISTS resultados_historicos (
     votos_gobierno  INTEGER NOT NULL DEFAULT 0, -- total bando gobierno
     votos_oposicion INTEGER NOT NULL DEFAULT 0, -- total bando oposicion
     votos_otros     INTEGER NOT NULL DEFAULT 0,
+    electores_inscritos INTEGER,
+    votantes        INTEGER,
+    votos_nulos     INTEGER,
     pct_gobierno    REAL,                       -- % gobierno en este centro
     pct_oposicion   REAL,                       -- % oposicion en este centro
+    pct_otros       REAL,
+    participacion   REAL,
+    incluye_exterior INTEGER,
+    granularidad    TEXT,
+    fuente          TEXT,
+    corte_fuente    TEXT,
+    notas           TEXT,
+    num_mesas       INTEGER,
+    detalle_otros_json TEXT,
     UNIQUE(codigo_centro, eleccion_ref)
 );
 
@@ -283,6 +295,17 @@ CREATE TABLE IF NOT EXISTS historico_fuentes (
     cobertura_pct   REAL,
     comparabilidad  TEXT NOT NULL DEFAULT 'directa',
     notas           TEXT,
+    incluye_exterior INTEGER,
+    corte_fuente    TEXT,
+    centros_cubiertos INTEGER,
+    mesas_cubiertas INTEGER,
+    electores_inscritos INTEGER,
+    votantes        INTEGER,
+    votos_validos   INTEGER,
+    votos_nulos     INTEGER,
+    votos_gobierno  INTEGER,
+    votos_oposicion INTEGER,
+    votos_otros     INTEGER,
     updated_at      TEXT DEFAULT (datetime('now'))
 );
 

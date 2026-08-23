@@ -8,6 +8,13 @@
 
 ## [Unreleased]
 
+### feat — Normalización histórica oficial y VENPRES-A 2018
+- `resultados_historicos` conserva su contrato legado y agrega campos normalizados para electores, votantes, votos válidos, nulos, exterior, fuente/corte, notas y mesas.
+- `backend/import_2018_venpres_a.py` genera `backend/data/2018/resultados_venpres_a_2018.csv` desde VENPRES-A (`10.7910/DVN/NO1XJ2`) y preserva Falcon como oposición y Bertucci+Quijada como otros.
+- `backend/seed_resultados_historicos.py` siembra 2018 como `venpres_a`, granularidad `centro`, cobertura `98.37`, sin exterior, y recalcula porcentajes políticos sobre votos válidos.
+- `backend/validar_historico_normalizado.py` reporta la tabla comparativa 2006/2012/2013/2018 y deltas de identidad.
+- Tests nuevos en `test_historico_normalizacion.py`.
+
 ### docs — Pendientes de recuperación histórica
 - Se documenta que 2007 y 2009 tienen resultados electorales agregados en el sistema, pero siguen pendientes los estudios de exit poll completos y verificables.
 - Se mantienen pendientes los resultados electorales desglosados por mesa o centro de 2015 y 2018; el registro nacional fijo de 2018 no sustituye ese detalle.

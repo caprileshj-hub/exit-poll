@@ -1,0 +1,37 @@
+{
+  "eleccion_ref": "2018-presidencial",
+  "fuente": "venpres_a",
+  "doi": "10.7910/DVN/NO1XJ2",
+  "dataset": "The Venezuelan Presidential Election Archive (VENPRES-A)",
+  "archivo_normalizado": "backend/data/2018/resultados_venpres_a_2018.csv",
+  "archivo_fuente_usado": "Elecciones_Centros_2006_2021.xlsx",
+  "estado": "granular_provisional",
+  "granularidad": "centro",
+  "incluye_exterior": false,
+  "transformaciones": [
+    "Se filtro eleccion = 201801.",
+    "centro se normalizo a codigo_centro de 9 digitos.",
+    "mesas se conserva como cantidad de mesas del centro, no como identificador de mesa.",
+    "voto_c se trata como votantes.",
+    "votos_validos se recalcula como of_c + ppt_c + ot_c para no mezclar nulos.",
+    "of_c se almacena como votos_gobierno.",
+    "ppt_c se almacena como votos_oposicion y corresponde a Falcon.",
+    "ot_c se almacena como votos_otros y corresponde a Bertucci + Quijada agregados."
+  ],
+  "totales_normalizados": {
+    "centros": 14400,
+    "mesas": 33716,
+    "electores_inscritos": 20517997,
+    "votantes": 9360318,
+    "votos_validos": 9203220,
+    "votos_nulos": 157098,
+    "votos_gobierno": 6227663,
+    "votos_oposicion": 1924469,
+    "votos_otros": 1051088
+  },
+  "validacion": {
+    "votos_validos_igual_bloques": true,
+    "votantes_igual_validos_mas_nulos": true,
+    "diferencia_con_cne_final": "El corte VENPRES-A no reemplaza el resultado nacional final CNE; se conserva como fuente granular provisional de trabajo arqueologico."
+  }
+}

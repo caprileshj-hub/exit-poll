@@ -1506,3 +1506,35 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 - Participacion estadal suma 9.389.056, igual al total nacional final citado.
 - Los votos por candidato no reconcilian completamente: Maduro -86, Falcon -117, Bertucci -19.259 y Quijada +186 contra el total nacional final. La brecha de Bertucci es material y mantiene la fuente en estado provisional.
 - `josebhuerta.com/historico_electoral.php` devolvio 503 durante la verificacion; queda como pista para intentar municipio en otra pasada.
+
+---
+
+## 2026-08-23 - Normalizacion historica oficial y VENPRES-A 2018
+
+### Cambio
+- Se agrego un contrato aditivo normalizado para `resultados_historicos`: electores, votantes, validos, nulos, gobierno, oposicion, otros, porcentajes sobre validos, participacion, exterior, granularidad, fuente, corte, notas, mesas y detalle JSON de otros.
+- Se agrego `backend/historico_normalizacion.py` y se conecto a `schema.sql`, `init_db.py`, `muestra_lab.py` y `seed_resultados_historicos.py`.
+- Se incorporo `backend/import_2018_venpres_a.py` para generar `backend/data/2018/resultados_venpres_a_2018.csv` desde VENPRES-A (`10.7910/DVN/NO1XJ2`).
+- `2018-presidencial` se siembra ahora en `resultados_historicos`, `centro_snapshot` y `historico_fuentes` como `venpres_a`, granularidad `centro`, cobertura `98.37`, sin exterior.
+
+### Criterio metodologico
+- En VENPRES-A 2018, `mesas` se conserva como cantidad de mesas del centro, no como identificador de mesa.
+- `voto_c` en el XLSX fuente se trata como `votantes`; `votos_validos` se recalcula desde candidatos para que los nulos no entren en `votos_otros`.
+- Maduro se almacena como gobierno, Falcon como oposicion y Bertucci+Quijada como otros. El detalle agregado se conserva en `detalle_otros_json`.
+- 1998 y 2000 quedan como antecedentes y no se fuerzan a codigos CNE modernos en esta normalizacion.
+
+### Validacion
+- `backend/validar_historico_normalizado.py` genera la comparativa normalizada.
+- Totales validados:
+  - 2006: 10.936 centros, 32.788 mesas, 15.868.348 electores, 11.728.599 votantes, 11.569.233 validos, 159.366 nulos, exterior incluido.
+  - 2012: 13.818 centros, 39.299 mesas, 18.836.157 electores, 15.171.358 votantes fuente, 14.864.226 validos, 287.267 nulos, exterior incluido.
+  - 2013: 13.850 centros, 39.360 mesas, 18.895.335 electores, 15.055.498 votantes, 14.988.563 validos, 66.935 nulos, exterior incluido.
+  - 2018: 14.400 centros, 33.716 mesas, 20.517.997 electores, 9.360.318 votantes, 9.203.220 validos, 157.098 nulos, exterior no incluido.
+- Identidades:
+  - `votos_validos = gobierno + oposicion + otros` cierra en 2006, 2012, 2013 y 2018.
+  - `votantes = votos_validos + votos_nulos` cierra en 2006, 2013 y 2018.
+  - 2012 queda con delta abierto de -19.865 entre `validos+nulos` y la columna fuente de votantes; no se corrige silenciosamente.
+
+### Pendiente
+- Normalizar fichas de estudios historicos en una fase posterior; por ahora se mantiene la UI funcional.
+- Buscar fuente granular trazable 2015 y una segunda fuente publica centro por centro para contrastar VENPRES-A 2018.
