@@ -54,9 +54,13 @@ def _ensure_backend_path() -> None:
 app = FastAPI(title="Exit Poll — Configuración")
 # Comprime HTML/JSON/CSS/JS por encima de 1 KB. El dashboard y las tablas
 # grandes se envian sin comprimir sin esto (/live pesa ~1.5 MB en crudo).
+# compresslevel=5 en vez del 9 por defecto: en el core del plan B1 el
+# nivel 9 costaba ~1.2 s de CPU por respuesta de /live, mas de lo que se
+# ahorraba en transferencia. El 5 comprime 6x mas rapido por un 2% mas
+# de bytes (medido: 424 KB vs 415 KB sobre 1.48 MB).
 # El SSE de /stream/dashboard se excluye marcandose Content-Encoding: identity,
 # que es la senal que GZipMiddleware respeta para no tocar una respuesta.
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
