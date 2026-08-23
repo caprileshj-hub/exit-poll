@@ -8,6 +8,31 @@
 
 ## [Unreleased]
 
+### fix — 500 "database is locked" en /config y /muestra
+- `backend/seed_resultados_historicos.py`: el seed se salta si las fuentes no cambiaron. La huella cubre tamaño y mtime de cada fichero más los metadatos declarados en `DATASETS`/`EXCEL_DATASETS`, y se guarda en la nueva tabla `seed_state`. Tocar un CSV o editar un dataset vuelve a disparar el seed completo, así que un deploy con datos nuevos los sigue aplicando. Medido: 34.6 s → 0.0 s con los mismos 91.429 registros en 8 refs.
+- `backend/app.py` · `ensure_config_table` y `backend/muestra_lab.py` · `construir_laboratorio`: dejan de escribir en cada petición GET. El trabajo idempotente se hace una vez por BD, con guard por ruta de fichero (no booleano) porque los tests intercambian `DB_PATH` dentro del mismo proceso.
+- `backend/app.py`: ese bootstrap se ejecuta en el evento de startup, síncrono y antes de lanzar el seed pesado, para que ninguna petición llegue compitiendo por el lock de escritura.
+- `get_db()` usa `timeout=30` en vez del default de 5 s como red de seguridad.
+- Causa raíz: el seed mantenía una transacción de escritura abierta ~34 s mientras dos rutas GET necesitaban el lock para servirse; a los 5 s exactos sqlite abandonaba con `OperationalError`.
+
+### refactor — Event loop desbloqueado y dashboard /live cacheado
+- 50 rutas declaradas `async def` que solo hacen I/O síncrono pasan a `def`, para que FastAPI las corra en el threadpool. Con un worker sobre el core del B1, una petición pesada congelaba toda la app: `GET /` pasaba de 0.16 s a 9.0 s con un solo `/live` en vuelo; ahora 0.33 s.
+- `/stream/dashboard`: el generador SSE ejecuta su consulta con `asyncio.to_thread`; antes bloqueaba el loop cada 60 s por cada pestaña abierta.
+- `/live` cachea el HTML generado por huella de contenido: 6.3-6.6 s → 0.86 s en producción.
+- `_tendencia_simulada` usa un RNG sembrado con los datos de entrada. Con `random` global la serie cambiaba en cada petición, lo que impedía cachear y hacía saltar la línea en cada recarga sin que el dato hubiera cambiado.
+- Cache del mapa base gris de `_html_sin_datos` y de la lectura de los geojson (1.25 MB ADM1 / 3.2 MB ADM2), que en Azure viven en un share de Azure Files.
+- Se eliminan el `sys.path.insert(0, BASE_DIR)` por petición (hacía crecer `sys.path` sin límite) y los `importlib.reload` de los generadores.
+- Las 56 conexiones sqlite quedan en `try/finally`; varias rutas hacían `return` antes del `close()` y filtraban la conexión.
+
+### fix — Compresión gzip y su nivel
+- `GZipMiddleware` para respuestas > 1 KB, con el SSE excluido vía `Content-Encoding: identity` para que no bufferee los eventos. `/pesos` baja de 248 KB a 16.5 KB.
+- `compresslevel=5` en vez del 9 por defecto de Starlette: medido en producción, con nivel 9 `/live` tardaba 2.04-2.17 s contra 0.95-1.01 s sin comprimir, porque comprimir 1.49 MB cuesta ~1.2 s en ese core. El nivel 5 comprime 6x más rápido por un 2% más de bytes.
+
+### fix — /version y el badge del navbar nunca mostraron el commit
+- `.github/workflows/master_exit-poll-ve.yml` escribe `deploy_root/VERSION` con el sha y la fecha de build al empaquetar; es la única fuente fiable en Azure porque el `.git` no se despliega.
+- `backend/app.py` · `_detect_app_version` lee ese fichero primero y saca `WEBSITE_DEPLOYMENT_ID` de la lista de fuentes: en App Service vale el nombre del sitio, no un sha, y cortocircuitaba la detección desde `f6fe39c`.
+- `/version` devuelve ahora `commit` y `built_at`; el badge de `base.html` muestra el sha corto y lleva la fecha de build en el `title`.
+
 ### feat — Normalización histórica oficial y VENPRES-A 2018
 - `resultados_historicos` conserva su contrato legado y agrega campos normalizados para electores, votantes, votos válidos, nulos, exterior, fuente/corte, notas y mesas.
 - `backend/import_2018_venpres_a.py` genera `backend/data/2018/resultados_venpres_a_2018.csv` desde VENPRES-A (`10.7910/DVN/NO1XJ2`) y preserva Falcon como oposición y Bertucci+Quijada como otros.

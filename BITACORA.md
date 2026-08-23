@@ -1538,3 +1538,74 @@ La vista de auditoría (semáforo de centros, panel de encuestadores, alertas de
 ### Pendiente
 - Normalizar fichas de estudios historicos en una fase posterior; por ahora se mantiene la UI funcional.
 - Buscar fuente granular trazable 2015 y una segunda fuente publica centro por centro para contrastar VENPRES-A 2018.
+
+---
+
+## 2026-08-23 - Rendimiento en Azure: event loop, cache de /live y 500 por lock de BD
+
+### Sintoma reportado
+"El Azure esta lento". Sin mas detalle.
+
+### Diagnostico
+La medicion que aislo el problema fue lanzar una peticion pesada en segundo plano y cronometrar una ruta trivial en paralelo:
+
+```
+5x GET /  secuencial:            0.16 s cada una
+5x GET /  con un /live en vuelo: 9.0 s cada una
+```
+
+La app no era lenta: se serializaba. Las 59 rutas estaban declaradas `async def` pero hacian I/O sincrono (sqlite3, ficheros, folium/plotly), asi que bloqueaban el event loop. Con un solo worker de uvicorn sobre el core del plan B1, una peticion pesada congelaba todo lo demas.
+
+`/live` era el bloqueador dominante: en **cada** request hacia `importlib.reload(generador_dashboard)`, parseaba el geojson desde disco, regeneraba el dashboard completo a un fichero temporal y lo releia. 6.3-6.6 s medidos, y la pagina se auto-refresca.
+
+### Cambios de rendimiento
+- 50 rutas `async def` -> `def` para que FastAPI las corra en el threadpool. Se clasificaron con AST, no por texto: 9 usan `await` y se quedaron async.
+- El generador SSE de `/stream/dashboard` ejecuta su consulta con `asyncio.to_thread`; antes bloqueaba el loop cada 60 s por cada pestana abierta.
+- `/live` cachea el HTML por huella de contenido.
+- `_tendencia_simulada` usa un RNG sembrado con los datos de entrada. Con `random` global la serie cambiaba en cada request: el cache nunca podia pegar y la linea saltaba en cada recarga sin que el dato hubiera cambiado.
+- Cache del mapa base gris y de la lectura de los geojson (1.25 MB ADM1 / 3.2 MB ADM2), que sobre Azure Files son un share de red.
+- Se eliminan el `sys.path.insert(0, BASE_DIR)` por request (hacia crecer `sys.path` sin limite) y los `importlib.reload` de los generadores.
+- `GZipMiddleware` con el SSE excluido via `Content-Encoding: identity`.
+
+### Nota sobre gzip: el nivel por defecto era un retroceso
+Con el `compresslevel=9` por defecto de Starlette, `/live` empeoro: 2.04-2.17 s totales contra 0.95-1.01 s sin comprimir. Comprimir 1.49 MB a nivel 9 cuesta ~1.2 s en ese core, mas de lo que ahorra en transferencia. Se bajo a nivel 5, que comprime 6x mas rapido por un 2% mas de bytes (424 KB vs 415 KB sobre 1.48 MB).
+
+Sin medir en produccion, ese cambio habria empeorado la pagina creyendo mejorarla.
+
+### Los 500 de /config y /muestra
+Ambas devolvian 500 tras exactamente ~5 s. Reproducido en local, el traceback fue directo: `sqlite3.OperationalError: database is locked`, y los 5 s eran el timeout por defecto de sqlite3.
+
+Cadena completa:
+1. `seed_resultados_historicos` corre en cada arranque y reprocesa todos los CSV: **34.6 s en SSD local**, bastante mas sobre Azure Files, con una transaccion de escritura abierta todo ese tiempo.
+2. Dos rutas GET escribian en cada peticion: `ensure_config_table` hacia `CREATE TABLE` + INSERTs, y `construir_laboratorio` llamaba a `ensure_muestra_lab_tables` y `seed_default_historical_metadata`.
+3. Necesitaban el lock que el seed tenia tomado, esperaban 5 s y morian.
+
+Por eso fallaban siempre a los ~5-7 s y se "curaban solas" al terminar el seed. Cada deploy y cada reinicio reabria la ventana.
+
+Resolucion:
+- El seed se salta si las fuentes no cambiaron, por huella de tamano y mtime de cada fichero mas los metadatos de `DATASETS`/`EXCEL_DATASETS`, guardada en la tabla `seed_state`. Medido: 34.6 s -> 0.0 s con los mismos 91.429 registros en 8 refs. Verificado que tocar un CSV lo vuelve a disparar entero.
+- `ensure_config_table` y el bootstrap de `muestra_lab` se ejecutan una vez por BD, no por peticion. El guard va por ruta de fichero y no por booleano porque los tests intercambian `DB_PATH` dentro del mismo proceso.
+- Ese bootstrap se movio al evento de startup, sincrono y antes de lanzar el seed pesado. App Service no enruta peticiones hasta que termina el startup, asi que ninguna llega compitiendo por el lock.
+- `get_db()` usa `timeout=30` en vez del default de 5 s como red de seguridad. En WAL los lectores no se bloquean.
+
+### /version nunca mostro un commit
+`_detect_app_version` nacio en `f6fe39c` leyendo `APP_COMMIT_SHA`, `GITHUB_SHA`, `COMMIT_SHA` y `WEBSITE_DEPLOYMENT_ID`. El workflow nunca puso ninguna de las tres primeras; la cuarta si existe en App Service pero vale el nombre del sitio (`exit-poll-ve`), no un sha, y al estar en la lista cortocircuitaba la deteccion. El fallback a `git rev-parse` tampoco podia salvarlo porque el `.git` no se despliega.
+
+Ahora el workflow escribe `deploy_root/VERSION` con el sha y la fecha de build, y `app.py` lo lee. `WEBSITE_DEPLOYMENT_ID` sale de la lista.
+
+### Resultados medidos en produccion
+
+| Ruta | Antes | Despues |
+|------|-------|---------|
+| `GET /` con un `/live` en vuelo | 9.0 s | **0.33 s** |
+| `/live` | 6.3-6.6 s | **0.86 s** |
+| `/pesos` | 1.14 s | **0.28 s** |
+| `/config` | 500 a los ~5 s | **200**, 0.2-0.9 s |
+| `/muestra` | 500 a los ~5 s | **200** (pero lento, ver Pendiente) |
+| `/` (control) | 0.16 s | 0.17 s |
+
+`/config` verificado 14 veces seguidas durante el deploy y el reinicio, incluida la ventana del seed: todas 200, cero `database is locked` en el log.
+
+### Pendiente
+- `/muestra` responde 200 pero tarda 23-27 s en Azure (~4 s en SSD local). Perfilado con cProfile: de los ~4 s locales, 2.65 s son `statistics._ss` (29.646 llamadas). El modulo `statistics` de la stdlib usa `Fraction` para aritmetica exacta, asi que el perfil lo dominan `fractions.py` y 946.338 llamadas a `math.gcd`, recalculando sobre las 91.429 filas de `resultados_historicos` en cada peticion. No hace falta precision exacta para desviaciones tipicas de porcentajes electorales.
+- Quedan 9 rutas POST en `async def` (`/muestra/aplicar`, `/chat`, `/api/tm/*`, `/historicos/estudios/guardar`). Todas hacen `await request.form()` y despues trabajo bloqueante, asi que no se convierten con un cambio de firma: hay que mover el cuerpo a un hilo una por una. Siguen pudiendo congelar la app mientras corren, pero son rutas de operador (un click humano cada tanto), no el dashboard que auto-refresca.

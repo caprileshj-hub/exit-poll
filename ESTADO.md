@@ -2,7 +2,7 @@
 
 > Estado actual del proyecto: qué funciona, qué está pendiente, qué bugs hay abiertos.
 > Actualizar al cierre de cada sesión de trabajo significativa.
-> Última actualización: 2026-08-23
+> Última actualización: 2026-08-23 (sesión de rendimiento)
 
 ---
 
@@ -21,14 +21,25 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 | Plan Azure | B1 Basic (1 core / 1.75 GB RAM), Always On activo |
 | Startup | `python /home/site/wwwroot/startup.py` → `uvicorn app:app` |
 | BD | SQLite WAL · `backend/exitpoll.db` |
-| Deploy | `git archive HEAD:backend` → `backend_deploy.zip` → `az webapp deploy` |
+| Deploy | GitHub Actions en push a `main` (`.github/workflows/master_exit-poll-ve.yml`): empaqueta `backend/` como raíz, instala deps en `.python_packages` y despliega con publish profile |
+| Versión desplegada | `GET /version` → `commit` + `built_at`, y badge en el navbar |
 
-### Verificaciones última sesión (2026-05-02)
-- `GET /config` → 200 OK
-- `GET /live` → 200 OK
-- SSE `/stream/dashboard` → `{"ok": true, ...}`
-- `/chat` con datos insuficientes → `Esa información no está en los datos del exit poll.`
-- `POST /config/test` → `{"ok": true, "provider": "openai"}`
+### Verificaciones última sesión (2026-08-23)
+
+Medido contra producción tras desplegar los arreglos de rendimiento:
+
+| Ruta | Antes | Después |
+|------|-------|---------|
+| `GET /` con un `/live` en vuelo | 9.0 s | **0.33 s** |
+| `/live` | 6.3-6.6 s | **0.86 s** |
+| `/pesos` | 1.14 s | **0.28 s** |
+| `/config` | 500 a los ~5 s | **200**, 0.2-0.9 s |
+| `/muestra` | 500 a los ~5 s | **200** (lento, ver Pendiente) |
+| `/` (control) | 0.16 s | 0.17 s |
+
+- `/config` verificado 14 veces seguidas durante deploy y reinicio, incluida la ventana del seed: todas 200, cero `database is locked` en el log.
+- `/version` devuelve `commit` y `built_at`; el sha coincide con el del commit desplegado.
+- `pytest -q` → 24 tests en verde.
 
 ---
 
@@ -107,6 +118,16 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
   - Recalcular fichas contra `resultados_historicos` normalizado
   - Mantener estudios de exit poll separados de resultados electorales oficiales
 
+- [ ] **`/muestra` tarda 23-27 s en Azure** (~4 s en SSD local)
+  - Perfilado con cProfile: 2.65 s de los ~4 s locales son `statistics._ss` (29.646 llamadas)
+  - El módulo `statistics` usa `Fraction` para aritmética exacta; el perfil lo dominan `fractions.py` y 946.338 llamadas a `math.gcd`
+  - Recalcula sobre las 91.429 filas de `resultados_historicos` en cada petición
+  - Acción: sustituir por cálculo en float (o pandas, ya es dependencia) y cachear los agregados por centro
+- [ ] **9 rutas POST siguen en `async def` con trabajo bloqueante** (`/muestra/aplicar`, `/chat`, `/api/tm/*`, `/historicos/estudios/guardar`)
+  - Hacen `await request.form()` y después trabajo síncrono, así que no se convierten con un cambio de firma
+  - Acción: mover el cuerpo a `asyncio.to_thread` una por una (ver ADR-014)
+  - Impacto acotado: son rutas de operador, no el dashboard que auto-refresca
+
 ### Media prioridad
 - [ ] **Dashboard auditoría interna**: semáforo centros, panel encuestadores, alertas fraude (acceso interno exclusivo)
 - [ ] **Gráficos torta/barras** para clientes
@@ -141,6 +162,22 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 - **Acción**: Decidir el *n* correcto (¿entrevistas planificadas por centro × centros? ¿campo configurable?) antes de corregir la fórmula.
 
 ## Bugs resueltos
+
+### RESUELTO (2026-08-23): App serializada — una petición pesada congelaba todo
+- **Archivos**: `backend/app.py`, `backend/generador_dashboard.py`, `backend/generador_heatmap.py`
+- **Síntoma**: `GET /` pasaba de 0.16 s a 9.0 s mientras una sola petición a `/live` estaba en vuelo.
+- **Resolución**: 50 rutas `async def` que solo hacen I/O síncrono pasan a `def` (threadpool); el generador SSE usa `asyncio.to_thread`; `/live` cachea su HTML por huella de contenido. Ver ADR-014.
+
+### RESUELTO (2026-08-23): 500 "database is locked" en /config y /muestra
+- **Archivos**: `backend/seed_resultados_historicos.py`, `backend/app.py`, `backend/muestra_lab.py`
+- **Síntoma**: Ambas rutas devolvían 500 tras exactamente ~5 s (timeout por defecto de sqlite3), y se "curaban solas" pasado un rato.
+- **Resolución**: El seed histórico mantenía una transacción de escritura abierta ~34 s en cada arranque mientras dos rutas GET necesitaban el lock para servirse. El seed ahora se salta si las fuentes no cambiaron, y el trabajo idempotente de bootstrap se hace una vez en el startup en lugar de en cada GET. Ver ADR-015.
+
+### RESUELTO (2026-08-23): /version y el badge mostraban el nombre del sitio, no el commit
+- **Archivos**: `.github/workflows/master_exit-poll-ve.yml`, `backend/app.py`, `backend/templates/base.html`
+- **Síntoma**: El badge del navbar mostraba `exit-poll-ve` desde `f6fe39c`; nunca llegó a mostrar un sha.
+- **Resolución**: `WEBSITE_DEPLOYMENT_ID` vale el nombre del sitio y cortocircuitaba la detección; el workflow nunca puso las otras env vars y el `.git` no se despliega. Ahora el workflow escribe `deploy_root/VERSION` con el sha y la fecha de build.
+
 
 ### RESUELTO (2026-06-10): Dashboard de referencia mezclaba elecciones distintas
 - **Archivos**: `backend/app.py` · funciones de ventaja y `_total_referencia_dashboard`

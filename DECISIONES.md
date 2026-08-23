@@ -303,3 +303,48 @@ Bc = bonus capado de convergencia temporal
 - Las discrepancias arqueologicas se reportan con deltas; no se corrigen silenciosamente.
 
 **Estado**: Implementada para resultados electorales; pendiente normalizacion de estudios historicos y fichas.
+
+---
+
+## ADR-014 - Rutas sincronas y prohibicion de escribir desde un GET
+
+**Decision**: Los handlers de FastAPI que hacen I/O sincrono se declaran `def`, no `async def`. Ninguna ruta GET escribe en la BD.
+
+**Contexto**: Las 59 rutas estaban declaradas `async def` pero llamaban `get_db()` (sqlite3 sincrono), leian ficheros y generaban graficos con folium/plotly. Eso bloquea el event loop. Con un solo worker de uvicorn sobre el core del plan B1, la app quedaba estrictamente serializada: `GET /` pasaba de 0.16 s a 9.0 s mientras una peticion a `/live` estaba en vuelo.
+
+En paralelo, dos rutas GET hacian trabajo de escritura en cada peticion (`ensure_config_table` con `CREATE TABLE` + INSERTs, y `construir_laboratorio` con `ensure_muestra_lab_tables` y `seed_default_historical_metadata`). Como el seed de arranque mantiene una transaccion de escritura abierta durante decenas de segundos, esas lecturas competian por un lock que no deberian necesitar y devolvian 500 con `database is locked`.
+
+**Reglas**:
+- Una ruta que hace I/O sincrono se declara `def`. FastAPI la corre en el threadpool y el event loop queda libre.
+- Una ruta se declara `async def` solo si su cuerpo usa `await`. Si necesita leer el body (`await request.form()`) y ademas hacer trabajo bloqueante, el trabajo bloqueante va en `asyncio.to_thread`.
+- Los generadores de SSE nunca ejecutan sqlite inline: usan `asyncio.to_thread`.
+- Un GET no crea tablas, no siembra filas y no hace `commit`. El trabajo idempotente de bootstrap se hace una vez, en el evento de startup.
+- Los guards de "una vez por BD" se llavean por ruta de fichero de la BD, no con un booleano de modulo: los tests intercambian `DB_PATH` dentro del mismo proceso.
+
+**Consecuencias**:
+- Cualquier ruta nueva debe elegir conscientemente `def` vs `async def`; el default correcto en este proyecto es `def`.
+- Quedan 9 rutas POST en `async def` con trabajo bloqueante tras el `await` del body, registradas como pendiente en ESTADO.md.
+- Metodo de diagnostico que sirvio y conviene repetir: lanzar la peticion pesada en segundo plano y cronometrar una ruta trivial en paralelo. Si la trivial se degrada, el cuello es el event loop y no la capacidad del plan.
+
+**Estado**: Fija.
+
+---
+
+## ADR-015 - Seed de resultados historicos idempotente por huella de fuentes
+
+**Decision**: `seed_resultados_historicos` calcula una huella de sus ficheros de origen y se salta el trabajo si no cambio nada desde la ultima siembra. La huella se guarda en la tabla `seed_state`.
+
+**Contexto**: El seed corria completo en cada arranque, reprocesando todos los CSV y XLSX: 34.6 s medidos en SSD local y bastante mas sobre Azure Files. Durante todo ese tiempo mantenia una transaccion de escritura abierta, y cualquier otra escritura concurrente moria a los 5 s con `database is locked`. La ventana se reabria en cada deploy y en cada reinicio.
+
+**Alcance**: Esta ADR afecta unicamente a `seed_resultados_historicos` (los CSV/XLSX de resultados electorales). **No modifica ADR-010**, que sigue vigente tal cual: `seed_historico_estudios` se sigue ejecutando incondicionalmente en cada arranque desde `startup.py`. Ese seed tarda 0.0 s medidos, asi que no aporta el problema y conserva su garantia de sincronizacion.
+
+**Reglas**:
+- La huella cubre tamano y `mtime` de cada fichero de `DATASETS` y `EXCEL_DATASETS`, mas los metadatos declarados de cada dataset. Editar un CSV o cambiar la definicion de un dataset vuelve a disparar el seed completo.
+- El skip exige ademas que `resultados_historicos` tenga filas, para no saltarse la siembra sobre una BD vacia o reseteada cuya huella quedo escrita.
+- Un deploy reescribe los ficheros y cambia sus `mtime`, asi que la regla operativa de ADR-010 se mantiene: commit y push bastan para que Azure aplique datos nuevos.
+
+**Consecuencias**:
+- El arranque deja de pagar ~34 s de reproceso cuando no hay nada nuevo que sembrar.
+- Si alguna vez se necesita forzar una resiembra sin tocar las fuentes, basta con borrar la fila de `seed_state`.
+
+**Estado**: Fija.
