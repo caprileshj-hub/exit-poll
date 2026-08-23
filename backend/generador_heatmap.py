@@ -22,6 +22,7 @@ Demo:
 """
 
 import json
+import threading
 import os
 import random
 import argparse
@@ -43,6 +44,29 @@ GEOJSON_ADM1 = next(
     GEOJSON_ADM1_REPO,
 )
 GEOJSON_ADM2 = os.path.join(BASE_DIR, 'geoBoundaries-VEN-ADM2_simplified.geojson')
+
+# ------------------------------------------------------------------
+# Cache de geojson
+# ------------------------------------------------------------------
+# Los geojson pesan 1.25 MB (ADM1) y 3.2 MB (ADM2). En Azure viven en
+# /home/site/wwwroot, que es un share de Azure Files: releerlos en cada
+# request cuesta mas que parsearlos. Cacheamos el texto crudo y parseamos
+# por llamada, porque _crear_mapa/_crear_heatmap mutan el dict resultante
+# (properties VENTAJA/TT/...) y no se puede compartir entre requests.
+_GEOJSON_TEXT_CACHE: dict = {}
+_GEOJSON_CACHE_LOCK = threading.Lock()
+
+
+def _cargar_geojson(path: str) -> dict:
+    """Parsea un geojson leyendo el archivo una sola vez por proceso."""
+    with _GEOJSON_CACHE_LOCK:
+        texto = _GEOJSON_TEXT_CACHE.get(path)
+        if texto is None:
+            with open(path, encoding='utf-8') as f:
+                texto = f.read()
+            _GEOJSON_TEXT_CACHE[path] = texto
+    return json.loads(texto)
+
 LOOKUP_ADM2  = os.path.join(BASE_DIR, '_adm2_lookup.json')
 
 UMBRAL_EMPATE = 3.0
@@ -104,10 +128,8 @@ def _construir_lookup() -> dict:
     Resultado guardado en _adm2_lookup.json para no recalcular.
     """
     print('[heatmap] Construyendo lookup ADM2 (solo la primera vez)...')
-    with open(GEOJSON_ADM1, encoding='utf-8') as f:
-        adm1 = json.load(f)
-    with open(GEOJSON_ADM2, encoding='utf-8') as f:
-        adm2 = json.load(f)
+    adm1 = _cargar_geojson(GEOJSON_ADM1)
+    adm2 = _cargar_geojson(GEOJSON_ADM2)
 
     lookup = {}
     sin_match = []
@@ -183,8 +205,7 @@ def generar_heatmap(
         print(f'[heatmap] ERROR GeoJSON no encontrado: {geojson_path}')
         return False
 
-    with open(geojson_path, encoding='utf-8') as f:
-        geojson = json.load(f)
+    geojson = _cargar_geojson(geojson_path)
 
     # --- Mapa base ---
     m = folium.Map(
