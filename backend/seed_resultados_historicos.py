@@ -7,6 +7,8 @@ personal data or per-elector records.
 from __future__ import annotations
 
 import csv
+import hashlib
+import json
 import sqlite3
 import unicodedata
 from pathlib import Path
@@ -461,12 +463,75 @@ def _seed_excel_dataset(conn: sqlite3.Connection, dataset: dict) -> int:
     return loaded
 
 
+
+# ---------------------------------------------------------------------------
+# Skip por huella de las fuentes
+# ---------------------------------------------------------------------------
+# Re-sembrar cuesta ~34 s en SSD local y bastante mas sobre Azure Files, y
+# mantiene una transaccion de escritura abierta todo ese tiempo: cualquier
+# otra escritura concurrente choca contra el timeout de sqlite y revienta con
+# "database is locked". Como el seed corre en cada arranque, esa ventana se
+# repetia en cada deploy y en cada reinicio.
+#
+# La huella cubre tanto los ficheros de origen (tamano + mtime) como los
+# metadatos declarados en DATASETS/EXCEL_DATASETS, asi que editar un CSV o
+# cambiar la definicion de un dataset vuelve a disparar el seed completo.
+_SEED_FINGERPRINT_KEY = "resultados_historicos_fuentes"
+
+
+def _ensure_seed_state_table(conn: sqlite3.Connection) -> None:
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS seed_state (
+            clave       TEXT PRIMARY KEY,
+            valor       TEXT NOT NULL,
+            updated_at  TEXT DEFAULT (datetime('now'))
+        )
+    """)
+
+
+def _fingerprint_fuentes() -> str:
+    partes: list = []
+    for dataset in list(DATASETS) + list(EXCEL_DATASETS):
+        path = Path(dataset["path"])
+        try:
+            st = path.stat()
+            marca = [st.st_size, st.st_mtime_ns]
+        except OSError:
+            marca = None
+        meta = {k: str(v) for k, v in sorted(dataset.items()) if k != "path"}
+        partes.append([path.name, marca, meta])
+    payload = json.dumps(partes, sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _counts_actuales(conn: sqlite3.Connection) -> dict[str, int]:
+    return {
+        row[0]: row[1]
+        for row in conn.execute(
+            "SELECT eleccion_ref, COUNT(*) FROM resultados_historicos GROUP BY eleccion_ref"
+        )
+    }
+
+
 def seed_resultados_historicos(db_path: str | Path = DB_PATH) -> dict[str, int]:
     conn = sqlite3.connect(str(db_path))
     try:
         conn.execute("PRAGMA foreign_keys = ON")
         muestra_lab.ensure_muestra_lab_tables(conn)
         ensure_historico_normalizado_schema(conn)
+        _ensure_seed_state_table(conn)
+
+        huella = _fingerprint_fuentes()
+        previa = conn.execute(
+            "SELECT valor FROM seed_state WHERE clave = ?", (_SEED_FINGERPRINT_KEY,)
+        ).fetchone()
+        ya_hay_datos = conn.execute(
+            "SELECT EXISTS(SELECT 1 FROM resultados_historicos)"
+        ).fetchone()[0]
+        if previa and previa[0] == huella and ya_hay_datos:
+            # Fuentes sin cambios: no hay nada que reescribir.
+            return _counts_actuales(conn)
+
         counts: dict[str, int] = {}
         for dataset in DATASETS:
             path = Path(dataset["path"])
@@ -610,6 +675,12 @@ def seed_resultados_historicos(db_path: str | Path = DB_PATH) -> dict[str, int]:
             _upsert_fuente(conn, dataset, totals)
         for dataset in EXCEL_DATASETS:
             counts[str(dataset["eleccion_ref"])] = _seed_excel_dataset(conn, dataset)
+        conn.execute("""
+            INSERT INTO seed_state (clave, valor, updated_at)
+            VALUES (?, ?, datetime('now'))
+            ON CONFLICT(clave) DO UPDATE
+                SET valor = excluded.valor, updated_at = excluded.updated_at
+        """, (_SEED_FINGERPRINT_KEY, huella))
         conn.commit()
         return counts
     finally:

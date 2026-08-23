@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 import re
+import sqlite3
 import statistics
 import unicodedata
 from collections import Counter, defaultdict
@@ -474,6 +475,38 @@ def _clasificar(row: dict[str, Any], histories: list[dict[str, Any]], p90_electo
     return "estandar"
 
 
+
+# ---------------------------------------------------------------------------
+# Guard de trabajo idempotente por BD
+# ---------------------------------------------------------------------------
+# ensure_muestra_lab_tables y seed_default_historical_metadata solo escriben la
+# primera vez, pero construir_laboratorio las invocaba en cada GET /muestra.
+# Eso convertia una ruta de lectura en escritora: tomaba el lock y, mientras el
+# seed de arranque tenia la BD, moria con "database is locked". Se cachea por
+# ruta de fichero de la BD (no un booleano) porque los tests intercambian la BD
+# dentro del mismo proceso.
+_BOOTSTRAP_HECHO: set = set()
+
+
+def _db_key(conn) -> str:
+    try:
+        for _, nombre, fichero in conn.execute("PRAGMA database_list"):
+            if nombre == "main":
+                return fichero or "<memoria>"
+    except sqlite3.Error:
+        pass
+    return "<desconocida>"
+
+
+def _bootstrap_una_vez(conn) -> None:
+    clave = _db_key(conn)
+    if clave in _BOOTSTRAP_HECHO:
+        return
+    ensure_muestra_lab_tables(conn)
+    seed_default_historical_metadata(conn)
+    _BOOTSTRAP_HECHO.add(clave)
+
+
 def construir_laboratorio(
     conn,
     eleccion: dict[str, Any] | None,
@@ -487,8 +520,7 @@ def construir_laboratorio(
     offset: int = 0,
 ) -> dict[str, Any]:
     """Devuelve datos para la pantalla laboratorio de muestra."""
-    ensure_muestra_lab_tables(conn)
-    seed_default_historical_metadata(conn)
+    _bootstrap_una_vez(conn)
 
     ref_totals = {
         r["eleccion_ref"]: _row_dict(r)

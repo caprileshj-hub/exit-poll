@@ -103,8 +103,33 @@ async def _seed_historicos_background() -> None:
         print(f"[startup] WARN: no se pudieron sembrar estudios historicos: {exc}")
 
 
+def _bootstrap_tablas() -> None:
+    """Crea tablas y filas por defecto que antes se escribian desde rutas GET.
+
+    Es rapido (milisegundos) y deja marcados los guards de una-vez-por-BD, de
+    modo que ninguna peticion tenga que escribir para servir una lectura.
+    """
+    _ensure_backend_path()
+    import muestra_lab
+
+    db = get_db()
+    try:
+        ensure_config_table(db)
+        muestra_lab._bootstrap_una_vez(db)
+    finally:
+        db.close()
+
+
 @app.on_event("startup")
 async def seed_historicos_startup() -> None:
+    # Sincrono y antes del seed pesado: App Service no enruta peticiones hasta
+    # que termina el startup, asi que esto garantiza que ninguna request llegue
+    # necesitando el lock de escritura mientras el seed lo tiene tomado.
+    try:
+        await asyncio.to_thread(_bootstrap_tablas)
+    except Exception as exc:
+        print(f"[startup] WARN: bootstrap de tablas fallo: {exc}")
+
     current = getattr(app.state, "historicos_seed_task", None)
     if current is None or current.done():
         app.state.historicos_seed_task = asyncio.create_task(_seed_historicos_background())
@@ -120,7 +145,12 @@ def version_info():
 
 # ── helpers ──────────────────────────────────────────────────────
 def get_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(str(DB_PATH))
+    # timeout=30 en vez del default de 5 s: el seed de arranque puede tener
+    # la BD tomada un rato largo sobre Azure Files, y a los 5 s exactos
+    # sqlite abandona con "database is locked" y la ruta devuelve un 500.
+    # Preferimos esperar a fallar; en WAL los lectores no se bloquean, asi
+    # que esto solo afecta a quien de verdad escribe.
+    conn = sqlite3.connect(str(DB_PATH), timeout=30.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
@@ -138,7 +168,19 @@ TM_AI_MAX_ATTEMPTS = 5
 TM_AI_RETRY_BASE_SECONDS = 2
 
 
+# La tabla y sus filas por defecto son las mismas durante toda la vida del
+# proceso, pero esto se llamaba en cada GET /config: un CREATE TABLE + INSERTs
+# por request. Eso obliga a tomar el lock de escritura para una ruta de solo
+# lectura, y mientras el seed de arranque tiene la BD tomada la peticion moria
+# con "database is locked". Se hace una vez por BD (por ruta, no un booleano,
+# porque los tests intercambian DB_PATH dentro del mismo proceso).
+_CONFIG_TABLE_LISTA: set = set()
+
+
 def ensure_config_table(db: sqlite3.Connection) -> None:
+    marca = str(DB_PATH)
+    if marca in _CONFIG_TABLE_LISTA:
+        return
     db.execute("""
         CREATE TABLE IF NOT EXISTS config (
             provider      TEXT PRIMARY KEY,
@@ -159,6 +201,7 @@ def ensure_config_table(db: sqlite3.Connection) -> None:
             VALUES (?, ?, 0, 300, ?)
         """, (provider, defaults["model"], 1 if provider == "openai" and active_count == 0 else 0))
     db.commit()
+    _CONFIG_TABLE_LISTA.add(marca)
 
 
 def ensure_tm_ai_tables(db: sqlite3.Connection) -> None:
