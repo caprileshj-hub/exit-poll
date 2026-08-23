@@ -23,6 +23,11 @@ jobs:
           mkdir -p deploy_root
           cp -R backend/. deploy_root/
           pip install -r backend/requirements.txt --target deploy_root/.python_packages/lib/site-packages
+          # El .git no se despliega, asi que la app no puede deducir el commit
+          # en runtime. Lo dejamos escrito en el artefacto: app.py lee este
+          # fichero para /version y para el badge del navbar.
+          echo "${GITHUB_SHA} $(date -u +%Y-%m-%dT%H:%M:%SZ)" > deploy_root/VERSION
+          cat deploy_root/VERSION
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4

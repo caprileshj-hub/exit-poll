@@ -65,25 +65,46 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 
-def _detect_app_version() -> str:
-    for key in ("APP_COMMIT_SHA", "GITHUB_SHA", "COMMIT_SHA", "WEBSITE_DEPLOYMENT_ID"):
+# El workflow escribe backend/VERSION al empaquetar (ver
+# .github/workflows/master_exit-poll-ve.yml). Es la unica fuente fiable en
+# Azure: el .git no se despliega, y WEBSITE_DEPLOYMENT_ID —que esta funcion
+# consultaba antes— vale el nombre del sitio ("exit-poll-ve"), no un sha, asi
+# que cortocircuitaba la deteccion y el badge nunca mostro un commit.
+VERSION_FILE = BASE_DIR / "VERSION"
+
+
+def _detect_app_version() -> dict:
+    """Devuelve {'commit': sha_corto, 'built_at': iso8601 o ''}."""
+    try:
+        crudo = VERSION_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        crudo = ""
+    if crudo:
+        partes = crudo.split(None, 1)
+        return {"commit": partes[0][:12], "built_at": partes[1].strip() if len(partes) > 1 else ""}
+
+    for key in ("APP_COMMIT_SHA", "GITHUB_SHA", "COMMIT_SHA"):
         value = (os.environ.get(key) or "").strip()
         if value:
-            return value[:12]
+            return {"commit": value[:12], "built_at": ""}
+
     try:
-        return subprocess.check_output(
+        sha = subprocess.check_output(
             ["git", "rev-parse", "--short=12", "HEAD"],
             cwd=BASE_DIR.parent,
             text=True,
             stderr=subprocess.DEVNULL,
             timeout=2,
         ).strip()
+        return {"commit": sha, "built_at": "dev-local"}
     except Exception:
-        return "dev-local"
+        return {"commit": "desconocida", "built_at": ""}
 
 
-APP_VERSION = _detect_app_version()
+_VERSION_INFO = _detect_app_version()
+APP_VERSION = _VERSION_INFO["commit"]
 templates.env.globals["app_version"] = APP_VERSION
+templates.env.globals["app_built_at"] = _VERSION_INFO["built_at"]
 
 
 def _seed_historicos() -> None:
@@ -139,6 +160,8 @@ async def seed_historicos_startup() -> None:
 def version_info():
     return {
         "version": APP_VERSION,
+        "commit": _VERSION_INFO["commit"],
+        "built_at": _VERSION_INFO["built_at"],
         "db_path": str(DB_PATH),
     }
 

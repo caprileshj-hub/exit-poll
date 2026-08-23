@@ -26,6 +26,8 @@ server_*.txt
 *.sqlite
 *.sqlite3
 backend/exitpoll.db
+# Lo escribe el workflow al empaquetar; no se versiona
+backend/VERSION
 backend/.env
 backend/static/viz/
 backend/static/uploads/
