@@ -261,7 +261,9 @@
 
 <div class="alert alert-light border small mb-3">
     <strong>Metodologia score v2:</strong>
-    el score mide utilidad de seleccion, no certeza del dato.
+    herramienta experimental de auditoria; no determina la muestra productiva V1.
+    La seleccion productiva se genera con aleatorio estratificado por estado.
+    El score mide utilidad de seleccion exploratoria, no certeza del dato.
     Formula barometro: 50% representatividad relativa, 30% estabilidad relativa robusta y 20% volumen log-normalizado.
     La convergencia temporal agrega un bonus capado cuando el centro reduce su desvio frente al resultado nacional a traves de 3+ historicos.
     La confianza A-D y la presencia de 2024 quedan como ejes paralelos; un centro sin 2024 puede ser util, pero no debe anclar si existe una opcion similar con 2024.
@@ -515,24 +517,33 @@
 {% if muestra|length > 0 %}
 <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="mb-0">Muestra actual</h5>
-    {% if pct_nac %}
+    {% if muestra_meta %}
     <span class="small text-muted">
-        Ref. {{ eleccion_ref or "" }}:
-        Opo {{ pct_nac.oposicion }}% / Gob {{ pct_nac.gobierno }}%
+        Metodo {{ muestra_meta.metodo }} |
+        Tamano {{ muestra_meta.sample_size }} |
+        Semilla {{ muestra_meta.seed }} |
+        TM {{ muestra_meta.tm_hash[:12] }}
     </span>
     {% endif %}
 </div>
+{% if muestra_meta %}
+<div class="alert alert-light border small">
+    Version algoritmo: <strong>{{ muestra_meta.algorithm_version }}</strong> |
+    Frame: <strong>{{ "{:,}".format(muestra_meta.frame_count) }}</strong> centros /
+    <strong>{{ "{:,}".format(muestra_meta.frame_electores) }}</strong> electores |
+    Reservas planificadas: <strong>{{ muestra_meta.reserve_size }}</strong>
+</div>
+{% endif %}
 <div class="table-responsive">
     <table class="table table-sm table-hover bg-white border">
         <thead class="table-light">
             <tr>
                 <th>Codigo</th>
                 <th>Centro</th>
-                <th>Geo</th>
-                <th>Tipo {{ help_tip("Clasificacion legacy guardada en muestra para compatibilidad con pesos y flujos existentes.") }}</th>
-                <th class="text-end">Score {{ help_tip("Score que tenia el centro cuando fue agregado manualmente desde el laboratorio.") }}</th>
-                <th class="text-end">Conf. {{ help_tip("Confianza que tenia el centro cuando fue agregado manualmente desde el laboratorio.") }}</th>
+                <th>Estado</th>
+                <th>Municipio</th>
                 <th class="text-end">Electores {{ help_tip("Electores actuales registrados para ese centro.") }}</th>
+                <th>Rol</th>
                 <th></th>
             </tr>
         </thead>
@@ -541,12 +552,31 @@
             <tr>
                 <td><code>{{ m.codigo_centro }}</code></td>
                 <td class="small">{{ m.centro_nombre }}</td>
-                <td class="small">{{ m.estado }}{% if m.municipio %} / {{ m.municipio }}{% endif %}</td>
-                <td><span class="badge bg-light text-dark">{{ m.tipo_centro or "estandar" }}</span></td>
-                <td class="text-end">{% if m.score_snapshot is not none %}{{ "%.1f"|format(m.score_snapshot) }}{% else %}-{% endif %}</td>
-                <td class="text-end">{% if m.confianza_snapshot is not none %}{{ "%.0f"|format(m.confianza_snapshot * 100) }}%{% else %}-{% endif %}</td>
+                <td class="small">{{ m.estado }}</td>
+                <td class="small">{{ m.municipio or "-" }}</td>
                 <td class="text-end">{{ "{:,}".format(m.num_electores or 0) }}</td>
+                <td>
+                    <span class="badge {% if m.rol_muestra == 'titular' %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ "Titular" if m.rol_muestra == "titular" else "Reserva" }}
+                    </span>
+                </td>
                 <td class="text-end">
+                    {% if m.rol_muestra == "titular" and reservas_disponibles|length > 0 %}
+                    <form method="post" action="/muestra/sustituir" class="d-flex gap-1 justify-content-end mb-1">
+                        <input type="hidden" name="id_eleccion" value="{{ eleccion['id'] }}">
+                        <input type="hidden" name="centro_removido" value="{{ m.codigo_centro }}">
+                        <select name="centro_sustituto" class="form-select form-select-sm" style="max-width: 190px;" required>
+                            <option value="">Reserva</option>
+                            {% for r in reservas_disponibles %}
+                            <option value="{{ r.codigo_centro }}">{{ r.codigo_centro }} - {{ r.centro_nombre[:28] }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" name="motivo" class="form-control form-control-sm" placeholder="Motivo" style="max-width: 180px;" required>
+                        <button class="btn btn-sm btn-outline-primary" title="Sustituir por reserva">
+                            <i class="bi bi-arrow-left-right"></i>
+                        </button>
+                    </form>
+                    {% endif %}
                     <form method="post" action="/muestra/{{ m.id }}/quitar" class="d-inline"
                           onsubmit="return confirm('Quitar este centro de la muestra?')">
                         <button class="btn btn-sm btn-outline-danger" title="Quitar">

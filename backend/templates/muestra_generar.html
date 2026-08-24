@@ -2,15 +2,6 @@
 {% set active_page = "muestra" %}
 {% block title %}Generar Muestra{% endblock %}
 
-{% block extra_head %}
-<style>
-    .grupo-header { background: #e9ecef; font-weight: 600; }
-    .representativo { }
-    .no-representativo { opacity: 0.6; }
-    tr.seleccionado { background: #d4edda !important; }
-</style>
-{% endblock %}
-
 {% block content %}
 <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
@@ -19,180 +10,128 @@
     </ol>
 </nav>
 
-<h3 class="mb-3"><i class="bi bi-magic me-2"></i>Generador de Muestra</h3>
-
-<div class="alert alert-info">
-    <strong>{{ eleccion["nombre"] }}</strong> —
-    Referencia: {{ eleccion_ref }} |
-    Nacional: Opo <strong>{{ "%.1f"|format(nac.pct_oposicion) }}%</strong> /
-    Gob <strong>{{ "%.1f"|format(nac.pct_gobierno) }}%</strong>
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h3 class="mb-1"><i class="bi bi-shuffle me-2"></i>Generador de muestra</h3>
+        <div class="text-muted small">{{ eleccion["nombre"] }}</div>
+    </div>
+    <span class="badge bg-primary">stratified_random</span>
 </div>
 
-<!-- Parámetros -->
-<form method="get" action="/muestra/generar" class="row g-2 mb-4 align-items-end p-3 bg-white rounded shadow-sm">
+<div class="alert alert-light border">
+    Universo: <strong>{{ propuesta.frame_source }}</strong> |
+    Centros frame: <strong>{{ "{:,}".format(propuesta.frame_count) }}</strong> |
+    Electores frame: <strong>{{ "{:,}".format(propuesta.frame_electores) }}</strong> |
+    Version TM: <code>{{ propuesta.frame_hash[:12] }}</code>
+</div>
+
+<form method="get" action="/muestra/generar" class="row g-2 mb-4 align-items-end bg-white border rounded p-3">
     <div class="col-auto">
-        <label class="form-label fw-semibold mb-1">Centros a seleccionar por unidad</label>
-        <input type="number" name="centros_por_unidad" class="form-control" min="1" max="10"
-               value="{{ centros_por_unidad }}" style="width: 80px;">
+        <label class="form-label fw-semibold mb-1">Titulares</label>
+        <input type="number" name="sample_size" class="form-control" min="1" max="2000"
+               value="{{ sample_size }}" style="width: 110px;">
     </div>
     <div class="col-auto">
-        <label class="form-label fw-semibold mb-1">Candidatos a mostrar</label>
-        <input type="number" name="candidatos_por_unidad" class="form-control" min="1" max="20"
-               value="{{ candidatos_por_unidad }}" style="width: 80px;">
+        <label class="form-label fw-semibold mb-1">Reservas</label>
+        <input type="number" name="reserve_size" class="form-control" min="0" max="2000"
+               value="{{ reserve_size }}" style="width: 110px;">
     </div>
     <div class="col-auto">
-        <label class="form-label fw-semibold mb-1">Umbral representatividad (%)</label>
-        <input type="number" name="umbral_pct" class="form-control" min="1" max="50" step="0.5"
-               value="{{ umbral_pct }}" style="width: 100px;">
+        <label class="form-label fw-semibold mb-1">Semilla</label>
+        <input type="number" name="seed" class="form-control" value="{{ seed }}" style="width: 140px;">
     </div>
     <div class="col-auto">
         <button class="btn btn-outline-primary"><i class="bi bi-arrow-clockwise me-1"></i>Recalcular</button>
     </div>
 </form>
 
-{% if candidatos|length == 0 %}
+{% if propuesta.titulares|length == 0 %}
 <div class="alert alert-warning">
-    No se encontraron centros candidatos. Verifique que hay resultados históricos y centros activos cargados.
+    No se pudo generar muestra. Verifique que la Tabla Mesa o el registro activo tengan centros con electores.
 </div>
 {% else %}
-
-<form method="post" action="/muestra/aplicar" id="formMuestra">
+<form method="post" action="/muestra/aplicar">
     <input type="hidden" name="id_eleccion" value="{{ eleccion['id'] }}">
+    <input type="hidden" name="metadata" value="{{ metadata_json|e }}">
+    {% for c in propuesta.titulares %}
+    <input type="hidden" name="titular_codigo" value="{{ c.codigo_cne }}">
+    {% endfor %}
+    {% for c in propuesta.reservas %}
+    <input type="hidden" name="reserva_codigo" value="{{ c.codigo_cne }}">
+    {% endfor %}
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <span id="conteo">0</span> centros seleccionados
-            <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="btnAutoSelect">
-                <i class="bi bi-check2-all me-1"></i>Auto-seleccionar top {{ centros_por_unidad }} por unidad
-            </button>
+        <div class="small text-muted">
+            Metodo {{ propuesta.metodo }} |
+            Tamano {{ propuesta.titulares|length }} |
+            Reservas {{ propuesta.reservas|length }} |
+            Seed {{ propuesta.seed }} |
+            Algoritmo {{ propuesta.algorithm_version }}
         </div>
-        <button type="submit" class="btn btn-success" id="btnAplicar" disabled>
+        <button type="submit" class="btn btn-success">
             <i class="bi bi-check-lg me-1"></i>Aplicar muestra
         </button>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-sm table-hover bg-white shadow-sm rounded" id="tablaGen">
-            <thead class="table-light">
-                <tr>
-                    <th style="width: 40px;"></th>
-                    <th>#</th>
-                    <th>Código</th>
-                    <th>Centro</th>
-                    <th>Unidad geográfica</th>
-                    <th>Nivel</th>
-                    <th class="text-end">Electores</th>
-                    <th class="text-end">%Opo</th>
-                    <th class="text-end">%Gob</th>
-                    <th class="text-end">Diff Nacional</th>
-                    <th>Rep.</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% set ns = namespace(last_unidad='') %}
-            {% for c in candidatos %}
-                {% if c.unidad_geo != ns.last_unidad %}
-                <tr class="grupo-header">
-                    <td colspan="11">
-                        <i class="bi bi-geo-alt me-1"></i>{{ c.unidad_geo }}
-                        <span class="badge bg-secondary ms-1">{{ c.nivel_seleccion }}</span>
-                    </td>
-                </tr>
-                {% set ns.last_unidad = c.unidad_geo %}
-                {% endif %}
-                <tr class="{{ 'representativo' if c.representativo else 'no-representativo' }}"
-                    data-unidad="{{ c.unidad_geo }}" data-rank="{{ c.rank }}">
-                    <td>
-                        <input type="checkbox" name="codigo_centro" value="{{ c.codigo_cne }}"
-                               class="form-check-input chk-centro">
-                    </td>
-                    <td>{{ c.rank }}</td>
-                    <td><code>{{ c.codigo_cne }}</code></td>
-                    <td class="small">{{ c.nombre[:35] }}</td>
-                    <td class="small">{{ c.unidad_geo }}</td>
-                    <td><span class="badge bg-light text-dark">{{ c.nivel_seleccion }}</span></td>
-                    <td class="text-end">{{ "{:,}".format(c.num_electores or 0) }}</td>
-                    <td class="text-end">
-                        {% if c.pct_oposicion is not none %}
-                        {{ "%.1f"|format(c.pct_oposicion) }}%
-                        {% else %}—{% endif %}
-                    </td>
-                    <td class="text-end">
-                        {% if c.pct_gobierno is not none %}
-                        {{ "%.1f"|format(c.pct_gobierno) }}%
-                        {% else %}—{% endif %}
-                    </td>
-                    <td class="text-end">
-                        {% if c.diff_nac is not none and c.diff_nac < 900 %}
-                        <span class="badge {% if c.diff_nac <= 5 %}bg-success{% elif c.diff_nac <= 10 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
-                            {{ "%.1f"|format(c.diff_nac) }}%
-                        </span>
-                        {% else %}—{% endif %}
-                    </td>
-                    <td>
-                        {% if c.representativo %}
-                        <i class="bi bi-check-circle-fill text-success"></i>
-                        {% else %}
-                        <i class="bi bi-dash-circle text-muted"></i>
-                        {% endif %}
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <h5>Titulares</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover bg-white border">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Centro</th>
+                            <th>Estado</th>
+                            <th>Municipio</th>
+                            <th class="text-end">Electores</th>
+                            <th>Rol</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for c in propuesta.titulares %}
+                        <tr>
+                            <td><code>{{ c.codigo_cne }}</code><br><span class="small">{{ c.nombre }}</span></td>
+                            <td class="small">{{ c.estado }}</td>
+                            <td class="small">{{ c.municipio or "-" }}</td>
+                            <td class="text-end">{{ "{:,}".format(c.num_electores or 0) }}</td>
+                            <td><span class="badge bg-success">Titular</span></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <h5>Reservas</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover bg-white border">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Centro</th>
+                            <th>Estado</th>
+                            <th>Municipio</th>
+                            <th class="text-end">Electores</th>
+                            <th>Rol</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for c in propuesta.reservas %}
+                        <tr>
+                            <td><code>{{ c.codigo_cne }}</code><br><span class="small">{{ c.nombre }}</span></td>
+                            <td class="small">{{ c.estado }}</td>
+                            <td class="small">{{ c.municipio or "-" }}</td>
+                            <td class="text-end">{{ "{:,}".format(c.num_electores or 0) }}</td>
+                            <td><span class="badge bg-secondary">Reserva</span></td>
+                        </tr>
+                    {% endfor %}
+                    {% if propuesta.reservas|length == 0 %}
+                        <tr><td colspan="5" class="text-muted small">Sin reservas generadas.</td></tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </form>
-
 {% endif %}
-{% endblock %}
-
-{% block extra_js %}
-<script>
-const CENTROS_POR_UNIDAD = {{ centros_por_unidad }};
-
-function actualizarConteo() {
-    const n = document.querySelectorAll('.chk-centro:checked').length;
-    document.getElementById('conteo').textContent = n;
-    document.getElementById('btnAplicar').disabled = n === 0;
-    // Highlight selected rows
-    document.querySelectorAll('#tablaGen tbody tr[data-unidad]').forEach(row => {
-        const chk = row.querySelector('.chk-centro');
-        if (chk) row.classList.toggle('seleccionado', chk.checked);
-    });
-}
-
-document.querySelectorAll('.chk-centro').forEach(chk => {
-    chk.addEventListener('change', actualizarConteo);
-});
-
-// Auto-seleccionar top N representativos por unidad
-document.getElementById('btnAutoSelect').addEventListener('click', function() {
-    // Desmarcar todos
-    document.querySelectorAll('.chk-centro').forEach(c => c.checked = false);
-
-    // Agrupar por unidad
-    const unidades = {};
-    document.querySelectorAll('#tablaGen tbody tr[data-unidad]').forEach(row => {
-        const u = row.dataset.unidad;
-        const rank = parseInt(row.dataset.rank);
-        const chk = row.querySelector('.chk-centro');
-        const esRep = row.classList.contains('representativo');
-        if (!chk) return;
-        if (!unidades[u]) unidades[u] = [];
-        unidades[u].push({row, rank, chk, esRep});
-    });
-
-    for (const [u, centros] of Object.entries(unidades)) {
-        // Primero representativos, luego por rank
-        centros.sort((a,b) => {
-            if (a.esRep !== b.esRep) return a.esRep ? -1 : 1;
-            return a.rank - b.rank;
-        });
-        for (let i = 0; i < Math.min(CENTROS_POR_UNIDAD, centros.length); i++) {
-            centros[i].chk.checked = true;
-        }
-    }
-    actualizarConteo();
-});
-</script>
 {% endblock %}

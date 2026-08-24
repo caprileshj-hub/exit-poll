@@ -152,8 +152,35 @@ CREATE TABLE IF NOT EXISTS muestra (
     agregado_por    TEXT,
     score_snapshot  REAL,
     confianza_snapshot REAL,
+    rol_muestra     TEXT DEFAULT 'titular' CHECK(rol_muestra IN ('titular','reserva','removido')),
+    generacion_id   INTEGER,
     created_at      TEXT DEFAULT (datetime('now')),
     UNIQUE(id_eleccion, codigo_centro)
+);
+
+CREATE TABLE IF NOT EXISTS muestra_generaciones (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_eleccion         INTEGER NOT NULL REFERENCES elecciones(id),
+    tm_hash             TEXT NOT NULL,
+    metodo              TEXT NOT NULL,
+    sample_size         INTEGER NOT NULL,
+    reserve_size        INTEGER NOT NULL DEFAULT 0,
+    seed                INTEGER NOT NULL,
+    cuotas_json         TEXT NOT NULL,
+    frame_count         INTEGER NOT NULL,
+    frame_electores     INTEGER NOT NULL,
+    algorithm_version   TEXT NOT NULL,
+    created_at          TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS muestra_sustituciones (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_eleccion         INTEGER NOT NULL REFERENCES elecciones(id),
+    centro_removido     TEXT NOT NULL REFERENCES centros(codigo_cne),
+    centro_sustituto    TEXT NOT NULL REFERENCES centros(codigo_cne),
+    motivo              TEXT NOT NULL,
+    usuario             TEXT,
+    created_at          TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS pesos (

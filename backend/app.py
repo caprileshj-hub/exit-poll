@@ -132,11 +132,13 @@ def _bootstrap_tablas() -> None:
     """
     _ensure_backend_path()
     import muestra_lab
+    import selector_muestra
 
     db = get_db()
     try:
         ensure_config_table(db)
         muestra_lab._bootstrap_una_vez(db)
+        selector_muestra.ensure_selector_schema(db)
     finally:
         db.close()
 
@@ -1788,7 +1790,8 @@ def muestra_index(
                 """SELECT m.id, m.codigo_centro, ct.nombre as centro_nombre,
                           e.nombre as estado, mu.nombre as municipio, p.nombre as parroquia,
                           m.tipo_centro, m.motivo, m.score_snapshot, m.confianza_snapshot,
-                          ct.num_electores, ct.num_mesas,
+                          COALESCE(m.rol_muestra, 'titular') as rol_muestra,
+                          m.generacion_id, ct.num_electores, ct.num_mesas,
                           rh.pct_oposicion, rh.pct_gobierno
                    FROM muestra m
                    JOIN centros ct ON m.codigo_centro=ct.codigo_cne
@@ -1797,10 +1800,30 @@ def muestra_index(
                    LEFT JOIN parroquias p ON ct.id_parroquia=p.id
                    LEFT JOIN resultados_historicos rh
                        ON rh.codigo_centro=m.codigo_centro AND rh.eleccion_ref=?
-                   WHERE m.id_eleccion=? AND m.activo=1
-                   ORDER BY e.nombre, mu.nombre, ct.num_electores DESC""",
+                   WHERE m.id_eleccion=?
+                     AND (m.activo=1 OR COALESCE(m.rol_muestra, 'titular')='reserva')
+                   ORDER BY CASE COALESCE(m.rol_muestra, 'titular') WHEN 'titular' THEN 0 WHEN 'reserva' THEN 1 ELSE 2 END,
+                            e.nombre, mu.nombre, ct.num_electores DESC""",
                 (eleccion_ref, eleccion["id"])
             ).fetchall()
+
+        muestra_meta = None
+        reservas_disponibles = []
+        if eleccion:
+            muestra_meta = db.execute(
+                """
+                SELECT *
+                FROM muestra_generaciones
+                WHERE id_eleccion=?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (eleccion["id"],),
+            ).fetchone()
+            reservas_disponibles = [
+                r for r in muestra_actual
+                if (r["rol_muestra"] or "titular") == "reserva"
+            ]
 
         # Resultado nacional de referencia
         nac = db.execute("""
@@ -1821,6 +1844,8 @@ def muestra_index(
             "eleccion": eleccion,
             "muestra": muestra_actual, "pct_nac": pct_nac,
             "refs": refs, "eleccion_ref": eleccion_ref,
+            "muestra_meta": muestra_meta,
+            "reservas_disponibles": reservas_disponibles,
             "msg": msg, "cat": cat,
             "lab": laboratorio,
             "filtros": {
@@ -1862,10 +1887,9 @@ async def muestra_agregar(request: Request):
 @app.get("/muestra/generar", response_class=HTMLResponse)
 def muestra_generar(
     request: Request,
-    centros_por_unidad: int = 2,
-    candidatos_por_unidad: int = 5,
-    umbral_pct: float = 10.0,
-    eleccion_ref: str = "",
+    sample_size: int = 180,
+    reserve_size: int = 180,
+    seed: int = 2026,
 ):
     db = get_db()
     try:
@@ -1873,25 +1897,39 @@ def muestra_generar(
         if not eleccion:
             db.close()
             return RedirectResponse("/muestra?msg=Active+una+elección+primero&cat=warning", status_code=303)
-        eleccion_ref = eleccion_ref or _eleccion_ref_referencia(db) or "2024-presidencial"
-
         _ensure_backend_path()
         import selector_muestra
 
-        nac = selector_muestra.resultado_nacional(db, eleccion_ref)
-        candidatos = selector_muestra.generar_candidatos(
-            db, id_eleccion=eleccion["id"], eleccion_ref=eleccion_ref,
-            candidatos_por_unidad=candidatos_por_unidad,
-            umbral_pct=umbral_pct,
+        sample_size = max(1, int(sample_size or selector_muestra.DEFAULT_SAMPLE_SIZE))
+        reserve_size = max(0, int(reserve_size or 0))
+        seed = int(seed if seed is not None else selector_muestra.DEFAULT_SEED)
+        propuesta = selector_muestra.generar_muestra_estratificada(
+            db,
+            id_eleccion=eleccion["id"],
+            sample_size=sample_size,
+            reserve_size=reserve_size,
+            seed=seed,
         )
+        metadata_json = json.dumps({
+            "frame_hash": propuesta["frame_hash"],
+            "frame_count": propuesta["frame_count"],
+            "frame_electores": propuesta["frame_electores"],
+            "frame_source": propuesta["frame_source"],
+            "sample_size": propuesta["sample_size"],
+            "reserve_size": propuesta["reserve_size"],
+            "seed": propuesta["seed"],
+            "cuotas": propuesta["cuotas"],
+            "cuotas_reserva": propuesta["cuotas_reserva"],
+            "algorithm_version": propuesta["algorithm_version"],
+        }, ensure_ascii=False)
 
         return templates.TemplateResponse(request=request, name="muestra_generar.html", context={
             "eleccion": eleccion,
-            "candidatos": candidatos, "nac": nac,
-            "centros_por_unidad": centros_por_unidad,
-            "candidatos_por_unidad": candidatos_por_unidad,
-            "umbral_pct": umbral_pct,
-            "eleccion_ref": eleccion_ref,
+            "propuesta": propuesta,
+            "metadata_json": metadata_json,
+            "sample_size": sample_size,
+            "reserve_size": reserve_size,
+            "seed": seed,
         })
     finally:
         db.close()
@@ -1900,10 +1938,12 @@ def muestra_generar(
 @app.post("/muestra/aplicar")
 async def muestra_aplicar(request: Request):
     form = await request.form()
-    codigos = form.getlist("codigo_centro")
+    titulares = [str(c).strip() for c in form.getlist("titular_codigo") if str(c).strip()]
+    reservas = [str(c).strip() for c in form.getlist("reserva_codigo") if str(c).strip()]
     id_eleccion = int(form.get("id_eleccion", 0))
+    metadata_raw = str(form.get("metadata") or "{}")
 
-    if not codigos or not id_eleccion:
+    if not titulares or not id_eleccion:
         return RedirectResponse("/muestra?msg=No+se+seleccionaron+centros&cat=warning", status_code=303)
 
     db = get_db()
@@ -1911,8 +1951,45 @@ async def muestra_aplicar(request: Request):
         _ensure_backend_path()
         import selector_muestra
 
-        n = selector_muestra.aplicar_muestra(db, id_eleccion, codigos)
-        return RedirectResponse(f"/muestra?msg=Muestra+creada+con+{n}+centros&cat=success", status_code=303)
+        metadata = json.loads(metadata_raw)
+        n = selector_muestra.aplicar_muestra_estratificada(
+            db,
+            id_eleccion,
+            titulares,
+            reservas,
+            metadata,
+        )
+        return RedirectResponse(f"/muestra?msg=Muestra+creada+con+{n}+titulares&cat=success", status_code=303)
+    finally:
+        db.close()
+
+
+@app.post("/muestra/sustituir")
+async def muestra_sustituir(request: Request):
+    form = await request.form()
+    id_eleccion = int(form.get("id_eleccion", 0))
+    centro_removido = str(form.get("centro_removido") or "").strip()
+    centro_sustituto = str(form.get("centro_sustituto") or "").strip()
+    motivo = str(form.get("motivo") or "").strip()
+    if not id_eleccion or not centro_removido or not centro_sustituto or not motivo:
+        return RedirectResponse("/muestra?msg=Sustitucion+incompleta&cat=warning", status_code=303)
+
+    db = get_db()
+    try:
+        _ensure_backend_path()
+        import selector_muestra
+
+        ok = selector_muestra.sustituir_por_reserva(
+            db,
+            id_eleccion,
+            centro_removido,
+            centro_sustituto,
+            motivo,
+            usuario="local",
+        )
+        if not ok:
+            return RedirectResponse("/muestra?msg=Reserva+no+valida+para+sustitucion&cat=warning", status_code=303)
+        return RedirectResponse("/muestra?msg=Sustitucion+registrada&cat=success", status_code=303)
     finally:
         db.close()
 

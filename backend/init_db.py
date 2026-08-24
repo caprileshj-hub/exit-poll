@@ -60,10 +60,39 @@ def migrar(conn: sqlite3.Connection):
         'agregado_por': 'ALTER TABLE muestra ADD COLUMN agregado_por TEXT',
         'score_snapshot': 'ALTER TABLE muestra ADD COLUMN score_snapshot REAL',
         'confianza_snapshot': 'ALTER TABLE muestra ADD COLUMN confianza_snapshot REAL',
+        'rol_muestra': "ALTER TABLE muestra ADD COLUMN rol_muestra TEXT DEFAULT 'titular'",
+        'generacion_id': 'ALTER TABLE muestra ADD COLUMN generacion_id INTEGER',
         'created_at': "ALTER TABLE muestra ADD COLUMN created_at TEXT",
     }.items():
         if col not in cols_muestra:
             conn.execute(ddl)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS muestra_generaciones (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_eleccion         INTEGER NOT NULL REFERENCES elecciones(id),
+            tm_hash             TEXT NOT NULL,
+            metodo              TEXT NOT NULL,
+            sample_size         INTEGER NOT NULL,
+            reserve_size        INTEGER NOT NULL DEFAULT 0,
+            seed                INTEGER NOT NULL,
+            cuotas_json         TEXT NOT NULL,
+            frame_count         INTEGER NOT NULL,
+            frame_electores     INTEGER NOT NULL,
+            algorithm_version   TEXT NOT NULL,
+            created_at          TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS muestra_sustituciones (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_eleccion         INTEGER NOT NULL REFERENCES elecciones(id),
+            centro_removido     TEXT NOT NULL REFERENCES centros(codigo_cne),
+            centro_sustituto    TEXT NOT NULL REFERENCES centros(codigo_cne),
+            motivo              TEXT NOT NULL,
+            usuario             TEXT,
+            created_at          TEXT DEFAULT (datetime('now'))
+        )
+    """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS historico_fuentes (
             eleccion_ref    TEXT PRIMARY KEY,

@@ -1,153 +1,405 @@
-"""
-Selector automático de muestra para Exit Poll.
+"""Selector productivo de muestra.
 
-Criterio (elección nacional):
-  - Estados normales: los N centros más grandes cuyo resultado histórico
-    sea representativo del resultado nacional (diferencia ≤ umbral %).
-  - Excepciones (DC, Vargas, municipios Caracas-Miranda):
-    selección por PARROQUIA en vez de por estado.
-
-Parámetros configurables:
-  - centros_por_unidad:  cuántos centros seleccionar por unidad geográfica (default 2)
-  - umbral_pct:          tolerancia máxima de diferencia con resultado nacional (default 10)
-  - eleccion_ref:        nombre de la elección de referencia en resultados_historicos
-  - candidatos_por_unidad: pre-seleccionar más candidatos para revisión manual (default 5)
+V1 usa seleccion aleatoria estratificada. Los historicos quedan fuera de la
+decision productiva: no rankean, filtran, corrigen ni redibujan centros.
 """
 
+from __future__ import annotations
+
+import hashlib
+import json
+import random
 import sqlite3
-from typing import Optional
-
-BASE_QUERY_CANDIDATOS = """
-    SELECT c.codigo_cne, c.nombre, c.num_electores, c.num_mesas,
-           e.id as id_estado, e.nombre as estado, e.es_excepcion as estado_exc,
-           mu.id as id_municipio, mu.nombre as municipio, mu.es_excepcion as mun_exc,
-           p.id as id_parroquia, p.nombre as parroquia,
-           rh.pct_oposicion, rh.pct_gobierno, rh.votos_validos as votos_hist,
-           ABS(rh.pct_oposicion - :pct_nac_opo) as diff_nac
-    FROM centros c
-    JOIN estados e ON c.id_estado = e.id
-    LEFT JOIN municipios mu ON c.id_municipio = mu.id
-    LEFT JOIN parroquias p ON c.id_parroquia = p.id
-    LEFT JOIN resultados_historicos rh
-        ON rh.codigo_centro = c.codigo_cne AND rh.eleccion_ref = :eleccion_ref
-    WHERE c.activo = 1 AND c.num_electores > 0
-"""
+from datetime import datetime, timezone
+from typing import Any
 
 
-def resultado_nacional(conn: sqlite3.Connection, eleccion_ref: str) -> dict:
-    """Calcula el resultado nacional de referencia."""
-    row = conn.execute("""
-        SELECT SUM(votos_validos) v, SUM(votos_gobierno) g, SUM(votos_oposicion) o
-        FROM resultados_historicos WHERE eleccion_ref = ?
-    """, (eleccion_ref,)).fetchone()
-    if not row or not row[0]:
-        return {"validos": 0, "pct_gobierno": 0, "pct_oposicion": 0}
+METODO_PRODUCTIVO = "stratified_random"
+ALGORITHM_VERSION = "stratified_random_v1"
+DEFAULT_SAMPLE_SIZE = 180
+DEFAULT_RESERVE_SIZE = 180
+DEFAULT_SEED = 2026
+
+
+def _json_dumps(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def ensure_selector_schema(conn: sqlite3.Connection) -> None:
+    """Crea contratos aditivos para reproducibilidad y auditoria manual."""
+    cols_muestra = {r[1] for r in conn.execute("PRAGMA table_info(muestra)")}
+    for col, ddl in {
+        "rol_muestra": "ALTER TABLE muestra ADD COLUMN rol_muestra TEXT DEFAULT 'titular'",
+        "generacion_id": "ALTER TABLE muestra ADD COLUMN generacion_id INTEGER",
+    }.items():
+        if col not in cols_muestra:
+            conn.execute(ddl)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS muestra_generaciones (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_eleccion         INTEGER NOT NULL REFERENCES elecciones(id),
+            tm_hash             TEXT NOT NULL,
+            metodo              TEXT NOT NULL,
+            sample_size         INTEGER NOT NULL,
+            reserve_size        INTEGER NOT NULL DEFAULT 0,
+            seed                INTEGER NOT NULL,
+            cuotas_json         TEXT NOT NULL,
+            frame_count         INTEGER NOT NULL,
+            frame_electores     INTEGER NOT NULL,
+            algorithm_version   TEXT NOT NULL,
+            created_at          TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS muestra_sustituciones (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_eleccion         INTEGER NOT NULL REFERENCES elecciones(id),
+            centro_removido     TEXT NOT NULL REFERENCES centros(codigo_cne),
+            centro_sustituto    TEXT NOT NULL REFERENCES centros(codigo_cne),
+            motivo              TEXT NOT NULL,
+            usuario             TEXT,
+            created_at          TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.commit()
+
+
+def _has_election_frame(conn: sqlite3.Connection, id_eleccion: int) -> bool:
+    return conn.execute(
+        "SELECT 1 FROM election_centers WHERE eleccion_id=? AND eligible=1 LIMIT 1",
+        (id_eleccion,),
+    ).fetchone() is not None
+
+
+def build_frame(conn: sqlite3.Connection, id_eleccion: int | None = None) -> list[dict[str, Any]]:
+    """Universo preelectoral: Tabla Mesa si existe; si no, centros activos."""
+    params: dict[str, Any] = {}
+    eligible_join = ""
+    eligible_where = "c.activo = 1"
+    frame_source_expr = "'centros_activos'"
+
+    if id_eleccion and _has_election_frame(conn, id_eleccion):
+        eligible_join = """
+            JOIN election_centers ec
+              ON ec.centro_id = c.codigo_cne
+             AND ec.eleccion_id = :id_eleccion
+             AND ec.eligible = 1
+        """
+        eligible_where = "1 = 1"
+        frame_source_expr = "'election_centers'"
+        params["id_eleccion"] = id_eleccion
+
+    rows = conn.execute(
+        f"""
+        SELECT
+            c.codigo_cne,
+            c.nombre,
+            c.num_electores,
+            c.num_mesas,
+            e.id AS id_estado,
+            e.nombre AS estado,
+            mu.nombre AS municipio,
+            p.nombre AS parroquia,
+            {frame_source_expr} AS frame_source
+        FROM centros c
+        {eligible_join}
+        JOIN estados e ON c.id_estado = e.id
+        LEFT JOIN municipios mu ON c.id_municipio = mu.id
+        LEFT JOIN parroquias p ON c.id_parroquia = p.id
+        WHERE {eligible_where}
+          AND COALESCE(c.num_electores, 0) > 0
+        ORDER BY e.nombre, c.codigo_cne
+        """,
+        params,
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def frame_hash(frame: list[dict[str, Any]]) -> str:
+    payload = [
+        {
+            "codigo_cne": row["codigo_cne"],
+            "id_estado": row["id_estado"],
+            "num_electores": int(row.get("num_electores") or 0),
+            "num_mesas": int(row.get("num_mesas") or 0),
+        }
+        for row in sorted(frame, key=lambda r: r["codigo_cne"])
+    ]
+    return hashlib.sha256(_json_dumps(payload).encode("utf-8")).hexdigest()
+
+
+def allocate_state_quotas(frame: list[dict[str, Any]], sample_size: int) -> dict[int, int]:
+    """Cuotas proporcionales a electores.
+
+    Regla: se toma el piso de la cuota exacta; si el tamano alcanza para todos
+    los estados, se garantiza minimo 1. Los remanentes se asignan por mayor
+    fraccion, luego mayor peso electoral y luego nombre de estado.
+    """
+    if sample_size <= 0 or not frame:
+        return {}
+
+    states: dict[int, dict[str, Any]] = {}
+    for row in frame:
+        state = int(row["id_estado"])
+        bucket = states.setdefault(
+            state,
+            {"weight": 0.0, "capacity": 0, "estado": row["estado"]},
+        )
+        bucket["weight"] += float(row.get("num_electores") or 1)
+        bucket["capacity"] += 1
+
+    requested = min(sample_size, len(frame))
+    total_weight = sum(v["weight"] for v in states.values()) or float(len(frame))
+    quotas: dict[int, int] = {}
+    fractions = []
+    for state, data in states.items():
+        exact = requested * data["weight"] / total_weight
+        quota = int(exact // 1)
+        if requested >= len(states):
+            quota = max(1, quota)
+        quota = min(quota, data["capacity"])
+        quotas[state] = quota
+        fractions.append((exact - int(exact // 1), data["weight"], str(data["estado"]), state))
+
+    while sum(quotas.values()) > requested:
+        candidates = [
+            (quotas[state], fraction, weight, name, state)
+            for fraction, weight, name, state in fractions
+            if quotas[state] > (1 if requested >= len(states) else 0)
+        ]
+        if not candidates:
+            break
+        _, _, _, _, state = sorted(candidates, key=lambda x: (-x[0], x[1], x[3]))[0]
+        quotas[state] -= 1
+
+    while sum(quotas.values()) < requested:
+        candidates = [
+            (fraction, weight, name, state)
+            for fraction, weight, name, state in fractions
+            if quotas[state] < states[state]["capacity"]
+        ]
+        if not candidates:
+            break
+        _, _, _, state = sorted(candidates, key=lambda x: (-x[0], -x[1], x[2]))[0]
+        quotas[state] += 1
+
+    return {state: quota for state, quota in sorted(quotas.items()) if quota > 0}
+
+
+def _sample_by_state(
+    frame: list[dict[str, Any]],
+    quotas: dict[int, int],
+    seed: int,
+    excluded: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    excluded = excluded or set()
+    rng = random.Random(seed)
+    by_state: dict[int, list[dict[str, Any]]] = {}
+    for row in frame:
+        if row["codigo_cne"] in excluded:
+            continue
+        by_state.setdefault(int(row["id_estado"]), []).append(row)
+
+    selected: list[dict[str, Any]] = []
+    for state, quota in sorted(quotas.items()):
+        population = sorted(by_state.get(state, []), key=lambda r: r["codigo_cne"])
+        picked = rng.sample(population, min(quota, len(population)))
+        selected.extend(sorted(picked, key=lambda r: r["codigo_cne"]))
+    return selected
+
+
+def generar_muestra_estratificada(
+    conn: sqlite3.Connection,
+    id_eleccion: int,
+    sample_size: int = DEFAULT_SAMPLE_SIZE,
+    reserve_size: int = DEFAULT_RESERVE_SIZE,
+    seed: int = DEFAULT_SEED,
+) -> dict[str, Any]:
+    """Genera titulares y reservas sin consultar resultados historicos."""
+    frame = build_frame(conn, id_eleccion=id_eleccion)
+    titular_quotas = allocate_state_quotas(frame, sample_size)
+    titulares = _sample_by_state(frame, titular_quotas, seed)
+    titular_codes = {row["codigo_cne"] for row in titulares}
+
+    reserve_frame = [row for row in frame if row["codigo_cne"] not in titular_codes]
+    reserve_quotas = allocate_state_quotas(reserve_frame, reserve_size)
+    reservas = _sample_by_state(frame, reserve_quotas, seed + 1, excluded=titular_codes)
+
+    for row in titulares:
+        row["rol_muestra"] = "titular"
+        row["unidad_geo"] = row["estado"]
+        row["nivel_seleccion"] = "estado"
+    for row in reservas:
+        row["rol_muestra"] = "reserva"
+        row["unidad_geo"] = row["estado"]
+        row["nivel_seleccion"] = "estado"
+
+    for rows in (titulares, reservas):
+        by_state: dict[int, int] = {}
+        for row in sorted(rows, key=lambda r: (r["id_estado"], r["codigo_cne"])):
+            state = int(row["id_estado"])
+            by_state[state] = by_state.get(state, 0) + 1
+            row["rank"] = by_state[state]
+
     return {
-        "validos": row[0],
-        "pct_gobierno": round(100 * row[1] / row[0], 2),
-        "pct_oposicion": round(100 * row[2] / row[0], 2),
+        "id_eleccion": id_eleccion,
+        "metodo": METODO_PRODUCTIVO,
+        "sample_size": sample_size,
+        "reserve_size": reserve_size,
+        "seed": seed,
+        "cuotas": titular_quotas,
+        "cuotas_reserva": reserve_quotas,
+        "frame_hash": frame_hash(frame),
+        "frame_count": len(frame),
+        "frame_electores": sum(int(row.get("num_electores") or 0) for row in frame),
+        "frame_source": frame[0]["frame_source"] if frame else "sin_frame",
+        "algorithm_version": ALGORITHM_VERSION,
+        "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "titulares": titulares,
+        "reservas": reservas,
     }
+
+
+def aplicar_muestra_estratificada(
+    conn: sqlite3.Connection,
+    id_eleccion: int,
+    titulares: list[str],
+    reservas: list[str],
+    metadata: dict[str, Any],
+) -> int:
+    """Guarda muestra productiva y metadatos de reproducibilidad."""
+    ensure_selector_schema(conn)
+    frame = build_frame(conn, id_eleccion=id_eleccion)
+    frame_codes = {row["codigo_cne"] for row in frame}
+    titular_codes = []
+    for code in titulares:
+        if code in frame_codes and code not in titular_codes:
+            titular_codes.append(code)
+    titular_set = set(titular_codes)
+    reserva_codes = []
+    for code in reservas:
+        if code in frame_codes and code not in titular_set and code not in reserva_codes:
+            reserva_codes.append(code)
+
+    generation = conn.execute(
+        """
+        INSERT INTO muestra_generaciones (
+            id_eleccion, tm_hash, metodo, sample_size, reserve_size, seed,
+            cuotas_json, frame_count, frame_electores, algorithm_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            id_eleccion,
+            metadata["frame_hash"],
+            METODO_PRODUCTIVO,
+            int(metadata["sample_size"]),
+            int(metadata.get("reserve_size") or 0),
+            int(metadata["seed"]),
+            _json_dumps(
+                {
+                    "titulares": metadata.get("cuotas", {}),
+                    "reservas": metadata.get("cuotas_reserva", {}),
+                }
+            ),
+            int(metadata.get("frame_count") or len(frame)),
+            int(metadata.get("frame_electores") or 0),
+            ALGORITHM_VERSION,
+        ),
+    )
+    generation_id = generation.lastrowid
+
+    conn.execute("DELETE FROM muestra WHERE id_eleccion = ?", (id_eleccion,))
+    conn.execute("DELETE FROM pesos WHERE id_muestra NOT IN (SELECT id FROM muestra)")
+    for role, codes in (("titular", titular_codes), ("reserva", reserva_codes)):
+        for code in codes:
+            conn.execute(
+                """
+                INSERT INTO muestra (
+                    id_eleccion, codigo_centro, tipo_centro, activo, motivo,
+                    agregado_por, rol_muestra, generacion_id
+                ) VALUES (?, ?, 'estandar', ?, ?, 'selector_productivo', ?, ?)
+                """,
+                (
+                    id_eleccion,
+                    code,
+                    1 if role == "titular" else 0,
+                    f"{METODO_PRODUCTIVO}; seed={metadata['seed']}; role={role}",
+                    role,
+                    generation_id,
+                ),
+            )
+    conn.commit()
+    return len(titular_codes)
+
+
+def sustituir_por_reserva(
+    conn: sqlite3.Connection,
+    id_eleccion: int,
+    centro_removido: str,
+    centro_sustituto: str,
+    motivo: str,
+    usuario: str = "local",
+) -> bool:
+    """Promueve una reserva a titular y deja rastro auditable."""
+    ensure_selector_schema(conn)
+    titular = conn.execute(
+        """
+        SELECT 1 FROM muestra
+        WHERE id_eleccion=? AND codigo_centro=? AND activo=1
+          AND COALESCE(rol_muestra, 'titular')='titular'
+        """,
+        (id_eleccion, centro_removido),
+    ).fetchone()
+    reserva = conn.execute(
+        """
+        SELECT 1 FROM muestra
+        WHERE id_eleccion=? AND codigo_centro=?
+          AND COALESCE(rol_muestra, 'titular')='reserva'
+        """,
+        (id_eleccion, centro_sustituto),
+    ).fetchone()
+    if not titular or not reserva:
+        return False
+
+    conn.execute(
+        "UPDATE muestra SET rol_muestra='removido', activo=0 WHERE id_eleccion=? AND codigo_centro=?",
+        (id_eleccion, centro_removido),
+    )
+    conn.execute(
+        "UPDATE muestra SET rol_muestra='titular', activo=1, motivo=? WHERE id_eleccion=? AND codigo_centro=?",
+        (f"Sustituto de {centro_removido}: {motivo}", id_eleccion, centro_sustituto),
+    )
+    conn.execute(
+        """
+        INSERT INTO muestra_sustituciones (
+            id_eleccion, centro_removido, centro_sustituto, motivo, usuario
+        ) VALUES (?, ?, ?, ?, ?)
+        """,
+        (id_eleccion, centro_removido, centro_sustituto, motivo, usuario),
+    )
+    conn.commit()
+    return True
 
 
 def generar_candidatos(
     conn: sqlite3.Connection,
-    id_eleccion: Optional[int] = None,
-    eleccion_ref: str = "2024-presidencial",
+    id_eleccion: int | None = None,
+    eleccion_ref: str = "",
     candidatos_por_unidad: int = 5,
     umbral_pct: float = 10.0,
-) -> list[dict]:
-    """
-    Genera lista de centros candidatos a la muestra, agrupados por unidad geográfica.
-    Retorna lista de dicts con info del centro + campo 'unidad_geo' y 'rank'.
-    """
-    nac = resultado_nacional(conn, eleccion_ref)
-    if not nac["validos"]:
+) -> list[dict[str, Any]]:
+    """Compatibilidad legacy: devuelve titulares del selector productivo."""
+    if id_eleccion is None:
         return []
-
-    pct_nac_opo = nac["pct_oposicion"]
-
-    eligible_filter = ""
-    params_extra = {}
-    if id_eleccion:
-        has_ec = conn.execute(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='election_centers'"
-        ).fetchone()[0]
-        if has_ec:
-            eligible_count = conn.execute(
-                "SELECT COUNT(*) FROM election_centers WHERE eleccion_id=? AND eligible=1",
-                (id_eleccion,),
-            ).fetchone()[0]
-            if eligible_count:
-                eligible_filter = """
-                    AND EXISTS (
-                        SELECT 1 FROM election_centers ec
-                        WHERE ec.eleccion_id = :id_eleccion
-                          AND ec.centro_id = c.codigo_cne
-                          AND ec.eligible = 1
-                    )
-                """
-                params_extra["id_eleccion"] = id_eleccion
-
-    # Traer todos los centros activos con sus resultados
-    query = BASE_QUERY_CANDIDATOS + eligible_filter + " ORDER BY c.num_electores DESC"
-    rows = conn.execute(query, {
-        "pct_nac_opo": pct_nac_opo,
-        "eleccion_ref": eleccion_ref,
-        **params_extra,
-    }).fetchall()
-
-    # Agrupar por unidad geográfica
-    # Regla: si el estado es excepción → agrupar por parroquia
-    #         si el municipio es excepción → agrupar por parroquia
-    #         sino → agrupar por estado
-    unidades = {}  # key -> lista de centros
-    for r in rows:
-        r = dict(r)
-        if r["estado_exc"] or r["mun_exc"]:
-            # Excepción: agrupar por parroquia
-            key = f"parr_{r['id_parroquia']}"
-            r["unidad_geo"] = f"{r['estado']} / {r['municipio']} / {r['parroquia']}"
-            r["nivel_seleccion"] = "parroquia"
-        else:
-            # Normal: agrupar por estado
-            key = f"edo_{r['id_estado']}"
-            r["unidad_geo"] = r["estado"]
-            r["nivel_seleccion"] = "estado"
-
-        if key not in unidades:
-            unidades[key] = []
-        unidades[key].append(r)
-
-    # Para cada unidad, seleccionar los mejores candidatos
-    resultado = []
-    for key, centros in unidades.items():
-        # Filtrar: solo los que tienen resultado histórico y están dentro del umbral
-        con_resultado = [c for c in centros if c["pct_oposicion"] is not None]
-        representativos = [c for c in con_resultado if c["diff_nac"] is not None and c["diff_nac"] <= umbral_pct]
-
-        # Ordenar por tamaño (más electores primero)
-        representativos.sort(key=lambda x: x["num_electores"], reverse=True)
-
-        # Si no hay suficientes representativos, completar con los más grandes sin filtro
-        if len(representativos) < candidatos_por_unidad:
-            codigos_ya = {c["codigo_cne"] for c in representativos}
-            for c in centros:
-                if c["codigo_cne"] not in codigos_ya:
-                    if c.get("diff_nac") is None:
-                        c["diff_nac"] = 999
-                    representativos.append(c)
-                if len(representativos) >= candidatos_por_unidad:
-                    break
-
-        for rank, c in enumerate(representativos[:candidatos_por_unidad], 1):
-            c["rank"] = rank
-            diff = c["diff_nac"] if c.get("diff_nac") is not None else 999
-            c["representativo"] = diff <= umbral_pct
-            resultado.append(c)
-
-    # Ordenar por unidad geográfica y rank
-    resultado.sort(key=lambda x: (x["unidad_geo"], x["rank"]))
-    return resultado
+    propuesta = generar_muestra_estratificada(
+        conn,
+        id_eleccion=id_eleccion,
+        sample_size=DEFAULT_SAMPLE_SIZE,
+        reserve_size=0,
+        seed=DEFAULT_SEED,
+    )
+    return propuesta["titulares"]
 
 
 def aplicar_muestra(
@@ -155,16 +407,13 @@ def aplicar_muestra(
     id_eleccion: int,
     codigos_centros: list[str],
     tipo_centro: str = "estandar",
-):
-    """Inserta los centros seleccionados en la tabla muestra."""
-    # Limpiar muestra previa de esta elección
-    conn.execute("DELETE FROM muestra WHERE id_eleccion = ?", (id_eleccion,))
-    conn.execute("DELETE FROM pesos WHERE id_muestra NOT IN (SELECT id FROM muestra)")
-
-    for codigo in codigos_centros:
-        conn.execute(
-            "INSERT INTO muestra (id_eleccion, codigo_centro, tipo_centro, activo) VALUES (?,?,?,1)",
-            (id_eleccion, codigo, tipo_centro),
-        )
-    conn.commit()
-    return len(codigos_centros)
+) -> int:
+    metadata = generar_muestra_estratificada(
+        conn,
+        id_eleccion=id_eleccion,
+        sample_size=len(codigos_centros),
+        reserve_size=0,
+        seed=DEFAULT_SEED,
+    )
+    metadata["sample_size"] = len(codigos_centros)
+    return aplicar_muestra_estratificada(conn, id_eleccion, codigos_centros, [], metadata)
