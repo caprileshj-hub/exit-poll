@@ -90,6 +90,9 @@ Medido contra producción tras desplegar los arreglos de rendimiento:
 - [x] Muestra: generador automático + aplicar
 - [x] Documentacion consolidada de muestreo en `docs/muestreo/`: metodologia
   productiva, historial experimental, resultados de backtest y decisiones
+- [x] Backtest legacy nacional aislado (`2013_2018` y `2018_2024`) con D'Hondt
+  de 72 adicionales, comparador size-only, sensibilidad parametrica y
+  artefactos reproducibles en `docs/muestreo/`
 - [x] Pesos: edición inline masiva
 - [x] TM: carga legacy + carga IA multi-formato con preview MATCHED/NEW/AMBIGUOUS/CONFLICT
 - [x] Ficha técnica estilo CIS (imprimible, error muestral calculado)

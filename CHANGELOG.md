@@ -8,6 +8,13 @@
 
 ## [Unreleased]
 
+### feat - Backtest legacy nacional de seleccion
+- `backend/backtest_legacy_nacional.py`: implementa backtest aislado de seleccion legacy para `2013_2018` y `2018_2024`, sin tocar el selector productivo moderno.
+- D'Hondt asigna solo los 72 adicionales; los 48 centros fijos son 2 por entidad. Para `2013_2018`, Distrito Capital se completa desde VENPRES-A 2018 usando solo columnas de marco, con votos cerrados hasta evaluacion.
+- Genera CSV reproducibles en `docs/muestreo/`: estados por transicion, centros seleccionados, cuotas, exclusiones y sensibilidad.
+- `docs/muestreo/BACKTEST_LEGACY_NACIONAL.md`: documenta reglas, fuentes locales, cobertura, metricas nacionales, comparacion legacy vs size-only, sensibilidad y limitaciones.
+- `test_backtest_legacy_nacional.py`: cubre D'Hondt, minimo territorial, orden por tamano, reinicio por tolerancia, elegibilidad historica, antileakage, missing outcome, agregacion por votos y normalizacion de codigos.
+
 ### docs - Metodologia de muestreo consolidada
 - `docs/muestreo/METODOLOGIA_MUESTREO.md`: documenta la decision metodologica V1 como seleccion aleatoria estratificada por estado, reproducible por seed y sin uso de historicos para inclusion.
 - `docs/muestreo/HISTORIAL_EXPERIMENTAL.md`, `RESULTADOS_BACKTEST.md` y `DECISIONES_MUESTREO.md`: consolidan la evolucion experimental, resultados verificados localmente y decisiones especificas de muestreo.
