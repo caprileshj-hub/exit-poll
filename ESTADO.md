@@ -93,6 +93,8 @@ Medido contra producción tras desplegar los arreglos de rendimiento:
 - [x] Backtest legacy nacional aislado (`2013_2018` y `2018_2024`) con D'Hondt
   de 72 adicionales, comparador size-only, sensibilidad parametrica y
   artefactos reproducibles en `docs/muestreo/`
+- [x] Comparacion reproducible de similitudes legacy (`winner_share`, `top2_gap`,
+  `full_profile`) sin modificar el selector productivo ni las cuotas legacy
 - [x] Pesos: edición inline masiva
 - [x] TM: carga legacy + carga IA multi-formato con preview MATCHED/NEW/AMBIGUOUS/CONFLICT
 - [x] Ficha técnica estilo CIS (imprimible, error muestral calculado)

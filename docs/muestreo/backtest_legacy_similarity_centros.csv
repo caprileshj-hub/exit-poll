@@ -1,0 +1,721 @@
+codigo_centro,cod_estado,nombre_centro,estado,electores,mesas,rank_por_tamano,similarity,distancia_hist_pp,state_winner,state_top1,state_top2,candidate_profile,pasada,tolerancia_de_entrada,metodo,transicion
+010115010,01,UNIDAD EDUCATIVA BOLIVARIANA PEDRO FONTES,Distrito Capital,6032,8,24,winner_share,1.205356,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010107021,01,UNIDAD EDUCATIVA NACIONAL BOLIVARIANA MIGUEL VILLAVICENCIO,Distrito Capital,5549,8,30,winner_share,0.516453,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010110169,01,ESCUELA BÁSICA NACIONAL ESPAÑA,Distrito Capital,4991,7,42,winner_share,1.916877,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010110038,01,UNIDAD EDUCATIVA NACIONAL ANTONIO JOSÉ DE SUCRE,Distrito Capital,4847,7,49,winner_share,1.470574,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010114002,01,ESCUELA BÁSICA BOLIVARIANA CARACCIOLO PARRA LEÓN,Distrito Capital,4739,7,56,winner_share,0.014723,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010110007,01,LICEO BOLIVARIANO LUIS ESPELOZÍN,Distrito Capital,4112,6,88,winner_share,0.70372,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010114045,01,UNIVERSIDAD EXPERIMENTAL SIMÓN RODRÍGUEZ,Distrito Capital,3673,5,113,winner_share,0.824742,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010110016,01,UNIDAD EDUCATIVA NACIONAL LICEO BOLIVARIANO NICANOR BOLET PERAZA,Distrito Capital,3509,5,125,winner_share,0.976451,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010110101,01,ESCUELA BÁSICA NACIONAL SUCRE,Distrito Capital,3384,5,142,winner_share,1.566674,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+021301021,02,GRUPO ESCOLAR TOMAS MOGNA,Anzoategui,5372,7,6,winner_share,1.312798,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020101013,02,UNIDAD EDUCATIVA NARCISO FRAGACHAN,Anzoategui,5132,7,8,winner_share,0.814861,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+021201006,02,UNIDAD EDUCATIVA HERNANDEZ PARES,Anzoategui,4832,7,12,winner_share,0.790456,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020302026,02,UNIDAD EDUCATIVA DOCTOR JOSÉ GIL FORTOUL,Anzoategui,4602,7,16,winner_share,1.632947,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020101022,02,UNIDAD EDUCATIVA  VIENTO FRESCO,Anzoategui,4559,6,18,winner_share,1.200292,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020302001,02,ESCUELA ESTADAL DOMINGO MAZA VELASQUEZ,Anzoategui,4293,6,28,winner_share,0.670327,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+030501013,03,LICEO BOLIVARIANO MANUEL ANTONIO NIEVES,Apure,4067,6,1,winner_share,0.656192,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+030101001,03,ESCUELA BASICA BOLIVARIANA TERESA HURTADO,Apure,3540,5,9,winner_share,0.534381,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+030603004,03,ESCUELA BASICA EL RECREO,Apure,3301,5,15,winner_share,1.701618,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+041701009,04,UNIVERSIDAD DE CARABOBO MORITA II,Aragua,7226,10,2,winner_share,0.955085,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040202001,04,ESCUELA BASICA ROSA AMELIA FLORES,Aragua,6352,9,4,winner_share,0.230625,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040202009,04,CICLO BASICO MARI/O,Aragua,5267,7,14,winner_share,0.023129,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+041302001,04,ESCUELA BASICA JOSE FELIX RIBAS,Aragua,4180,6,55,winner_share,0.801731,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040108012,04,ESCUELA BASICA ANIBAL CASTILLO,Aragua,3382,5,110,winner_share,0.615182,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040108006,04,ESCUELA BASICA AGUSTIN AVELEDO,Aragua,3345,5,115,winner_share,1.579024,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040202002,04,ESCUELA BASICA JOSEFINA BOLIVAR DE GONZALEZ,Aragua,2834,4,172,winner_share,0.844979,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+050212001,05,ESCUELA BASICA ESTATAL VIRGINIA DE CONTRERAS,Barinas,4700,7,3,winner_share,1.115979,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+050210005,05,UNIDAD  EDUCATIVA PADRE FELIPE  SALVADOR GILIJ,Barinas,3816,5,18,winner_share,0.15528,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+050208004,05,ESCUELA BASICA LOURDES RIVAS  DE TORRES,Barinas,3723,5,20,winner_share,0.546943,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+050302007,05,UNIDAD EDUCATIVA  JOSE RAMON TRASPUESTO,Barinas,3571,5,26,winner_share,0.399515,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060108025,06,UNIDAD EDUCATIVA NACIONAL DOCTOR LUIS BELTRAN PRIETO FIGUEROA,Bolivar,6565,9,6,winner_share,0.885683,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060101003,06,ESCUELA ESTADAL BASICA SILVANA DE IRADI,Bolivar,4325,6,33,winner_share,0.360775,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060303014,06,ESCUELA BASICA NACIONAL JOSE LUIS AFANADOR,Bolivar,4238,6,36,winner_share,1.287485,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060101023,06,ESCUELA NACIONAL BASICA ANTONIO DE BERRIOS,Bolivar,3898,5,48,winner_share,0.701055,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060302011,06,ESCUELA BASICA NACIONAL LOS PROCERES II,Bolivar,3882,6,49,winner_share,0.905629,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060306005,06,ESCUELA BASICA JOSE ANTONIO PAEZ,Bolivar,3831,5,50,winner_share,0.281927,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070401016,07,UNIDAD EDUCATIVA NACIONAL EL TOQUITO,Carabobo,5122,7,60,winner_share,0.741509,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070403003,07,GRUPO ESCOLAR CARLOS ARVELO,Carabobo,5039,7,63,winner_share,0.222315,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+071301005,07,UNIDAD EDUCATIVA NACIONAL CAMPO SOLO,Carabobo,4746,7,74,winner_share,1.225372,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+071402003,07,UNIDAD EDUCATIVA ESTADAL JUANA GOMEZ,Carabobo,4255,6,102,winner_share,1.57729,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070704005,07,ESCUELA MARIA CONCEPCION DE BOLIVAR,Carabobo,4107,6,116,winner_share,0.804717,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070401006,07,PRE ESCOLAR EL SAMAN CEI BOLIVARIANO EL SAMAN,Carabobo,3993,6,127,winner_share,1.536673,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070703004,07,ESCUELA BASICA LA SALLE BALOCHE,Carabobo,3935,6,133,winner_share,0.572404,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070705004,07,UNIDAD EDUCATIVA COLEGIO CENTRO ESTUDIO CARABOBO,Carabobo,3509,5,151,winner_share,1.251195,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+080201004,08,ESCUELA BASICA ANTONIO JOSE DE SUCRE,Cojedes,2910,4,15,winner_share,1.098806,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+080301002,08,LICEO BOLIVARIANO HIGINIO MORALES,Cojedes,2894,4,16,winner_share,0.602096,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+091002014,09,ESCUELA TECNICA INDUSTRIAL ROBINSONIANA CORO  EXTENSION SAN JOSE,Falcon,4178,6,7,winner_share,1.827132,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+091001020,09,ESCUELA BASICA VELITA II,Falcon,3696,5,19,winner_share,1.632595,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+091001022,09,COMPLEJO EDUCATIVO MIGUEL LOPEZ GARCIA,Falcon,3683,5,20,winner_share,1.449814,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+090401007,09,ESCUELA BÁSICA ANTIGUO AEROPUERTO,Falcon,3466,5,28,winner_share,1.3747,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+100701003,10,ESCUELA BASICA NACIONAL RÓMULO GALLEGOS,Guarico,5067,7,4,winner_share,1.224525,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+101101001,10,ESCUELA BASICA CARLOS IRAZABAL PEREZ,Guarico,4551,6,7,winner_share,1.174849,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+100301009,10,ESCUELA BASICA CELINA ACOSTA DE VIANA,Guarico,4397,6,8,winner_share,0.186292,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+100301021,10,LICEO FRANCISCO DE MIRANDA,Guarico,4005,6,19,winner_share,0.867989,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110207048,11,ESCUELA BASICA SIMON BOLIVAR,Lara,7145,10,3,winner_share,0.461905,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110203002,11,UNIDAD EDUCATIVA MARIA LEDEZMA,Lara,6854,9,4,winner_share,1.967708,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110207015,11,UNIDAD EDUCATVA BERNABE PLANAS,Lara,6514,9,5,winner_share,1.293131,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110204001,11,UNIDAD EDUCATIVA CORONEL GENARO VASQUEZ,Lara,5122,7,13,winner_share,0.329741,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110601017,11,UNIDAD EDUCATIVA ESTADAL RAIMUNDO PERNALETE,Lara,4398,6,20,winner_share,0.856538,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110601011,11,UNIDAD EDUCATIVA NACIONAL EXPEDITO CORTES,Lara,4238,6,26,winner_share,1.231483,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110601014,11,ESCUELA BASICA ARGENIS GRATEROL,Lara,4064,6,36,winner_share,0.471164,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+120806002,12,UNIDAD EDUCATIVA ANDRES ELOY BLANCO,Merida,4709,6,1,winner_share,0.610792,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+120107003,12,ESCUELA BASICA ANDRES BELLO,Merida,4375,6,3,winner_share,1.53018,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+120901001,12,ESCUELA ESTADO APURE,Merida,3594,5,10,winner_share,1.950133,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+120806001,12,GRUPO ESCOLAR EL EDUCADOR,Merida,3574,5,11,winner_share,1.539775,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131101024,13,ESCUELA EL INGENIO,Miranda,5989,8,34,winner_share,0.398702,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131603002,13,UNIDAD EDUCATIVA ESTADAL  ADOLFO NAVAS  CORONADO,Miranda,5762,8,41,winner_share,0.523843,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130903007,13,UNIDAD EDUCATIVA FE Y ALEGRIA PADRE JOAQUIN LOPEZ,Miranda,4876,7,75,winner_share,1.724082,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130301037,13,UNIDAD ESTADAL EDUCATIVA CECILIO ACOSTA 1,Miranda,4830,7,79,winner_share,1.118211,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130901091,13,ESCUELA BASICA NACIONAL . ANTONIO ORDONEZ,Miranda,4760,7,86,winner_share,1.346652,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131603005,13,UNIDAD EDUCATIVA NACIONAL TITO SALAS,Miranda,4657,7,91,winner_share,1.896698,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130101001,13,UNIDAD EDUCATIVA ROSCIO,Miranda,4366,6,106,winner_share,1.963475,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130901099,13,UNIDAD EDUCATIVA NACIONAL LICEO MARIANO PICON SALAS,Miranda,4078,6,123,winner_share,0.196554,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131101007,13,GRUPO ESCOLAR ELIAS CALIXTO POMPA,Miranda,4010,6,127,winner_share,0.143104,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130901021,13,ESCUELA TECNICA LEONARDO INFANTE,Miranda,3903,5,139,winner_share,0.991023,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+140807001,14,ESCUELA TERESA CARREÑO,Monagas,3479,5,17,winner_share,0.688536,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+140710010,14,ESCUELA PRIMARIA NACIONAL JUAN FRANCISCO MILA DE LA ROCA,Monagas,3129,4,35,winner_share,0.17461,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+140708016,14,ESCUELA BASICA CECILIO ACOSTA,Monagas,2986,4,42,winner_share,0.742756,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+140501001,14,ESCUELA BÁSICA ALBERTO RAVELL,Monagas,2842,4,53,winner_share,0.455874,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+151101001,15,UNIDAD EDUCATIVA NACIONAL BOLIVARIANA MONSENOR EDUARDO VASQUEZ,Nueva Esparta,3242,5,7,winner_share,1.027275,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+151102002,15,UNIDAD EDUCATIVA ESCUELA BÁSICA VILLA ROSA,Nueva Esparta,3103,4,10,winner_share,0.918036,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+150601023,15,UNIDAD EDUCATIVA RAFAEL SALAZAR BRITO,Nueva Esparta,3090,4,12,winner_share,0.651494,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+160101047,16,ESCUELA BASICA YOLANDA RIVERA DE PIERUZZINI,Portuguesa,3895,6,2,winner_share,1.02326,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+160601021,16,UNIDAD EDUCATIVA COLEGIO PRIVADO FE Y ALEGRIA NUESTRA SENORA DE COROMOTO,Portuguesa,3420,5,14,winner_share,1.679034,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+160601015,16,GRUPO ESCOLAR BOLIVARIANO DURIGUA,Portuguesa,2986,4,34,winner_share,0.186216,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+160201006,16,ESCUELA BASICA  ANTONIO RODRIGUEZ PICON,Portuguesa,2551,4,59,winner_share,0.303743,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+170903019,17,ESCUELA BOLIVARIANA RÍO CARIBE,Sucre,4864,7,3,winner_share,0.039087,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+170301012,17,LICEO JOSÉ FRANCISCO BERMÚDEZ,Sucre,4030,6,10,winner_share,0.623664,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+170907002,17,UNIDAD EDUCATIVA NUEVA CÓRDOBA,Sucre,3756,5,14,winner_share,0.643137,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+170903006,17,UNIDAD EDUCATIVA GRAN MARISCAL DE AYACUCHO,Sucre,3268,5,28,winner_share,0.322473,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+181601011,18,ESCUELA TECNICA INDUSTRIAL ROBINSONIANA SIMON BOLIVAR,Tachira,5547,8,7,winner_share,0.298836,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+181601002,18,GRUPO ESCOLAR PEDRO MARIA DE UREÑA,Tachira,5136,7,9,winner_share,1.922479,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+181001004,18,ESCUELA BASICA NACIONAL BOLIVARIANA DOCTOR FRANCISCO JAVIER GARCIA DE HEVIA,Tachira,4119,6,26,winner_share,1.462864,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+181601001,18,ESCUELA BOLIVARIANA NACIONAL LA FRONTERA,Tachira,4049,6,29,winner_share,1.453013,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+180202001,18,GRUPO ESCOLAR  EL PALOTAL,Tachira,3981,6,30,winner_share,0.505157,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+190702007,19,ESCUELA BOLIVARIANA CIUDAD DE VALERA,Trujillo,3334,5,14,winner_share,1.18425,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+190507001,19,UNIDAD EDUCATIVA DOCTOR ANDRÉS LOMELLI ROSARIO,Trujillo,3230,5,20,winner_share,0.926034,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+192002005,19,ESCUELA BOLIVARIANA VIVIENDA RURAL,Trujillo,3094,4,23,winner_share,0.029281,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+190202005,19,ESCUELA BOLIVARIANA PRESBÍTERO JOSÉ DE JESÚS ESPINOZA,Trujillo,3060,4,24,winner_share,0.43982,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+200401020,20,ESCUELA BASICA CARMEN DE RAMIREZ,Yaracuy,3202,5,6,winner_share,1.474683,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+200302002,20,ESCUELA INTEGRAL BOLIVARIANA PEDRO MARIA SOSA,Yaracuy,2217,3,37,winner_share,1.729069,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+200301007,20,LICEO BOLIVARIANO HERIBERTO NUÑEZ OLIVEROS,Yaracuy,1853,3,54,winner_share,0.540773,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210513002,21,ESCUELA BASICA NACIONAL CUATRICENTENARIA,Zulia,6571,9,14,winner_share,0.682517,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210515002,21,ESCUELA BASICA NACIONAL LUIS GUILLERMO SANCHEZ,Zulia,6340,9,21,winner_share,0.310712,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210513016,21,ESCUELA BASICA NACIONAL MAXIMA ARTEAGA PEREZ,Zulia,6312,9,22,winner_share,1.48261,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210305005,21,ESCUELA ENCONTRADOS,Zulia,5992,8,27,winner_share,1.67681,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210514008,21,UNIDAD EDUCATIVA NACIONAL HERMANO IDELFONZO GUTIERREZ,Zulia,5926,8,30,winner_share,0.212546,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211805009,21,UNIDAD  EDUCATIVA  ARQUIDIOCESANA MADRE LAURA,Zulia,5910,8,31,winner_share,1.210397,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211102016,21,ESCUELA NACIONAL LOS SAMANES,Zulia,5537,8,41,winner_share,1.141231,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211805012,21,ESCUELA BASICA NACIONAL SISO MARTINEZ,Zulia,5391,7,44,winner_share,0.435537,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210516002,21,ESCUELA BASICA NACIONAL BACHILLER RAFAEL ESCANDELA,Zulia,4908,7,61,winner_share,0.018168,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211803008,21,ESCUELA BASICA NACIONAL JOSE ANTONIO CALCAÑO,Zulia,4773,7,65,winner_share,0.437529,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211805013,21,UNIDAD EDUCATIVA NACIONAL GONZALO RINCON GUTIERREZ,Zulia,4711,7,76,winner_share,0.014866,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210503009,21,LICEO NACIONAL DR JESUS ENRIQUE LOSSADA,Zulia,4647,7,80,winner_share,0.410723,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+220102014,22,LICEO BOLIVARIANO CECILIO ACOSTA,Amazonas,3440,5,1,winner_share,1.025628,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+220102008,22,ESCUELA BASICA SIMON RODRIGUEZ,Amazonas,2552,4,7,winner_share,0.571938,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+230202001,23,ESCUELA BOLIVARIANA OROCOIMA,Delta Amacuro,1027,2,36,winner_share,0.147891,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+230108008,23,CONCENTRACION ESCOLAR NUMERO 1,Delta Amacuro,953,2,38,winner_share,1.98128,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+240104001,24,UNIDAD EDUCATIVA ESTADAL EMILIO GIMON STERLING,La Guaira,4458,6,6,winner_share,1.417448,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+240104010,24,UNIDAD EDUCATIVA ESTATAL DOCTOR ALFREDO MACHADO,La Guaira,4291,6,8,winner_share,0.792805,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+240107011,24,GRUPO ESCOLAR REPUBLICA DEL SALVADOR,La Guaira,3907,6,12,winner_share,0.31734,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010107021,01,UNIDAD EDUCATIVA NACIONAL BOLIVARIANA MIGUEL VILLAVICENCIO,Distrito Capital,5549,8,30,top2_gap,1.07799,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010114002,01,ESCUELA BÁSICA BOLIVARIANA CARACCIOLO PARRA LEÓN,Distrito Capital,4739,7,56,top2_gap,0.170151,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010110007,01,LICEO BOLIVARIANO LUIS ESPELOZÍN,Distrito Capital,4112,6,88,top2_gap,1.420403,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010114045,01,UNIVERSIDAD EXPERIMENTAL SIMÓN RODRÍGUEZ,Distrito Capital,3673,5,113,top2_gap,1.570702,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010113004,01,UNIDAD EDUCATIVA DISTRITAL SIMÓN RODRÍGUEZ,Distrito Capital,3362,5,148,top2_gap,0.830782,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010104014,01,LICEO BOLIVARIANO LINO GALLARDO,Distrito Capital,3322,5,152,top2_gap,1.954008,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010115007,01,COLEGIO FUNDACIÓN CARLOS DELFINO,Distrito Capital,3313,5,155,top2_gap,1.318071,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010110056,01,UNIDAD EDUCATIVA COLEGIO PARROQUIAL LA SAGRADA FAMILIA.,Distrito Capital,3173,5,170,top2_gap,1.473611,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010122023,01,LICEO BOLIVARIANO ANTONIO MUÑOZ TEBAR,Distrito Capital,3121,4,175,top2_gap,1.965076,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020101013,02,UNIDAD EDUCATIVA NARCISO FRAGACHAN,Anzoategui,5132,7,8,top2_gap,1.768346,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+021201006,02,UNIDAD EDUCATIVA HERNANDEZ PARES,Anzoategui,4832,7,12,top2_gap,1.591828,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020302001,02,ESCUELA ESTADAL DOMINGO MAZA VELASQUEZ,Anzoategui,4293,6,28,top2_gap,1.28734,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020101019,02,ESCUELA  RURAL B  KILÓMETRO 5,Anzoategui,4043,6,42,top2_gap,0.78699,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020901006,02,LICEO PINTO SALINAS,Anzoategui,3610,5,70,top2_gap,1.331611,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020301020,02,UNIDAD EDUCATIVA ENRIQUE PEREZ VALENCIA,Anzoategui,3567,5,73,top2_gap,0.918797,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+030501013,03,LICEO BOLIVARIANO MANUEL ANTONIO NIEVES,Apure,4067,6,1,top2_gap,1.271021,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+030101001,03,ESCUELA BASICA BOLIVARIANA TERESA HURTADO,Apure,3540,5,9,top2_gap,0.961244,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+030101006,03,ESCUELA PRIMARIA BOLIVARIANA EL NAZARENO,Apure,3127,5,18,top2_gap,0.099571,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+041701009,04,UNIVERSIDAD DE CARABOBO MORITA II,Aragua,7226,10,2,top2_gap,1.749469,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040202001,04,ESCUELA BASICA ROSA AMELIA FLORES,Aragua,6352,9,4,top2_gap,0.659322,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040202009,04,CICLO BASICO MARI/O,Aragua,5267,7,14,top2_gap,0.346732,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+041302001,04,ESCUELA BASICA JOSE FELIX RIBAS,Aragua,4180,6,55,top2_gap,1.357622,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040108012,04,ESCUELA BASICA ANIBAL CASTILLO,Aragua,3382,5,110,top2_gap,1.296596,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040202002,04,ESCUELA BASICA JOSEFINA BOLIVAR DE GONZALEZ,Aragua,2834,4,172,top2_gap,1.640329,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040501002,04,UNIDAD EDUCATIVA NACIONAL DR ELISEO ACOSTA,Aragua,2820,4,173,top2_gap,0.120874,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+050210005,05,UNIDAD  EDUCATIVA PADRE FELIPE  SALVADOR GILIJ,Barinas,3816,5,18,top2_gap,0.410902,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+050208004,05,ESCUELA BASICA LOURDES RIVAS  DE TORRES,Barinas,3723,5,20,top2_gap,1.198284,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+050302007,05,UNIDAD EDUCATIVA  JOSE RAMON TRASPUESTO,Barinas,3571,5,26,top2_gap,0.794385,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+050302005,05,ESCUELA BOLIVARIANA ORINOCO,Barinas,3136,4,44,top2_gap,0.592669,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060108025,06,UNIDAD EDUCATIVA NACIONAL DOCTOR LUIS BELTRAN PRIETO FIGUEROA,Bolivar,6565,9,6,top2_gap,1.824962,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060101003,06,ESCUELA ESTADAL BASICA SILVANA DE IRADI,Bolivar,4325,6,33,top2_gap,0.611484,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060101023,06,ESCUELA NACIONAL BASICA ANTONIO DE BERRIOS,Bolivar,3898,5,48,top2_gap,1.328641,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060302011,06,ESCUELA BASICA NACIONAL LOS PROCERES II,Bolivar,3882,6,49,top2_gap,1.757662,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060306005,06,ESCUELA BASICA JOSE ANTONIO PAEZ,Bolivar,3831,5,50,top2_gap,0.590397,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060701005,06,ESCUELA LA MANGA,Bolivar,3593,5,72,top2_gap,0.145903,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070401016,07,UNIDAD EDUCATIVA NACIONAL EL TOQUITO,Carabobo,5122,7,60,top2_gap,1.337812,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070403003,07,GRUPO ESCOLAR CARLOS ARVELO,Carabobo,5039,7,63,top2_gap,0.536779,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070704005,07,ESCUELA MARIA CONCEPCION DE BOLIVAR,Carabobo,4107,6,116,top2_gap,1.534715,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070703004,07,ESCUELA BASICA LA SALLE BALOCHE,Carabobo,3935,6,133,top2_gap,0.94872,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070201003,07,GRUPO ESCOLAR LANCASTER,Carabobo,3226,5,179,top2_gap,0.546902,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070904008,07,ESCUELA NACIONAL EL PRADO,Carabobo,3144,5,189,top2_gap,0.334441,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+071301004,07,UNIDAD EDUCATIVA LOS MAGALLANES,Carabobo,2651,4,235,top2_gap,0.463481,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070908040,07,UNIDAD EDUCATIVA BELLO MONTE,Carabobo,1540,2,366,top2_gap,0.803782,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+080301002,08,LICEO BOLIVARIANO HIGINIO MORALES,Cojedes,2894,4,16,top2_gap,1.117148,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+080201006,08,ESCUELA  BASICA  LIGIA CADENA  DE ALVARADO,Cojedes,2383,3,26,top2_gap,0.468774,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+091001023,09,ESCUELA BOLIVARIANA SAN ANTONIO,Falcon,2982,4,49,top2_gap,1.333764,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+090402015,09,ESCUELA BASICA 23 DE ENERO,Falcon,2337,4,90,top2_gap,0.232432,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+090601001,09,ESCUELA BASICA BOLIVARIANA FABIO MANUEL CHIRINOS,Falcon,2109,3,108,top2_gap,1.852148,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+090402002,09,UNIDAD EDUCATIVA NICOLASA MEDINA DE ZAVALA,Falcon,1714,3,137,top2_gap,1.570068,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+100301009,10,ESCUELA BASICA CELINA ACOSTA DE VIANA,Guarico,4397,6,8,top2_gap,0.381595,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+100301021,10,LICEO FRANCISCO DE MIRANDA,Guarico,4005,6,19,top2_gap,1.734908,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+101001001,10,UNIDAD EDUCATIVA NACIONAL RAFAEL PAREDES,Guarico,3424,5,37,top2_gap,0.192654,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+100601008,10,ESCUELA BASICA ANTONIO JOSE DE SUCRE,Guarico,2055,3,88,top2_gap,0.827936,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110207048,11,ESCUELA BASICA SIMON BOLIVAR,Lara,7145,10,3,top2_gap,0.842047,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110204001,11,UNIDAD EDUCATIVA CORONEL GENARO VASQUEZ,Lara,5122,7,13,top2_gap,0.726612,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110601017,11,UNIDAD EDUCATIVA ESTADAL RAIMUNDO PERNALETE,Lara,4398,6,20,top2_gap,1.714981,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110601014,11,ESCUELA BASICA ARGENIS GRATEROL,Lara,4064,6,36,top2_gap,0.932452,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110204017,11,ESCUELA BASICA EZEQUIEL ZAMORA,Lara,3487,5,64,top2_gap,0.340824,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110204023,11,UNIDAD EDUCATIVA CIUDAD DE VALENCIA,Lara,3045,4,104,top2_gap,0.877384,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110207050,11,CENTRO PRE ESCOLAR BOLIVARIANO SIMON RODRIGUEZ,Lara,2935,4,113,top2_gap,0.584141,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+120806002,12,UNIDAD EDUCATIVA ANDRES ELOY BLANCO,Merida,4709,6,1,top2_gap,1.320963,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+121802002,12,GRUPO ESCOLAR ESTADO NUEVA ESPARTA,Merida,3136,4,29,top2_gap,1.713503,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+120801005,12,COLEGIO PRIVADO JARDIN FRANCISCANO,Merida,3086,4,33,top2_gap,1.479902,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+120813001,12,COMPLEJO EDUCATIVO EMIRO FUENMAYOR,Merida,2838,4,48,top2_gap,0.596672,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131101024,13,ESCUELA EL INGENIO,Miranda,5989,8,34,top2_gap,0.593444,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131603002,13,UNIDAD EDUCATIVA ESTADAL  ADOLFO NAVAS  CORONADO,Miranda,5762,8,41,top2_gap,1.072165,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130901099,13,UNIDAD EDUCATIVA NACIONAL LICEO MARIANO PICON SALAS,Miranda,4078,6,123,top2_gap,1.116253,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131101007,13,GRUPO ESCOLAR ELIAS CALIXTO POMPA,Miranda,4010,6,127,top2_gap,0.374052,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130901021,13,ESCUELA TECNICA LEONARDO INFANTE,Miranda,3903,5,139,top2_gap,1.634135,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130801033,13,UNIDAD EDUCATIVA BENITO CANONICO,Miranda,3634,5,167,top2_gap,0.375591,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131201002,13,ESCUELA ESTADAL GRADUADA POLICARPO FARRERA,Miranda,3594,5,176,top2_gap,0.637548,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131201013,13,CENTRO DE  EDUCACION INICIAL ESTE NIÑO DON SIMON,Miranda,3025,4,247,top2_gap,1.2928,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131201005,13,GRUPO ESCOLAR TERESA DE BOLIVAR,Miranda,3013,4,248,top2_gap,0.434393,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131101041,13,LICEO VICENTE EMILIO SOJO,Miranda,2780,4,277,top2_gap,1.182699,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+140807001,14,ESCUELA TERESA CARREÑO,Monagas,3479,5,17,top2_gap,1.467068,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+140710010,14,ESCUELA PRIMARIA NACIONAL JUAN FRANCISCO MILA DE LA ROCA,Monagas,3129,4,35,top2_gap,0.30622,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+140708016,14,ESCUELA BASICA CECILIO ACOSTA,Monagas,2986,4,42,top2_gap,1.413727,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+140501001,14,ESCUELA BÁSICA ALBERTO RAVELL,Monagas,2842,4,53,top2_gap,0.683876,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+151102002,15,UNIDAD EDUCATIVA ESCUELA BÁSICA VILLA ROSA,Nueva Esparta,3103,4,10,top2_gap,1.980725,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+150601023,15,UNIDAD EDUCATIVA RAFAEL SALAZAR BRITO,Nueva Esparta,3090,4,12,top2_gap,1.27956,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+150701002,15,ESCUELA BASICA MONSENOR NICOLAS EUGENIO NAVARRO,Nueva Esparta,2713,4,25,top2_gap,0.169103,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+160101047,16,ESCUELA BASICA YOLANDA RIVERA DE PIERUZZINI,Portuguesa,3895,6,2,top2_gap,1.912738,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+160601015,16,GRUPO ESCOLAR BOLIVARIANO DURIGUA,Portuguesa,2986,4,34,top2_gap,0.394652,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+160201006,16,ESCUELA BASICA  ANTONIO RODRIGUEZ PICON,Portuguesa,2551,4,59,top2_gap,0.46724,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+160101068,16,UNIDAD EDUCATIVA NACIONAL SAMUEL ROBINSON,Portuguesa,2254,3,80,top2_gap,1.861798,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+170903019,17,ESCUELA BOLIVARIANA RÍO CARIBE,Sucre,4864,7,3,top2_gap,0.101924,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+170301012,17,LICEO JOSÉ FRANCISCO BERMÚDEZ,Sucre,4030,6,10,top2_gap,1.304568,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+170907002,17,UNIDAD EDUCATIVA NUEVA CÓRDOBA,Sucre,3756,5,14,top2_gap,1.143906,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+170903006,17,UNIDAD EDUCATIVA GRAN MARISCAL DE AYACUCHO,Sucre,3268,5,28,top2_gap,0.66267,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+181601011,18,ESCUELA TECNICA INDUSTRIAL ROBINSONIANA SIMON BOLIVAR,Tachira,5547,8,7,top2_gap,0.654029,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+180202001,18,GRUPO ESCOLAR  EL PALOTAL,Tachira,3981,6,30,top2_gap,1.114024,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+181301002,18,UNIDAD EDUCATIVA CAMILO PRADA,Tachira,3298,5,71,top2_gap,0.696516,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+181501002,18,UNIDAD EDUCATIVA MONSEÑOR RAFAEL ARIAS BLANCO,Tachira,3148,4,81,top2_gap,0.921551,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+180302001,18,UNIDAD EDUCATIVA ESTADAL JUAN GERMAN ROSCIO,Tachira,2996,4,91,top2_gap,1.459129,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+190507001,19,UNIDAD EDUCATIVA DOCTOR ANDRÉS LOMELLI ROSARIO,Trujillo,3230,5,20,top2_gap,1.46768,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+192002005,19,ESCUELA BOLIVARIANA VIVIENDA RURAL,Trujillo,3094,4,23,top2_gap,0.235001,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+190202005,19,ESCUELA BOLIVARIANA PRESBÍTERO JOSÉ DE JESÚS ESPINOZA,Trujillo,3060,4,24,top2_gap,0.797906,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+191403002,19,COLEGIO MARISCAL ANTONIO JOSÉ DE SUCRE,Trujillo,3044,4,26,top2_gap,0.033309,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+200301007,20,LICEO BOLIVARIANO HERIBERTO NUÑEZ OLIVEROS,Yaracuy,1853,3,54,top2_gap,0.908697,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+201201001,20,ESCUELA BASICA LUISA DE MORALES,Yaracuy,1830,3,58,top2_gap,1.836258,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+201201003,20,LICEO BOLIVARIANO CREACION SAN PABLO,Yaracuy,1569,2,82,top2_gap,0.13108,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210513002,21,ESCUELA BASICA NACIONAL CUATRICENTENARIA,Zulia,6571,9,14,top2_gap,1.301659,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210515002,21,ESCUELA BASICA NACIONAL LUIS GUILLERMO SANCHEZ,Zulia,6340,9,21,top2_gap,0.683607,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210514008,21,UNIDAD EDUCATIVA NACIONAL HERMANO IDELFONZO GUTIERREZ,Zulia,5926,8,30,top2_gap,0.453592,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211805012,21,ESCUELA BASICA NACIONAL SISO MARTINEZ,Zulia,5391,7,44,top2_gap,0.85178,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210516002,21,ESCUELA BASICA NACIONAL BACHILLER RAFAEL ESCANDELA,Zulia,4908,7,61,top2_gap,0.047243,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211803008,21,ESCUELA BASICA NACIONAL JOSE ANTONIO CALCAÑO,Zulia,4773,7,65,top2_gap,0.923503,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211805013,21,UNIDAD EDUCATIVA NACIONAL GONZALO RINCON GUTIERREZ,Zulia,4711,7,76,top2_gap,0.087636,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210503009,21,LICEO NACIONAL DR JESUS ENRIQUE LOSSADA,Zulia,4647,7,80,top2_gap,0.836074,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210516012,21,ESCUELA BASICA ESTADAL MAESTRO TOMAS  RAFAEL JIMENEZ,Zulia,4433,6,94,top2_gap,0.753144,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211804001,21,ESCUELA BASICA NACIONAL CARMELA QUINTERO,Zulia,4290,6,108,top2_gap,0.591095,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211002001,21,UNIDAD EDUCATIVA NACIONAL CACIQUE MARA,Zulia,3750,5,165,top2_gap,0.049143,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+212001002,21,UNIDAD EDUCATIVA NACIONAL BERNARDO VILLASMIL,Zulia,3705,5,168,top2_gap,1.34417,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+220102014,22,LICEO BOLIVARIANO CECILIO ACOSTA,Amazonas,3440,5,1,top2_gap,1.92378,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+220102008,22,ESCUELA BASICA SIMON RODRIGUEZ,Amazonas,2552,4,7,top2_gap,1.218421,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+230202001,23,ESCUELA BOLIVARIANA OROCOIMA,Delta Amacuro,1027,2,36,top2_gap,0.079142,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+230104008,23,ESCUELA ANDRES BELLO,Delta Amacuro,599,1,68,top2_gap,1.8015,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+240104010,24,UNIDAD EDUCATIVA ESTATAL DOCTOR ALFREDO MACHADO,La Guaira,4291,6,8,top2_gap,1.479092,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+240107011,24,GRUPO ESCOLAR REPUBLICA DEL SALVADOR,La Guaira,3907,6,12,top2_gap,0.442022,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+240107009,24,ESCUELA. BASICA. ESTATAL JUAN GERMAN ROSCIO,La Guaira,2536,4,40,top2_gap,0.168057,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010115010,01,UNIDAD EDUCATIVA BOLIVARIANA PEDRO FONTES,Distrito Capital,6032,8,24,full_profile,1.28663,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010107021,01,UNIDAD EDUCATIVA NACIONAL BOLIVARIANA MIGUEL VILLAVICENCIO,Distrito Capital,5549,8,30,full_profile,0.617187,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010110169,01,ESCUELA BÁSICA NACIONAL ESPAÑA,Distrito Capital,4991,7,42,full_profile,1.982642,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010110038,01,UNIDAD EDUCATIVA NACIONAL ANTONIO JOSÉ DE SUCRE,Distrito Capital,4847,7,49,full_profile,1.581029,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010114002,01,ESCUELA BÁSICA BOLIVARIANA CARACCIOLO PARRA LEÓN,Distrito Capital,4739,7,56,full_profile,0.180376,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010110007,01,LICEO BOLIVARIANO LUIS ESPELOZÍN,Distrito Capital,4112,6,88,full_profile,0.859109,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010114045,01,UNIVERSIDAD EXPERIMENTAL SIMÓN RODRÍGUEZ,Distrito Capital,3673,5,113,full_profile,0.875567,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010110016,01,UNIDAD EDUCATIVA NACIONAL LICEO BOLIVARIANO NICANOR BOLET PERAZA,Distrito Capital,3509,5,125,full_profile,1.143323,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010110101,01,ESCUELA BÁSICA NACIONAL SUCRE,Distrito Capital,3384,5,142,full_profile,1.58638,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+021301021,02,GRUPO ESCOLAR TOMAS MOGNA,Anzoategui,5372,7,6,full_profile,1.379367,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020101013,02,UNIDAD EDUCATIVA NARCISO FRAGACHAN,Anzoategui,5132,7,8,full_profile,0.961163,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+021201006,02,UNIDAD EDUCATIVA HERNANDEZ PARES,Anzoategui,4832,7,12,full_profile,0.833011,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020302026,02,UNIDAD EDUCATIVA DOCTOR JOSÉ GIL FORTOUL,Anzoategui,4602,7,16,full_profile,1.677909,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020101022,02,UNIDAD EDUCATIVA  VIENTO FRESCO,Anzoategui,4559,6,18,full_profile,1.266327,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+020302001,02,ESCUELA ESTADAL DOMINGO MAZA VELASQUEZ,Anzoategui,4293,6,28,full_profile,0.685004,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+030501013,03,LICEO BOLIVARIANO MANUEL ANTONIO NIEVES,Apure,4067,6,1,full_profile,0.677048,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+030101001,03,ESCUELA BASICA BOLIVARIANA TERESA HURTADO,Apure,3540,5,9,full_profile,0.534381,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+030603004,03,ESCUELA BASICA EL RECREO,Apure,3301,5,15,full_profile,1.754236,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+041701009,04,UNIVERSIDAD DE CARABOBO MORITA II,Aragua,7226,10,2,full_profile,0.968167,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040202001,04,ESCUELA BASICA ROSA AMELIA FLORES,Aragua,6352,9,4,full_profile,0.428697,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040202009,04,CICLO BASICO MARI/O,Aragua,5267,7,14,full_profile,0.336685,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+041302001,04,ESCUELA BASICA JOSE FELIX RIBAS,Aragua,4180,6,55,full_profile,0.814812,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040108012,04,ESCUELA BASICA ANIBAL CASTILLO,Aragua,3382,5,110,full_profile,0.681413,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040108006,04,ESCUELA BASICA AGUSTIN AVELEDO,Aragua,3345,5,115,full_profile,1.856019,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+040202002,04,ESCUELA BASICA JOSEFINA BOLIVAR DE GONZALEZ,Aragua,2834,4,172,full_profile,0.903188,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+050212001,05,ESCUELA BASICA ESTATAL VIRGINIA DE CONTRERAS,Barinas,4700,7,3,full_profile,1.126433,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+050210005,05,UNIDAD  EDUCATIVA PADRE FELIPE  SALVADOR GILIJ,Barinas,3816,5,18,full_profile,0.285525,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+050208004,05,ESCUELA BASICA LOURDES RIVAS  DE TORRES,Barinas,3723,5,20,full_profile,0.688244,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+050302007,05,UNIDAD EDUCATIVA  JOSE RAMON TRASPUESTO,Barinas,3571,5,26,full_profile,0.446793,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060108025,06,UNIDAD EDUCATIVA NACIONAL DOCTOR LUIS BELTRAN PRIETO FIGUEROA,Bolivar,6565,9,6,full_profile,0.958297,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060101003,06,ESCUELA ESTADAL BASICA SILVANA DE IRADI,Bolivar,4325,6,33,full_profile,0.373969,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060303014,06,ESCUELA BASICA NACIONAL JOSE LUIS AFANADOR,Bolivar,4238,6,36,full_profile,1.352639,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060101023,06,ESCUELA NACIONAL BASICA ANTONIO DE BERRIOS,Bolivar,3898,5,48,full_profile,0.702458,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060302011,06,ESCUELA BASICA NACIONAL LOS PROCERES II,Bolivar,3882,6,49,full_profile,0.957358,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+060306005,06,ESCUELA BASICA JOSE ANTONIO PAEZ,Bolivar,3831,5,50,full_profile,0.338475,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070401016,07,UNIDAD EDUCATIVA NACIONAL EL TOQUITO,Carabobo,5122,7,60,full_profile,0.752712,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070403003,07,GRUPO ESCOLAR CARLOS ARVELO,Carabobo,5039,7,63,full_profile,0.363113,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+071301005,07,UNIDAD EDUCATIVA NACIONAL CAMPO SOLO,Carabobo,4746,7,74,full_profile,1.246877,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+071402003,07,UNIDAD EDUCATIVA ESTADAL JUANA GOMEZ,Carabobo,4255,6,102,full_profile,1.577791,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070704005,07,ESCUELA MARIA CONCEPCION DE BOLIVAR,Carabobo,4107,6,116,full_profile,0.847981,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070401006,07,PRE ESCOLAR EL SAMAN CEI BOLIVARIANO EL SAMAN,Carabobo,3993,6,127,full_profile,1.719461,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070703004,07,ESCUELA BASICA LA SALLE BALOCHE,Carabobo,3935,6,133,full_profile,0.593178,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+070705004,07,UNIDAD EDUCATIVA COLEGIO CENTRO ESTUDIO CARABOBO,Carabobo,3509,5,151,full_profile,1.298582,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+080201004,08,ESCUELA BASICA ANTONIO JOSE DE SUCRE,Cojedes,2910,4,15,full_profile,1.228676,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+080301002,08,LICEO BOLIVARIANO HIGINIO MORALES,Cojedes,2894,4,16,full_profile,0.602096,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+091001020,09,ESCUELA BASICA VELITA II,Falcon,3696,5,19,full_profile,1.644112,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+091001022,09,COMPLEJO EDUCATIVO MIGUEL LOPEZ GARCIA,Falcon,3683,5,20,full_profile,1.69903,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+090401007,09,ESCUELA BÁSICA ANTIGUO AEROPUERTO,Falcon,3466,5,28,full_profile,1.3747,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+091001007,09,ESCUELA BÁSICA LUCAS ADAMES,Falcon,3202,5,37,full_profile,1.528231,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+100701003,10,ESCUELA BASICA NACIONAL RÓMULO GALLEGOS,Guarico,5067,7,4,full_profile,1.260498,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+101101001,10,ESCUELA BASICA CARLOS IRAZABAL PEREZ,Guarico,4551,6,7,full_profile,1.268347,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+100301009,10,ESCUELA BASICA CELINA ACOSTA DE VIANA,Guarico,4397,6,8,full_profile,0.229586,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+100301021,10,LICEO FRANCISCO DE MIRANDA,Guarico,4005,6,19,full_profile,0.926893,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110207048,11,ESCUELA BASICA SIMON BOLIVAR,Lara,7145,10,3,full_profile,0.463491,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110207015,11,UNIDAD EDUCATVA BERNABE PLANAS,Lara,6514,9,5,full_profile,1.407156,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110204001,11,UNIDAD EDUCATIVA CORONEL GENARO VASQUEZ,Lara,5122,7,13,full_profile,0.413277,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110601017,11,UNIDAD EDUCATIVA ESTADAL RAIMUNDO PERNALETE,Lara,4398,6,20,full_profile,0.923875,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110601011,11,UNIDAD EDUCATIVA NACIONAL EXPEDITO CORTES,Lara,4238,6,26,full_profile,1.581674,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110601014,11,ESCUELA BASICA ARGENIS GRATEROL,Lara,4064,6,36,full_profile,0.585508,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+110601019,11,UNIDAD EDUCATIVA NACIONAL  JUAN BAUTISTA FRANCO,Lara,3881,5,46,full_profile,1.247245,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+120806002,12,UNIDAD EDUCATIVA ANDRES ELOY BLANCO,Merida,4709,6,1,full_profile,0.731288,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+120107003,12,ESCUELA BASICA ANDRES BELLO,Merida,4375,6,3,full_profile,1.594203,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+120806001,12,GRUPO ESCOLAR EL EDUCADOR,Merida,3574,5,11,full_profile,1.650162,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+120406004,12,AULAS ANEXAS EDELMIRA LOBO,Merida,3431,5,18,full_profile,1.186597,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131101024,13,ESCUELA EL INGENIO,Miranda,5989,8,34,full_profile,0.423927,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131603002,13,UNIDAD EDUCATIVA ESTADAL  ADOLFO NAVAS  CORONADO,Miranda,5762,8,41,full_profile,0.568078,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130903007,13,UNIDAD EDUCATIVA FE Y ALEGRIA PADRE JOAQUIN LOPEZ,Miranda,4876,7,75,full_profile,1.735119,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130301037,13,UNIDAD ESTADAL EDUCATIVA CECILIO ACOSTA 1,Miranda,4830,7,79,full_profile,1.118211,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130901091,13,ESCUELA BASICA NACIONAL . ANTONIO ORDONEZ,Miranda,4760,7,86,full_profile,1.36087,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131603005,13,UNIDAD EDUCATIVA NACIONAL TITO SALAS,Miranda,4657,7,91,full_profile,1.940399,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130901099,13,UNIDAD EDUCATIVA NACIONAL LICEO MARIANO PICON SALAS,Miranda,4078,6,123,full_profile,0.931201,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+131101007,13,GRUPO ESCOLAR ELIAS CALIXTO POMPA,Miranda,4010,6,127,full_profile,0.262645,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130901021,13,ESCUELA TECNICA LEONARDO INFANTE,Miranda,3903,5,139,full_profile,1.002059,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+130801033,13,UNIDAD EDUCATIVA BENITO CANONICO,Miranda,3634,5,167,full_profile,0.29193,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+140807001,14,ESCUELA TERESA CARREÑO,Monagas,3479,5,17,full_profile,0.787786,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+140710010,14,ESCUELA PRIMARIA NACIONAL JUAN FRANCISCO MILA DE LA ROCA,Monagas,3129,4,35,full_profile,0.22387,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+140708016,14,ESCUELA BASICA CECILIO ACOSTA,Monagas,2986,4,42,full_profile,0.758497,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+140501001,14,ESCUELA BÁSICA ALBERTO RAVELL,Monagas,2842,4,53,full_profile,0.473108,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+151101001,15,UNIDAD EDUCATIVA NACIONAL BOLIVARIANA MONSENOR EDUARDO VASQUEZ,Nueva Esparta,3242,5,7,full_profile,1.075805,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+151102002,15,UNIDAD EDUCATIVA ESCUELA BÁSICA VILLA ROSA,Nueva Esparta,3103,4,10,full_profile,1.128663,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+150601023,15,UNIDAD EDUCATIVA RAFAEL SALAZAR BRITO,Nueva Esparta,3090,4,12,full_profile,0.674235,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+160101047,16,ESCUELA BASICA YOLANDA RIVERA DE PIERUZZINI,Portuguesa,3895,6,2,full_profile,1.073634,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+160601021,16,UNIDAD EDUCATIVA COLEGIO PRIVADO FE Y ALEGRIA NUESTRA SENORA DE COROMOTO,Portuguesa,3420,5,14,full_profile,1.804694,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+160601015,16,GRUPO ESCOLAR BOLIVARIANO DURIGUA,Portuguesa,2986,4,34,full_profile,0.362134,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+160201006,16,ESCUELA BASICA  ANTONIO RODRIGUEZ PICON,Portuguesa,2551,4,59,full_profile,0.333577,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+170903019,17,ESCUELA BOLIVARIANA RÍO CARIBE,Sucre,4864,7,3,full_profile,0.1355,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+170301012,17,LICEO JOSÉ FRANCISCO BERMÚDEZ,Sucre,4030,6,10,full_profile,0.739372,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+170907002,17,UNIDAD EDUCATIVA NUEVA CÓRDOBA,Sucre,3756,5,14,full_profile,0.668567,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+170903006,17,UNIDAD EDUCATIVA GRAN MARISCAL DE AYACUCHO,Sucre,3268,5,28,full_profile,0.367387,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+181601011,18,ESCUELA TECNICA INDUSTRIAL ROBINSONIANA SIMON BOLIVAR,Tachira,5547,8,7,full_profile,0.375574,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+181001004,18,ESCUELA BASICA NACIONAL BOLIVARIANA DOCTOR FRANCISCO JAVIER GARCIA DE HEVIA,Tachira,4119,6,26,full_profile,1.485725,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+181601001,18,ESCUELA BOLIVARIANA NACIONAL LA FRONTERA,Tachira,4049,6,29,full_profile,1.558415,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+180202001,18,GRUPO ESCOLAR  EL PALOTAL,Tachira,3981,6,30,full_profile,0.608867,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+181201011,18,UNIDAD EDUCATIVA GENERAL JOSE ANTONIO PAEZ,Tachira,3773,5,40,full_profile,1.749212,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+190702007,19,ESCUELA BOLIVARIANA CIUDAD DE VALERA,Trujillo,3334,5,14,full_profile,1.205493,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+190507001,19,UNIDAD EDUCATIVA DOCTOR ANDRÉS LOMELLI ROSARIO,Trujillo,3230,5,20,full_profile,0.967386,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+192002005,19,ESCUELA BOLIVARIANA VIVIENDA RURAL,Trujillo,3094,4,23,full_profile,0.20572,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+190202005,19,ESCUELA BOLIVARIANA PRESBÍTERO JOSÉ DE JESÚS ESPINOZA,Trujillo,3060,4,24,full_profile,0.456691,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+200401020,20,ESCUELA BASICA CARMEN DE RAMIREZ,Yaracuy,3202,5,6,full_profile,1.478417,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+200302002,20,ESCUELA INTEGRAL BOLIVARIANA PEDRO MARIA SOSA,Yaracuy,2217,3,37,full_profile,1.791654,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+200301007,20,LICEO BOLIVARIANO HERIBERTO NUÑEZ OLIVEROS,Yaracuy,1853,3,54,full_profile,0.674652,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210513002,21,ESCUELA BASICA NACIONAL CUATRICENTENARIA,Zulia,6571,9,14,full_profile,0.682517,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210515002,21,ESCUELA BASICA NACIONAL LUIS GUILLERMO SANCHEZ,Zulia,6340,9,21,full_profile,0.385402,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210513016,21,ESCUELA BASICA NACIONAL MAXIMA ARTEAGA PEREZ,Zulia,6312,9,22,full_profile,1.509264,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210305005,21,ESCUELA ENCONTRADOS,Zulia,5992,8,27,full_profile,1.695349,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210514008,21,UNIDAD EDUCATIVA NACIONAL HERMANO IDELFONZO GUTIERREZ,Zulia,5926,8,30,full_profile,0.245218,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211805009,21,UNIDAD  EDUCATIVA  ARQUIDIOCESANA MADRE LAURA,Zulia,5910,8,31,full_profile,1.289533,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211102016,21,ESCUELA NACIONAL LOS SAMANES,Zulia,5537,8,41,full_profile,1.347075,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211805012,21,ESCUELA BASICA NACIONAL SISO MARTINEZ,Zulia,5391,7,44,full_profile,0.459159,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210516002,21,ESCUELA BASICA NACIONAL BACHILLER RAFAEL ESCANDELA,Zulia,4908,7,61,full_profile,0.050129,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211803008,21,ESCUELA BASICA NACIONAL JOSE ANTONIO CALCAÑO,Zulia,4773,7,65,full_profile,0.529698,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+211805013,21,UNIDAD EDUCATIVA NACIONAL GONZALO RINCON GUTIERREZ,Zulia,4711,7,76,full_profile,0.093034,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+210503009,21,LICEO NACIONAL DR JESUS ENRIQUE LOSSADA,Zulia,4647,7,80,full_profile,0.436992,capriles,capriles,maduro,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+220102014,22,LICEO BOLIVARIANO CECILIO ACOSTA,Amazonas,3440,5,1,full_profile,1.025628,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+220102008,22,ESCUELA BASICA SIMON RODRIGUEZ,Amazonas,2552,4,7,full_profile,0.671155,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+230202001,23,ESCUELA BOLIVARIANA OROCOIMA,Delta Amacuro,1027,2,36,full_profile,0.21664,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+230303007,23,ESCUELA CONCENTRADA NUMERO 66,Delta Amacuro,676,1,58,full_profile,1.43858,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+240104001,24,UNIDAD EDUCATIVA ESTADAL EMILIO GIMON STERLING,La Guaira,4458,6,6,full_profile,1.462151,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+240104010,24,UNIDAD EDUCATIVA ESTATAL DOCTOR ALFREDO MACHADO,La Guaira,4291,6,8,full_profile,0.812034,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+240107011,24,GRUPO ESCOLAR REPUBLICA DEL SALVADOR,La Guaira,3907,6,12,full_profile,0.332112,maduro,maduro,capriles,"bolivar,capriles,maduro,mendez,mora,sequera",1,2,legacy_similarity,2013_2018
+010119003,01,LICEO BOLIVARIANO PEDRO EMILIO COLL,Distrito Capital,7424,8,5,winner_share,1.955442,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010108025,01,UNIDAD EDUCATIVA COLEGIO GRAN COLOMBIA,Distrito Capital,7406,7,6,winner_share,0.9843,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010116002,01,UNIDAD EDUCATIVA NACIONAL BOLIVARIANO CLAUDIO FELICIANO,Distrito Capital,6628,4,14,winner_share,1.519333,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010114020,01,ESCUELA BÁSICA NACIONAL CARMÉN MAIZO DE BELLO,Distrito Capital,6405,7,17,winner_share,0.659562,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010107010,01,ESCUELA NACIONAL BOLIVARIANA 19 DE ABRIL,Distrito Capital,6155,5,19,winner_share,1.759665,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010110022,01,UNIDAD EDUCATIVA NACIONAL MIGUEL ANTONIO CARO,Distrito Capital,6025,5,22,winner_share,1.053105,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010111013,01,UNIDAD EDUCATIVA NACIONAL 23 DE ENERO,Distrito Capital,5655,5,24,winner_share,0.451299,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+021301011,02,GRUPO ESCOLAR INES MARIA DE POTENTINI,Anzoategui,5664,6,6,winner_share,1.74565,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+021601007,02,UNIDAD EDUCATIVA ESTADAL FRANCISCO FAJARDO,Anzoategui,5616,4,7,winner_share,0.234919,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+020301027,02,ESCUELA NACIONAL PRIMARIA DOCTOR JOSÉ MARIA VARGAS,Anzoategui,5334,6,13,winner_share,0.404541,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+021301015,02,ESCUELA VALLE LINDO,Anzoategui,4750,5,20,winner_share,1.252994,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+021301004,02,LICEO CRISTOBAL COLON,Anzoategui,4585,5,25,winner_share,0.850339,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+020401002,02,LICEO BOLIVARIANO DOCTOR JOSÉ RAFAEL DOMÍNGUEZ,Anzoategui,4545,5,26,winner_share,1.614728,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+020301018,02,ESCUELA NACIONAL BARRIO UNIVERSITARIO,Anzoategui,4385,5,34,winner_share,1.286044,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+030501001,03,ESCUELA BASICA SIMON GARCIA ROSALES,Apure,3111,3,16,winner_share,0.562492,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+030604001,03,ESCUELA BASICA BOLIVARIANA MADARIAGA,Apure,3015,3,20,winner_share,0.605739,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+030601011,03,ESCUELA BASICA ANDRES ELOY BLANCO,Apure,2772,3,27,winner_share,1.163857,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040103002,04,ESCUELA BASICA GREGORIA DIAZ,Aragua,7152,8,1,winner_share,0.852916,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040101011,04,UNIDAD EDUCATIVA ESTADAL DOLORES MENDOZA DE OSORIO,Aragua,5964,7,9,winner_share,0.935475,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040301012,04,ESCUELA BASICA ESTADAL AMERICA FERNANDEZ DE LEONI,Aragua,5817,3,10,winner_share,0.628955,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040902003,04,ESCUELA BASICA SAN ISIDRO LABRADOR,Aragua,4980,6,18,winner_share,0.666824,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040101009,04,CICLO BASICO ANDRES BELLO,Aragua,4775,5,27,winner_share,1.734663,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040108009,04,UNIDAD EDUCATIVA NACIONAL  ANTONIO GARCIA ROJO,Aragua,4524,4,35,winner_share,1.276578,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040106002,04,ESCUELA BASICA RAFAEL URDANETA,Aragua,4472,4,39,winner_share,1.34479,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+050401006,05,LICEO BOLIVARIANO ELIAS ARAQUE MULLER,Barinas,4134,3,7,winner_share,0.045733,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+050401005,05,UNIDAD EDUCATIVA PRIVADO COLEGIO CORAZON DE MARIA,Barinas,4080,5,8,winner_share,0.141486,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+050603001,05,UNIDAD EDUCATIVA SAN RAFAEL DE CANAGUA,Barinas,3684,4,19,winner_share,0.47686,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+050601001,05,ESCUELA BASICA JOSE FRANCISCO JIMENEZ,Barinas,3624,4,25,winner_share,0.430267,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060108014,06,UNIDAD EDUCATIVA AUYANTEPUY,Bolivar,6314,7,6,winner_share,1.065795,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060103002,06,ESCUELA BASICA FE Y ALEGRIA NUEVA GUAYANA,Bolivar,5952,6,9,winner_share,1.496243,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060401003,06,ESCUELA BASICA NACIONAL ISAURA GOMEZ DE AYALA,Bolivar,5082,6,11,winner_share,0.944265,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060108015,06,ESCUELA TECNICA COMERCIAL ANDRES BELLO,Bolivar,5070,6,12,winner_share,1.551261,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060105010,06,ESCUELA NACIONAL BASICA NUEVO MUNDO,Bolivar,4552,4,22,winner_share,1.494282,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070904028,07,UNIDAD ESCOLAR NEGRO PRIMERO,Carabobo,6237,7,15,winner_share,0.430724,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070401001,07,UNIDAD EDUCATIVA  NACIONAL   LUIS AUGUSTO MACHADO CISNEROS,Carabobo,6139,7,17,winner_share,0.469193,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070401016,07,UNIDAD EDUCATIVA NACIONAL EL TOQUITO,Carabobo,6027,7,19,winner_share,1.031006,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070904018,07,ESCUELA BASICA ESTADAL RAUL VILLARROEL,Carabobo,5934,6,21,winner_share,1.176923,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070908036,07,PRE  ESCOLAR MUNICIPAL LAS PALMITAS,Carabobo,5736,6,28,winner_share,0.231,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+071301001,07,GRUPO ESCOLAR QUEIPA,Carabobo,5532,6,34,winner_share,1.928147,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070401002,07,UNIDAD EDUACTIVA   NACIONAL JOSE GREGORIO GUITIAN E,Carabobo,5256,6,41,winner_share,1.669152,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+080201002,08,ESCUELA  BASICA JESUS MARTIN LEON,Cojedes,3636,4,1,winner_share,0.4738,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+080201017,08,ESCUELA BASICA  EDUARDO NOGUERA,Cojedes,3237,3,6,winner_share,0.193902,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+080901002,08,ESCUELA  BASICA  JUAN ANGEL BRAVO,Cojedes,2574,3,11,winner_share,1.161105,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+090402004,09,ESCUELA BÁSICA VICTOR LINO GÓMEZ,Falcon,4910,5,2,winner_share,1.677185,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+091602002,09,ESCUELA BÁSICA BOLIVARIANA CREOLANDIA,Falcon,4190,5,7,winner_share,0.01465,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+090403009,09,LICEO BOLIVARIANO ALEJANDRO PETION,Falcon,4070,5,10,winner_share,1.155442,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+090403020,09,ESCUELA BASICA BOLIVARIANA ANDRES BELLO,Falcon,4005,5,11,winner_share,0.081145,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+091001007,09,ESCUELA BÁSICA LUCAS ADAMES,Falcon,3928,4,13,winner_share,1.541391,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+100101010,10,UNIDAD EDUCATIVA LOURDES CAMERO RAMIREZ,Guarico,4185,5,9,winner_share,1.685117,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+100301031,10,UNIDAD EDUCATIVA JOSE FELIX RIBAS,Guarico,3916,4,16,winner_share,1.751243,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+101101001,10,ESCUELA BASICA CARLOS IRAZABAL PEREZ,Guarico,3536,4,26,winner_share,1.765501,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+100701004,10,ESCUELA ESTADAL DELFINA FEMAYOR DE MOLINA,Guarico,3471,3,28,winner_share,1.583672,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110503001,11,UNIDAD EDUCATIVA AGUA VIVA,Lara,5670,5,3,winner_share,1.257047,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110601009,11,ESCUELA BOLIVARIANA JOSE HERRERA OROPEZA,Lara,5490,6,5,winner_share,0.062628,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110207053,11,ESCUELA PRIMARIA BOLIVARIANA MEDIA JORNADA JUAN DE VILLEGAS,Lara,4840,5,12,winner_share,1.003046,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110205006,11,UNIDAD EDUCATIVA ANDRES BELLO,Lara,4464,4,16,winner_share,0.28739,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110601017,11,UNIDAD EDUCATIVA ESTADAL RAIMUNDO PERNALETE,Lara,4350,5,18,winner_share,1.740114,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110202022,11,UNIDAD EDUCATIVA VIRGINIA DE ANDRADE,Lara,3640,4,35,winner_share,0.303046,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+120806001,12,GRUPO ESCOLAR EL EDUCADOR,Merida,4510,5,5,winner_share,0.436678,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+121804001,12,GRUPO ESCOLAR ESTADO PORTUGUESA,Merida,4495,5,6,winner_share,0.172804,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+120806002,12,UNIDAD EDUCATIVA ANDRES ELOY BLANCO,Merida,4470,5,7,winner_share,1.780789,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+120106004,12,LICEO DOCTOR ALBERTO ADRIANI,Merida,3820,4,16,winner_share,0.194992,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901012,13,COLEGIO JOSE DE JESUS AROCHA,Miranda,7360,8,14,winner_share,0.796886,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+131201007,13,UNIDAD EDUCATIVA NACIONAL CECILIO ACOSTA,Miranda,7014,7,18,winner_share,0.760621,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901070,13,ESCUELA NACIONAL BARTOLOME SALOM,Miranda,6784,4,19,winner_share,1.095857,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130402004,13,LICEO BOLIVARIANO CARTANAL II,Miranda,6288,6,25,winner_share,0.851125,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901067,13,UNIDAD EDUCATIVA ALBERTO RAVELL,Miranda,5852,4,32,winner_share,0.163065,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901084,13,ESCUELA MUNICIPAL COROMOTO,Miranda,5817,3,33,winner_share,1.403802,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+131603002,13,UNIDAD EDUCATIVA ESTADAL  ADOLFO NAVAS  CORONADO,Miranda,5745,3,36,winner_share,1.266704,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901095,13,COLEGIO ARMANDO REVERON,Miranda,5460,6,43,winner_share,0.433298,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130701021,13,ESCUELA BASICA NACIONAL LA CEIBA DEL ALTO,Miranda,5328,6,50,winner_share,0.585953,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+140601007,14,UNIDAD EDUCATIVA FE Y ALEGRÍA TEMBLADOR,Monagas,5036,4,5,winner_share,0.105179,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+140401003,14,ESCUELA BÁSICA BOLIVARIANA JOSÉ FRANCISCO BERMÚDEZ,Monagas,4295,5,8,winner_share,0.640757,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+140708018,14,COMPLEJO EDUCATIVO  ANGEL DE LA GUARDA FE Y ALEGRÍA,Monagas,4212,4,9,winner_share,1.546937,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+140708019,14,ESCUELA BASICA PRIMERO DE MAYO,Monagas,4080,4,11,winner_share,1.594107,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+150601008,15,UNIDAD EDUCATIVA DOCTOR RAÚL LEONI,Nueva Esparta,5650,5,2,winner_share,1.695109,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+150601026,15,ESCUELA BASICA ESTADO ZULIA,Nueva Esparta,4255,5,4,winner_share,1.172326,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+150601016,15,UNIDAD EDUCATIVA CANDIDO SÁNCHEZ,Nueva Esparta,3356,4,9,winner_share,0.731601,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160801008,16,ESCUELA BASICA TIBERIO GRATEROL,Portuguesa,4145,5,3,winner_share,1.974405,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160601017,16,ESCUELA BOLIVARIANA ROMULO GALLEGOS,Portuguesa,3588,4,13,winner_share,1.637788,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160601002,16,UNIDAD EDUCATIVA NACIONAL HERMANAS PERAZA,Portuguesa,3474,3,15,winner_share,1.437545,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160101050,16,UNIDAD EDUCATIVA BOLIVARIANA NACIONAL VILLAS DEL PILAR,Portuguesa,3292,4,26,winner_share,0.048775,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160802002,16,ESCUELA BASICA LA MISION,Portuguesa,3264,4,27,winner_share,1.074477,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170903019,17,ESCUELA BOLIVARIANA RÍO CARIBE,Sucre,4892,4,3,winner_share,1.030924,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170301012,17,LICEO JOSÉ FRANCISCO BERMÚDEZ,Sucre,3828,4,15,winner_share,0.813477,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170901023,17,UNIDADEDUCATIVA CRISTÓBAL DE QUEZADA,Sucre,3717,3,17,winner_share,0.225617,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170907002,17,UNIDAD EDUCATIVA NUEVA CÓRDOBA,Sucre,3656,4,18,winner_share,1.24798,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170904012,17,ESCUELA PRIMARIA BOLIVARIANA ESTADO NUEVA ESPARTA,Sucre,3648,4,19,winner_share,0.390742,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180403002,18,UNIDAD EDUCATIVA NACIONAL LICEO LIBERTADOR,Tachira,8554,7,1,winner_share,0.305352,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180401017,18,UNIDAD EDUCATIVA NACIONAL SIMON CANDIALES,Tachira,5184,6,9,winner_share,1.670649,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180401016,18,ESCUELA BOLIVARIANA TUCAPE,Tachira,4926,6,11,winner_share,0.127016,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180401004,18,COLEGIO NUESTRA SEÑORA DE LA CONSOLACION DE TARIBA,Tachira,4310,5,16,winner_share,0.43185,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180401002,18,LICEO BOLIVARIANO LUIS LOPEZ MENDEZ,Tachira,4245,5,17,winner_share,1.585429,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180201001,18,UNIDAD EDUCATIVA MANUEL FELIPE RUGELES,Tachira,4152,4,19,winner_share,0.924236,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+191303002,19,UNIDAD EDUCATIVA RAFAEL QUEVEDO URBINA,Trujillo,3465,3,7,winner_share,0.450859,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+190501004,19,ESCUELA BOLIVARIANA CARRILLO GUERRA,Trujillo,3380,4,11,winner_share,0.315352,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+190507001,19,UNIDAD EDUCATIVA DOCTOR ANDRÉS LOMELLI ROSARIO,Trujillo,3210,3,15,winner_share,0.677167,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+191303001,19,UNIDAD EDUCATIVA  MANUEL MARIA CARRASQUERO,Trujillo,3156,4,19,winner_share,1.099711,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+200701025,20,ESCUELA BASICA AMERICA YUDITH IBARRA,Yaracuy,3536,4,2,winner_share,0.035431,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+201301002,20,ESCUELA BASICA TOMAS GIMENEZ,Yaracuy,3220,4,4,winner_share,1.964861,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+200201009,20,UNIDAD EDUCATIVA CARLOS JOSE MUJICA,Yaracuy,3024,4,7,winner_share,1.003984,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+200701033,20,CENTRO DE EDUCACION INICIAL BOLIVARIANO SABANITA,Yaracuy,2996,4,8,winner_share,0.027571,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210513002,21,ESCUELA BASICA NACIONAL CUATRICENTENARIA,Zulia,5928,6,19,winner_share,0.515941,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211805009,21,UNIDAD  EDUCATIVA  ARQUIDIOCESANA MADRE LAURA,Zulia,5795,5,22,winner_share,0.711331,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211805012,21,ESCUELA BASICA NACIONAL SISO MARTINEZ,Zulia,5460,6,35,winner_share,1.062864,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210305008,21,UNIDAD EDUCATIVA ESTADAL  MARISCAL ANTONIO JOSE DE SUCRE,Zulia,4912,4,49,winner_share,0.668334,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210503009,21,LICEO NACIONAL DR JESUS ENRIQUE LOSSADA,Zulia,4870,5,52,winner_share,1.630815,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211805013,21,UNIDAD EDUCATIVA NACIONAL GONZALO RINCON GUTIERREZ,Zulia,4710,3,60,winner_share,1.252983,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+212001002,21,UNIDAD EDUCATIVA NACIONAL BERNARDO VILLASMIL,Zulia,4484,4,66,winner_share,0.489771,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211806001,21,ESCUELA BASICA ESTADAL TERESA LOPEZ BUSTAMANTE EZA,Zulia,4345,5,72,winner_share,1.509487,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210513007,21,ESCUELA BASICA ESTADAL EL ROSARIO,Zulia,4310,5,74,winner_share,1.624494,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+212001001,21,UNIDAD EDUCATIVA SANTA BARBARA,Zulia,4260,5,79,winner_share,1.533316,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211803033,21,ESCUELA BASICA NACIONAL GRAN MARISCAL DE AYACUCHO,Zulia,4205,5,81,winner_share,0.791579,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+220101001,22,UNIDAD EDUCATIVA AMAZONAS,Amazonas,2440,2,5,winner_share,0.947956,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+220102012,22,UNIDAD EDUCATIVA BOLIVARIANA LA INDEPENDENCIA,Amazonas,1356,2,16,winner_share,0.446193,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+230105006,23,SIMONCITO BOLIVARIANO DIVINO NIÑO  LOS COCOS,Delta Amacuro,1122,2,29,winner_share,0.387612,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+230104007,23,CE LEONCIO MARTINEZ  GUASINA,Delta Amacuro,828,1,46,winner_share,0.363597,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+240101002,24,UNIDAD EDUCATIVA NACIONAL CORAPAL,La Guaira,4580,4,4,winner_share,0.542329,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+240104013,24,UNIDAD EDUCATIVA NACIONAL NARCISO GONELL,La Guaira,4525,5,5,winner_share,1.668481,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+240111010,24,UNIDAD EDUCATIVA ESTATAL JESUS MARIA PORTILLO,La Guaira,4292,4,6,winner_share,0.074836,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010116002,01,UNIDAD EDUCATIVA NACIONAL BOLIVARIANO CLAUDIO FELICIANO,Distrito Capital,6628,4,14,top2_gap,0.927659,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010114020,01,ESCUELA BÁSICA NACIONAL CARMÉN MAIZO DE BELLO,Distrito Capital,6405,7,17,top2_gap,1.649372,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010111013,01,UNIDAD EDUCATIVA NACIONAL 23 DE ENERO,Distrito Capital,5655,5,24,top2_gap,1.137225,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010115021,01,ESCUELA BÁSICA NACIONAL AMANDA DE SCHNELL,Distrito Capital,5620,4,25,top2_gap,1.93533,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010114013,01,ESCUELA TÉCNICA COMERCIAL ROBINSONIANA DISTRITAL JUAN ESPAÑA,Distrito Capital,5150,2,32,top2_gap,1.306312,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010114040,01,LICEO BOLIVARIANO FRAY PEDRO DE AGREDA,Distrito Capital,4670,5,44,top2_gap,0.218649,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010104028,01,LICEO BOLIVARIANO PERÚ DE LA CROIX,Distrito Capital,3868,2,80,top2_gap,1.127462,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+021601007,02,UNIDAD EDUCATIVA ESTADAL FRANCISCO FAJARDO,Anzoategui,5616,4,7,top2_gap,1.246311,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+020301024,02,UNIDAD EDUCATIVA PADRE SALINERO FE Y ALEGRIA,Anzoategui,4855,5,18,top2_gap,1.276202,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+020601020,02,COLEGIO SAN TOME,Anzoategui,4792,4,19,top2_gap,1.824356,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+021301015,02,ESCUELA VALLE LINDO,Anzoategui,4750,5,20,top2_gap,0.99703,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+020301013,02,ESCUELA ANTONIO JOSE DE SUCRE,Anzoategui,4485,5,28,top2_gap,0.933342,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+020101019,02,ESCUELA  RURAL B  KILÓMETRO 5,Anzoategui,4355,5,36,top2_gap,0.201939,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+020302036,02,UNIDAD EDUCATIVA NACIONAL 29 DE MARZO,Anzoategui,4272,4,38,top2_gap,0.795732,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+030604001,03,ESCUELA BASICA BOLIVARIANA MADARIAGA,Apure,3015,3,20,top2_gap,1.283959,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+030402001,03,ESCUELA GRANJA JOSE MANUEL SANCHEZ OSTOS,Apure,2460,3,32,top2_gap,0.898375,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+030201001,03,ESCUELA PRIMARIA BOLIVARIANA BRUZUAL,Apure,2282,2,41,top2_gap,0.103315,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040103002,04,ESCUELA BASICA GREGORIA DIAZ,Aragua,7152,8,1,top2_gap,0.452192,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040101011,04,UNIDAD EDUCATIVA ESTADAL DOLORES MENDOZA DE OSORIO,Aragua,5964,7,9,top2_gap,0.301162,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040902003,04,ESCUELA BASICA SAN ISIDRO LABRADOR,Aragua,4980,6,18,top2_gap,1.653313,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+041501001,04,ESCUELA BASICA ESTADAL CAMATAGUA,Aragua,4495,5,36,top2_gap,1.983548,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040801015,04,ESCUELA BASICA SALOMON MORALES,Aragua,4350,5,45,top2_gap,1.815866,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040107005,04,ESCUELA BASICA EUTIMIO RIVAS,Aragua,4115,5,56,top2_gap,1.100846,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040103003,04,ESCUELA BASICA JUSTINA GUERRA,Aragua,3954,3,65,top2_gap,0.563795,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+050210005,05,UNIDAD  EDUCATIVA PADRE FELIPE  SALVADOR GILIJ,Barinas,4580,5,4,top2_gap,1.543018,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+050401005,05,UNIDAD EDUCATIVA PRIVADO COLEGIO CORAZON DE MARIA,Barinas,4080,5,8,top2_gap,1.117513,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+051001001,05,ESCUELA BASICA ALBERTO ARVELO  TORREALBA,Barinas,3648,4,21,top2_gap,0.416427,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+050601001,05,ESCUELA BASICA JOSE FRANCISCO JIMENEZ,Barinas,3624,4,25,top2_gap,1.34366,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060108014,06,UNIDAD EDUCATIVA AUYANTEPUY,Bolivar,6314,7,6,top2_gap,1.701095,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060401003,06,ESCUELA BASICA NACIONAL ISAURA GOMEZ DE AYALA,Bolivar,5082,6,11,top2_gap,0.816935,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060108015,06,ESCUELA TECNICA COMERCIAL ANDRES BELLO,Bolivar,5070,6,12,top2_gap,0.647206,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060101027,06,UNIDAD EDUCATIVA NACIONAL ALEJANDRO OTERO,Bolivar,4768,4,16,top2_gap,0.411319,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060101007,06,ESCUELA NACIONAL BASICA JUAN VICENTE CARDOZO,Bolivar,4680,5,17,top2_gap,1.508946,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070906018,07,LICEO CICLO DIVERSIFICADO PEDRO GUAL,Carabobo,8475,5,5,top2_gap,1.769913,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+071201007,07,ESCUELA JOSE FELIX SOSA,Carabobo,7272,8,7,top2_gap,1.367037,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070401001,07,UNIDAD EDUCATIVA  NACIONAL   LUIS AUGUSTO MACHADO CISNEROS,Carabobo,6139,7,17,top2_gap,1.59413,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+071301005,07,UNIDAD EDUCATIVA NACIONAL CAMPO SOLO,Carabobo,5550,6,32,top2_gap,1.994142,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070401004,07,ESCUELA JOSE CECILIO AVILA,Carabobo,5055,5,47,top2_gap,0.529187,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070905006,07,GRUPO ESCOLAR FERMIN TORO,Carabobo,5026,1,49,top2_gap,0.53678,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070401012,07,GRUPO ESCOLAR DIEGO IBARRA,Carabobo,4970,5,51,top2_gap,1.796494,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+080201017,08,ESCUELA BASICA  EDUARDO NOGUERA,Cojedes,3237,3,6,top2_gap,0.359929,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+080901002,08,ESCUELA  BASICA  JUAN ANGEL BRAVO,Cojedes,2574,3,11,top2_gap,1.369,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+080101001,08,ESCUELA PRIMARIA  BOLIVARIANA NACIONAL AGUSTIN RAFAEL ANDRADES,Cojedes,2271,3,21,top2_gap,1.543732,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+090402004,09,ESCUELA BÁSICA VICTOR LINO GÓMEZ,Falcon,4910,5,2,top2_gap,1.306891,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+090403009,09,LICEO BOLIVARIANO ALEJANDRO PETION,Falcon,4070,5,10,top2_gap,1.292077,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+091602005,09,ESCUELA BÁSICA BOLIVARIANA DON RÓMULO BETANCOURT,Falcon,3840,4,16,top2_gap,1.175924,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+091601004,09,ESCUELA BÁSICA BOLIVARIANA AMUAY,Falcon,3180,3,44,top2_gap,0.144509,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+090301001,09,ESCUELA PRIMARIA BOLIVARIANA LEONIDAS BERMUDEZ,Falcon,2952,3,55,top2_gap,0.676647,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+100101007,10,UNIDAD EDUCATIVA JUAN JOSE RONDON,Guarico,4895,5,1,top2_gap,0.732711,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+100101002,10,ESCUELA BASICA JOSE MANUEL FUENTES ACEVEDO,Guarico,3896,4,18,top2_gap,1.874066,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+100301044,10,UNIDAD EDUCATIVA BICENTENARIO DE LAS AMERICAS,Guarico,3882,3,19,top2_gap,0.057145,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+100101006,10,ESCUELA BASICA CLARA MATOS ARZOLA,Guarico,3333,3,33,top2_gap,1.402354,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110601009,11,ESCUELA BOLIVARIANA JOSE HERRERA OROPEZA,Lara,5490,6,5,top2_gap,1.019564,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110201049,11,UNIDAD EDUCATIVA MILITARIZADA CORONEL JOSE MARIA CAMACARO,Lara,3392,4,50,top2_gap,0.806846,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110501012,11,ESCUELA BOLIVARIANA GENERAL NICOLAS PATIÑO SOSA,Lara,3020,4,73,top2_gap,0.784423,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110207095,11,ESCUELA BASICA NACIONAL EL CORIANO,Lara,2992,4,74,top2_gap,0.332432,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110401005,11,UNIDAD EDUCATIVA PADRE PEREZ LIMARDO,Lara,2766,3,94,top2_gap,0.960882,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110502017,11,UNIDAD EDUCATIVA ESTADAL PEDRO GUAL,Lara,2643,3,103,top2_gap,0.305768,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+120806001,12,GRUPO ESCOLAR EL EDUCADOR,Merida,4510,5,5,top2_gap,1.208213,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+121804001,12,GRUPO ESCOLAR ESTADO PORTUGUESA,Merida,4495,5,6,top2_gap,1.174531,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+120106004,12,LICEO DOCTOR ALBERTO ADRIANI,Merida,3820,4,16,top2_gap,1.108143,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+120901001,12,ESCUELA ESTADO APURE,Merida,3604,4,20,top2_gap,1.007476,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901012,13,COLEGIO JOSE DE JESUS AROCHA,Miranda,7360,8,14,top2_gap,0.133584,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901070,13,ESCUELA NACIONAL BARTOLOME SALOM,Miranda,6784,4,19,top2_gap,1.781761,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130402004,13,LICEO BOLIVARIANO CARTANAL II,Miranda,6288,6,25,top2_gap,0.838004,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130402009,13,ESCUELA BASICA NACIONAL CARTANAL  VICENTE EMILIO  SOJO,Miranda,5934,6,30,top2_gap,0.916631,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901067,13,UNIDAD EDUCATIVA ALBERTO RAVELL,Miranda,5852,4,32,top2_gap,0.430551,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+131603002,13,UNIDAD EDUCATIVA ESTADAL  ADOLFO NAVAS  CORONADO,Miranda,5745,3,36,top2_gap,0.032437,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901095,13,COLEGIO ARMANDO REVERON,Miranda,5460,6,43,top2_gap,0.781091,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130701021,13,ESCUELA BASICA NACIONAL LA CEIBA DEL ALTO,Miranda,5328,6,50,top2_gap,1.036544,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130201002,13,ESCUELA BASICA GABRIEL EMILIO MUÑOZ,Miranda,4985,1,56,top2_gap,0.334353,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+140708019,14,ESCUELA BASICA PRIMERO DE MAYO,Monagas,4080,4,11,top2_gap,0.969549,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+140709002,14,ESCUELA BASICA CASTOR GUEVARA,Monagas,3216,4,26,top2_gap,1.772271,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+140303001,14,ESCUELA BÁSICA BOLIVARIANA EL GUÁCHARO,Monagas,2634,3,59,top2_gap,1.534483,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+140502001,14,ESCUELA BÁSICA LISANDRO RIVERO,Monagas,2553,3,65,top2_gap,0.211832,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+150601023,15,UNIDAD EDUCATIVA RAFAEL SALAZAR BRITO,Nueva Esparta,3056,4,13,top2_gap,0.90104,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+151102002,15,UNIDAD EDUCATIVA ESCUELA BÁSICA VILLA ROSA,Nueva Esparta,2964,3,16,top2_gap,1.956137,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+150601015,15,UNIDAD EDUCATIVA SAN NICOLAS,Nueva Esparta,2868,3,22,top2_gap,0.200398,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160601041,16,ESCUELA BASICA TRINA DE MORENO,Portuguesa,4015,5,4,top2_gap,1.792259,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160401011,16,ESCUELA BASICA PORTUGUESA,Portuguesa,3975,5,6,top2_gap,0.621494,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160601002,16,UNIDAD EDUCATIVA NACIONAL HERMANAS PERAZA,Portuguesa,3474,3,15,top2_gap,0.917189,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160201012,16,ESCUELA BASICA PIRITU,Portuguesa,2787,3,47,top2_gap,1.93261,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160601026,16,GRUPO ESCOLAR RAIMUNDO ANDUEZA,Portuguesa,2703,3,52,top2_gap,1.183117,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170904012,17,ESCUELA PRIMARIA BOLIVARIANA ESTADO NUEVA ESPARTA,Sucre,3648,4,19,top2_gap,0.242614,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170301010,17,ESCUELA BOLIVARIANA MARIA RODRÍGUEZ DE VERA,Sucre,3484,4,21,top2_gap,0.186838,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170903006,17,UNIDAD EDUCATIVA GRAN MARISCAL DE AYACUCHO,Sucre,3368,4,27,top2_gap,1.685724,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170902009,17,UNIDAD EDUCATIVA CRUZ ALMANDOZ MORA,Sucre,3252,4,31,top2_gap,0.769814,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170301017,17,UNIDAD EDUCATIVA  JOSÉ JESÚS MARTÍNEZ MATA,Sucre,2907,3,47,top2_gap,0.875233,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180401004,18,COLEGIO NUESTRA SEÑORA DE LA CONSOLACION DE TARIBA,Tachira,4310,5,16,top2_gap,0.389541,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180201001,18,UNIDAD EDUCATIVA MANUEL FELIPE RUGELES,Tachira,4152,4,19,top2_gap,1.872399,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180801011,18,ESCUELA BÁSICA JUAN BAUTISTA GARCIA ROA,Tachira,4120,5,21,top2_gap,0.491294,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180803006,18,ESCUELA BOLIVARIANA VIRGILIO PINZON,Tachira,3752,4,32,top2_gap,0.369633,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+182801001,18,UNIDAD EDUCATIVA DR RAFAEL ANTONIO UZCATEGUI,Tachira,3696,4,37,top2_gap,1.351326,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+181901001,18,UNIDAD EDUCATIVA ESTADAL INES LABRADOR DE LARA,Tachira,3424,4,49,top2_gap,1.494895,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+191303002,19,UNIDAD EDUCATIVA RAFAEL QUEVEDO URBINA,Trujillo,3465,3,7,top2_gap,0.508707,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+190501004,19,ESCUELA BOLIVARIANA CARRILLO GUERRA,Trujillo,3380,4,11,top2_gap,1.398941,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+190507001,19,UNIDAD EDUCATIVA DOCTOR ANDRÉS LOMELLI ROSARIO,Trujillo,3210,3,15,top2_gap,0.363756,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+191303001,19,UNIDAD EDUCATIVA  MANUEL MARIA CARRASQUERO,Trujillo,3156,4,19,top2_gap,0.239641,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+200701014,20,LICEO COCOROTE,Yaracuy,1976,2,57,top2_gap,0.081969,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+200701012,20,CENTRO DE EDUCACION INICIAL LOS ROSALES,Yaracuy,1966,2,58,top2_gap,0.54647,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+200101001,20,ESCUELA BASICA CARMELO FERNANDEZ,Yaracuy,1912,2,63,top2_gap,1.966501,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+200501002,20,ESCUELA BASICA ALIDA CASULLO DE ZERPA,Yaracuy,1736,2,74,top2_gap,1.501844,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211805009,21,UNIDAD  EDUCATIVA  ARQUIDIOCESANA MADRE LAURA,Zulia,5795,5,22,top2_gap,1.127575,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211805012,21,ESCUELA BASICA NACIONAL SISO MARTINEZ,Zulia,5460,6,35,top2_gap,0.990567,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211303007,21,ESCUELA BASICA NACIONAL ZIRUMA,Zulia,4908,6,50,top2_gap,1.256084,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210513007,21,ESCUELA BASICA ESTADAL EL ROSARIO,Zulia,4310,5,74,top2_gap,1.044188,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210504009,21,INSTITUTO UNIVERSITARIO TECNOLOGICO JUAN PABLO PEREZ ALFONZO,Zulia,3723,3,119,top2_gap,1.731354,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211803009,21,ESCUELA BASICA BICENTENARIO JOSE ANTONIO PAEZ,Zulia,3686,4,123,top2_gap,0.342189,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210505002,21,ESCUELA BASICA ESTADAL NESTOR LUIS PEREZ,Zulia,3584,4,136,top2_gap,0.580538,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211802005,21,ESCUELA BASICA NACIONAL GENERAL RAFAEL URDANETA FE Y ALEGRIA,Zulia,3468,4,148,top2_gap,0.007634,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210511005,21,GRUPO ESCOLAR ESTADAL EDUARDO EMIRO FERRER,Zulia,3436,2,157,top2_gap,0.594261,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210803004,21,UNIDAD EDUCATIVA NACIONAL PRIVADA COLEGIO SAN PABLO,Zulia,3384,4,167,top2_gap,0.374173,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210503022,21,ESCUELA NACIONAL MARACAIBO,Zulia,3376,4,169,top2_gap,0.801182,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+220101001,22,UNIDAD EDUCATIVA AMAZONAS,Amazonas,2440,2,5,top2_gap,1.365971,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+220102012,22,UNIDAD EDUCATIVA BOLIVARIANA LA INDEPENDENCIA,Amazonas,1356,2,16,top2_gap,1.445809,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+230105006,23,SIMONCITO BOLIVARIANO DIVINO NIÑO  LOS COCOS,Delta Amacuro,1122,2,29,top2_gap,0.280848,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+230108008,23,UENBOLIV LUISA CACERES DE ARISMENDI  VOLCAN,Delta Amacuro,1116,2,30,top2_gap,0.142437,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+240111010,24,UNIDAD EDUCATIVA ESTATAL JESUS MARIA PORTILLO,La Guaira,4292,4,6,top2_gap,0.363048,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+240107007,24,ESCUELA MANUEL SEGUNDO SANCHEZ,La Guaira,3904,4,10,top2_gap,0.278703,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+240104001,24,UNIDAD EDUCATIVA ESTADAL EMILIO GIMON STERLING,La Guaira,3856,4,12,top2_gap,1.012658,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010119003,01,LICEO BOLIVARIANO PEDRO EMILIO COLL,Distrito Capital,7424,8,5,full_profile,1.955442,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010107010,01,ESCUELA NACIONAL BOLIVARIANA 19 DE ABRIL,Distrito Capital,6155,5,19,full_profile,1.930397,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010110022,01,UNIDAD EDUCATIVA NACIONAL MIGUEL ANTONIO CARO,Distrito Capital,6025,5,22,full_profile,1.359098,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010111013,01,UNIDAD EDUCATIVA NACIONAL 23 DE ENERO,Distrito Capital,5655,5,24,full_profile,0.685926,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010115021,01,ESCUELA BÁSICA NACIONAL AMANDA DE SCHNELL,Distrito Capital,5620,4,25,full_profile,1.174607,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010114013,01,ESCUELA TÉCNICA COMERCIAL ROBINSONIANA DISTRITAL JUAN ESPAÑA,Distrito Capital,5150,2,32,full_profile,1.614344,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+010114040,01,LICEO BOLIVARIANO FRAY PEDRO DE AGREDA,Distrito Capital,4670,5,44,full_profile,0.908328,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+021601007,02,UNIDAD EDUCATIVA ESTADAL FRANCISCO FAJARDO,Anzoategui,5616,4,7,full_profile,1.011392,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+021301004,02,LICEO CRISTOBAL COLON,Anzoategui,4585,5,25,full_profile,1.340487,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+020301029,02,ESCUELA NACIONAL TRONCONAL II,Anzoategui,4295,5,37,full_profile,1.476549,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+020301032,02,ESCUELA  BÁSICA RÓMULO GALLEGOS,Anzoategui,4045,5,50,full_profile,1.957546,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+020306004,02,UNIDAD EDUCATIVA JESÚS RAFAEL ALBORNOZ,Anzoategui,3020,4,121,full_profile,0.986711,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+020601003,02,ESCUELA BASICA JESÚS MARIA PORRAS ALFARO,Anzoategui,3016,4,124,full_profile,1.954666,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+021301020,02,GRUPO ESCOLAR CACIQUE PAISANA,Anzoategui,2966,2,132,full_profile,1.81345,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+030604001,03,ESCUELA BASICA BOLIVARIANA MADARIAGA,Apure,3015,3,20,full_profile,0.67822,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+030701026,03,ESCUELA PRIMARIA BOLIVARIANA  MARIA NICASIA GAMARRA,Apure,1096,2,122,full_profile,1.806205,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+030701025,03,ESCUELA BASICA RAMONA FIGUEREDO,Apure,854,1,154,full_profile,0.689151,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040101011,04,UNIDAD EDUCATIVA ESTADAL DOLORES MENDOZA DE OSORIO,Aragua,5964,7,9,full_profile,1.569789,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040106002,04,ESCUELA BASICA RAFAEL URDANETA,Aragua,4472,4,39,full_profile,1.904988,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+041601007,04,ESCUELA BASICA ESTADAL SOCORRO ACOSTA DE SANCHEZ,Aragua,4450,5,42,full_profile,1.853102,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040106012,04,ESCUELA BASICA VICTOR LINO GOMEZ,Aragua,4280,4,51,full_profile,1.775719,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040107005,04,ESCUELA BASICA EUTIMIO RIVAS,Aragua,4115,5,56,full_profile,0.711639,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040106014,04,UNIDAD EDUCATIVA NACIONAL CREACION CAMPO ALEGRE,Aragua,4085,5,58,full_profile,1.413205,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+040103003,04,ESCUELA BASICA JUSTINA GUERRA,Aragua,3954,3,65,full_profile,1.346428,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+050401005,05,UNIDAD EDUCATIVA PRIVADO COLEGIO CORAZON DE MARIA,Barinas,4080,5,8,full_profile,0.976027,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+050601001,05,ESCUELA BASICA JOSE FRANCISCO JIMENEZ,Barinas,3624,4,25,full_profile,0.913392,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+050208004,05,ESCUELA BASICA LOURDES RIVAS  DE TORRES,Barinas,3612,2,26,full_profile,1.210374,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+050208009,05,ESCUELA BASICA CIUDAD DE BARINAS,Barinas,3540,4,28,full_profile,1.650787,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060401003,06,ESCUELA BASICA NACIONAL ISAURA GOMEZ DE AYALA,Bolivar,5082,6,11,full_profile,1.071595,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060105016,06,ESCUELA NACIONAL BASICA LUCILA PALACIO,Bolivar,4368,4,26,full_profile,1.140856,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060108018,06,ESCUELA BASICA VIRGEN NIÑA,Bolivar,3988,4,40,full_profile,1.780622,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060501007,06,UNIDAD EDUCATIVA DALLA ACOSTA,Bolivar,3896,4,43,full_profile,1.208897,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+060103007,06,ESCUELA GENERAL RAFAEL URDANETA,Bolivar,2811,3,98,full_profile,0.66095,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070401002,07,UNIDAD EDUACTIVA   NACIONAL JOSE GREGORIO GUITIAN E,Carabobo,5256,6,41,full_profile,1.669152,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070401004,07,ESCUELA JOSE CECILIO AVILA,Carabobo,5055,5,47,full_profile,0.523147,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070905006,07,GRUPO ESCOLAR FERMIN TORO,Carabobo,5026,1,49,full_profile,0.559564,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+071201022,07,ESCUELA NACIONAL BATALLA DE BOMBONA,Carabobo,4915,5,53,full_profile,1.390242,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+070907005,07,GRUPO ESCOLAR BEJUMA,Carabobo,4804,2,57,full_profile,1.88124,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+071201003,07,UNIDAD EDUCATIVA ESTADAL AMBROSIO PLAZA,Carabobo,4722,3,61,full_profile,1.489086,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+071201004,07,UNIDAD EDUCATIVA CRISPINA MERCADO,Carabobo,4271,1,83,full_profile,0.981672,maduro,maduro,bertucci_quijada,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+080201002,08,ESCUELA  BASICA JESUS MARTIN LEON,Cojedes,3636,4,1,full_profile,1.574212,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+080201017,08,ESCUELA BASICA  EDUARDO NOGUERA,Cojedes,3237,3,6,full_profile,0.747733,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+080901002,08,ESCUELA  BASICA  JUAN ANGEL BRAVO,Cojedes,2574,3,11,full_profile,1.161105,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+091201002,09,ESCUELA PRIMARIA BOLIVARIANA FELIPE ESTEVES,Falcon,2787,3,62,full_profile,1.084741,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+091601006,09,ESCUELA BASICA BOLIVARIANA JAYANA,Falcon,2043,3,110,full_profile,1.625895,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+090403002,09,CENTRO DE FORMACION INDUSTRIAL INCE PUNTO FIJO,Falcon,2007,3,114,full_profile,1.638997,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+091001027,09,ESCUELA BASICA 5 DE JULIO,Falcon,1800,2,130,full_profile,0.168957,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+091001042,09,CENTRO DE EDUCACION INICIAL BOLIVARIANO JOSEFA CAMEJO TALAVERA,Falcon,1598,2,152,full_profile,1.669222,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+100701004,10,ESCUELA ESTADAL DELFINA FEMAYOR DE MOLINA,Guarico,3471,3,28,full_profile,1.583672,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+100701015,10,ESCUELA ESTADAL OLGA ROJAS DE CABEZA,Guarico,3246,3,37,full_profile,0.224109,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+100301017,10,GRUPO ESCOLAR OTONIEL GUGLIETA,Guarico,2980,2,46,full_profile,0.934681,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+101201001,10,CICLO COMBINADO BEATRIZ DE RODRIGUEZ,Guarico,2697,3,52,full_profile,1.326086,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110503001,11,UNIDAD EDUCATIVA AGUA VIVA,Lara,5670,5,3,full_profile,1.917468,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110601009,11,ESCUELA BOLIVARIANA JOSE HERRERA OROPEZA,Lara,5490,6,5,full_profile,1.14482,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110207053,11,ESCUELA PRIMARIA BOLIVARIANA MEDIA JORNADA JUAN DE VILLEGAS,Lara,4840,5,12,full_profile,1.207505,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110201049,11,UNIDAD EDUCATIVA MILITARIZADA CORONEL JOSE MARIA CAMACARO,Lara,3392,4,50,full_profile,1.807203,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110201036,11,GRUPO ESCOLAR BOLIVIA TOVAR,Lara,2985,3,75,full_profile,1.858672,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+110202047,11,GRUPO ESCOLAR REPUBLICA DE COSTA RICA,Lara,2796,2,89,full_profile,1.943723,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+121804001,12,GRUPO ESCOLAR ESTADO PORTUGUESA,Merida,4495,5,6,full_profile,1.001726,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+120806002,12,UNIDAD EDUCATIVA ANDRES ELOY BLANCO,Merida,4470,5,7,full_profile,1.780789,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+120106004,12,LICEO DOCTOR ALBERTO ADRIANI,Merida,3820,4,16,full_profile,1.498127,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+120901001,12,ESCUELA ESTADO APURE,Merida,3604,4,20,full_profile,0.554951,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901012,13,COLEGIO JOSE DE JESUS AROCHA,Miranda,7360,8,14,full_profile,1.460189,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901070,13,ESCUELA NACIONAL BARTOLOME SALOM,Miranda,6784,4,19,full_profile,1.095857,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901067,13,UNIDAD EDUCATIVA ALBERTO RAVELL,Miranda,5852,4,32,full_profile,0.267486,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130901095,13,COLEGIO ARMANDO REVERON,Miranda,5460,6,43,full_profile,1.647688,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130201002,13,ESCUELA BASICA GABRIEL EMILIO MUÑOZ,Miranda,4985,1,56,full_profile,1.955409,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+131001010,13,UNIDAD EDUCATIVA NACIONAL JOSE DE SAN MARTIN,Miranda,4720,4,65,full_profile,1.025617,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+130905001,13,UNIDAD EDUCATIVA NACIONAL MARISCAL SUCRE,Miranda,4648,4,68,full_profile,1.706142,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+131001004,13,ESCUELA BASICA ESTADAL CONSUELO HERNANDEZ,Miranda,4615,5,70,full_profile,0.785923,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+131102001,13,UNIDAD EDUCATIVA  NACIONAL BOLIVARIANA ARAIRA,Miranda,4156,4,90,full_profile,1.70534,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+140708018,14,COMPLEJO EDUCATIVO  ANGEL DE LA GUARDA FE Y ALEGRÍA,Monagas,4212,4,9,full_profile,1.768017,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+140601002,14,ESCUELA BÁSICA DORA ROMERO DE AVILA,Monagas,3990,5,12,full_profile,1.448567,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+140709001,14,ESCUELA BÁSICA CARIPE,Monagas,3552,3,20,full_profile,1.631075,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+140709002,14,ESCUELA BASICA CASTOR GUEVARA,Monagas,3216,4,26,full_profile,1.049291,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+150601026,15,ESCUELA BASICA ESTADO ZULIA,Nueva Esparta,4255,5,4,full_profile,1.300305,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+150601023,15,UNIDAD EDUCATIVA RAFAEL SALAZAR BRITO,Nueva Esparta,3056,4,13,full_profile,1.173331,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+151102002,15,UNIDAD EDUCATIVA ESCUELA BÁSICA VILLA ROSA,Nueva Esparta,2964,3,16,full_profile,1.328506,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160801008,16,ESCUELA BASICA TIBERIO GRATEROL,Portuguesa,4145,5,3,full_profile,1.974405,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160301049,16,ESCUELA BOLIVARIANA MIGUEL ANTONIO VASQUEZ,Portuguesa,2649,3,58,full_profile,0.658343,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160502011,16,ESCUELA BOLIVARIANA FRAY FELIPE DE PALMA,Portuguesa,892,1,253,full_profile,1.751601,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160901018,16,ESCUELA BOLIVARIANA LA SABANITA 1806705,Portuguesa,504,1,371,full_profile,1.962452,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+160301054,16,ESCUELA CONCENTRADA MIXTA NUMERO 181082 QUEBRADA DEL MAMON,Portuguesa,487,1,379,full_profile,0.904895,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170904012,17,ESCUELA PRIMARIA BOLIVARIANA ESTADO NUEVA ESPARTA,Sucre,3648,4,19,full_profile,1.024099,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170903006,17,UNIDAD EDUCATIVA GRAN MARISCAL DE AYACUCHO,Sucre,3368,4,27,full_profile,1.614246,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+170902009,17,UNIDAD EDUCATIVA CRUZ ALMANDOZ MORA,Sucre,3252,4,31,full_profile,1.602459,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+171001002,17,ALDEA UNIVERSITARIA MISION SUCRE,Sucre,2790,3,51,full_profile,1.689766,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+171401002,17,UNIDAD EDUCATIVA SAN FRANCISCO,Sucre,2505,3,67,full_profile,1.878554,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180401017,18,UNIDAD EDUCATIVA NACIONAL SIMON CANDIALES,Tachira,5184,6,9,full_profile,1.670649,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180401004,18,COLEGIO NUESTRA SEÑORA DE LA CONSOLACION DE TARIBA,Tachira,4310,5,16,full_profile,0.47416,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180401002,18,LICEO BOLIVARIANO LUIS LOPEZ MENDEZ,Tachira,4245,5,17,full_profile,1.941834,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180802006,18,ESCUELA BOLIVARIANA JUAN ANTONIO ROMAN VALECILLOS,Tachira,4135,5,20,full_profile,1.950558,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180803006,18,ESCUELA BOLIVARIANA VIRGILIO PINZON,Tachira,3752,4,32,full_profile,0.934779,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+180802026,18,UNIDAD EDUCATIVA COLEGIO CRISTO REY,Tachira,3488,4,45,full_profile,1.98535,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+191303002,19,UNIDAD EDUCATIVA RAFAEL QUEVEDO URBINA,Trujillo,3465,3,7,full_profile,1.410424,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+190507001,19,UNIDAD EDUCATIVA DOCTOR ANDRÉS LOMELLI ROSARIO,Trujillo,3210,3,15,full_profile,1.71809,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+191303001,19,UNIDAD EDUCATIVA  MANUEL MARIA CARRASQUERO,Trujillo,3156,4,19,full_profile,1.959782,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+190702004,19,ESCUELA BOLIVARIANA PASCUAL IGNACIO VILLASMIL,Trujillo,3096,4,23,full_profile,0.559973,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+200401024,20,CENTRO DE EDUCACION INICIAL BOLIVARIANO LAS TAPIAS II,Yaracuy,2310,3,34,full_profile,1.994548,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+200701024,20,UNIDAD EDUCATIVA NIRGUA,Yaracuy,2280,2,37,full_profile,1.973991,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+200701014,20,LICEO COCOROTE,Yaracuy,1976,2,57,full_profile,0.214008,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+200401004,20,ESCUELA CONCENTRADA YARACUY,Yaracuy,1708,1,78,full_profile,0.515793,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211805012,21,ESCUELA BASICA NACIONAL SISO MARTINEZ,Zulia,5460,6,35,full_profile,1.135161,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211805013,21,UNIDAD EDUCATIVA NACIONAL GONZALO RINCON GUTIERREZ,Zulia,4710,3,60,full_profile,1.321274,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211803009,21,ESCUELA BASICA BICENTENARIO JOSE ANTONIO PAEZ,Zulia,3686,4,123,full_profile,0.797585,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210511005,21,GRUPO ESCOLAR ESTADAL EDUARDO EMIRO FERRER,Zulia,3436,2,157,full_profile,0.370227,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211401004,21,ESCUELA BASICA NACIONAL FRANCISCO LAZO MARTI,Zulia,3435,3,158,full_profile,1.905831,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211805022,21,ESCUELA BASICA ESTADAL ARQUIDIOCESANA PABLO SEXTO,Zulia,3296,4,180,full_profile,0.54301,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210513029,21,UNIDAD EDUCATIVA PROFESOR MISAEL VILCHEZ,Zulia,3242,2,188,full_profile,1.571698,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210514006,21,BACHILLER EGIDIO MONTESINOS,Zulia,2932,2,241,full_profile,0.599145,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+211408001,21,ESCUELA BASICA ESTADAL MARIA CHIQUINQUIRA BAEZ GUERRA,Zulia,2910,3,247,full_profile,1.037494,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210513006,21,FE Y ALEGRIA RUTILIO GRANDE,Zulia,2727,3,276,full_profile,1.448848,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+210605009,21,ESCUELA BASICA NACIONAL MAESTRO MARCOS PEREIRA  OLIVARES,Zulia,2421,3,339,full_profile,1.117818,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+220101001,22,UNIDAD EDUCATIVA AMAZONAS,Amazonas,2440,2,5,full_profile,0.947956,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+220102019,22,ESCUELA LIBERTADOR,Amazonas,1208,2,18,full_profile,1.171485,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+230105006,23,SIMONCITO BOLIVARIANO DIVINO NIÑO  LOS COCOS,Delta Amacuro,1122,2,29,full_profile,1.056073,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+230104007,23,CE LEONCIO MARTINEZ  GUASINA,Delta Amacuro,828,1,46,full_profile,1.618445,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+240101002,24,UNIDAD EDUCATIVA NACIONAL CORAPAL,La Guaira,4580,4,4,full_profile,1.738438,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+240104013,24,UNIDAD EDUCATIVA NACIONAL NARCISO GONELL,La Guaira,4525,5,5,full_profile,1.668481,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024
+240111010,24,UNIDAD EDUCATIVA ESTATAL JESUS MARIA PORTILLO,La Guaira,4292,4,6,full_profile,0.288211,maduro,maduro,falcon,"bertucci_quijada,falcon,maduro",1,2,legacy_similarity,2018_2024

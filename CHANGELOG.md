@@ -8,6 +8,12 @@
 
 ## [Unreleased]
 
+### feat - Comparacion de similitudes legacy
+- `backend/backtest_legacy_nacional.py`: agrega comparacion aislada de tres formalizaciones de "se parece" (`winner_share`, `top2_gap`, `full_profile`) manteniendo fijos N=120, cuotas legacy, D'Hondt de 72 adicionales, historico obligatorio, orden por electores y escalera comun.
+- `docs/muestreo/backtest_legacy_similarity_summary.csv`, `backtest_legacy_similarity_estados.csv` y `backtest_legacy_similarity_centros.csv`: artefactos reproducibles con metricas nacionales, estatales, diagnosticos de tolerancia/distancia y comparacion de muestras.
+- `docs/muestreo/BACKTEST_LEGACY_SIMILARITY.md`: documenta formulas, fuentes internas, tratamiento de candidatos, resultados, estabilidad comparativa y limitaciones descriptivas.
+- `test_backtest_legacy_nacional.py`: agrega pruebas para las tres distancias, no negatividad, perfiles identicos, D'Hondt y control de que solo cambia la variante de similitud.
+
 ### feat - Backtest legacy nacional de seleccion
 - `backend/backtest_legacy_nacional.py`: implementa backtest aislado de seleccion legacy para `2013_2018` y `2018_2024`, sin tocar el selector productivo moderno.
 - D'Hondt asigna solo los 72 adicionales; los 48 centros fijos son 2 por entidad. Para `2013_2018`, Distrito Capital se completa desde VENPRES-A 2018 usando solo columnas de marco, con votos cerrados hasta evaluacion.

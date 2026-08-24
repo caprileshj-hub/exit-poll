@@ -32,6 +32,7 @@ DEFAULT_TOLERANCE_LADDERS = {
 }
 DEFAULT_MIN_ELECTORES = [0, 300, 600]
 PRIMARY_CONFIG = ("baseline", 300)
+SIMILARITY_VARIANTS = ("winner_share", "top2_gap", "full_profile")
 STATE_NAMES = {
     "01": "Distrito Capital",
     "02": "Anzoategui",
@@ -216,6 +217,123 @@ def load_results(kind: str, path: Path) -> pd.DataFrame:
     return out
 
 
+@lru_cache(maxsize=None)
+def load_candidate_results(kind: str, path: Path) -> pd.DataFrame:
+    """Carga votos por candidato para calcular similitud historica.
+
+    Las columnas `cand_*` son el perfil comparable dentro de una misma
+    eleccion. No se intenta crear una taxonomia longitudinal.
+    """
+    if kind == "pres2013_xlsx":
+        df = pd.read_excel(path, dtype=object)
+        code_col = _find_column(df.columns, "codigo", "nuevo")
+        valid_col = _find_column(df.columns, "votos", "validos")
+        candidate_cols = ["maduro", "capriles", "sequera", "bolivar", "mora", "mendez"]
+        df["codigo_centro"] = df[code_col].map(code9)
+        df["cod_estado"] = df["codigo_centro"].str[:2]
+        for col in [*candidate_cols, valid_col]:
+            df[col] = _num(df[col])
+        rename = {col: f"cand_{col}" for col in candidate_cols}
+        df = df.rename(columns=rename)
+        out_cols = ["codigo_centro", "cod_estado", *rename.values()]
+    elif kind == "venpres2018_csv":
+        df = pd.read_csv(path, dtype=str)
+        df["codigo_centro"] = df["codigo_centro"].map(code9)
+        df["cod_estado"] = df["codigo_centro"].str[:2]
+        source_cols = {
+            "cand_maduro": "votos_gobierno",
+            "cand_falcon": "votos_falcon" if "votos_falcon" in df.columns else "votos_oposicion",
+            "cand_bertucci_quijada": (
+                "votos_bertucci_quijada" if "votos_bertucci_quijada" in df.columns else "votos_otros"
+            ),
+        }
+        for col in source_cols.values():
+            df[col] = _num(df[col])
+        for target, source in source_cols.items():
+            df[target] = df[source]
+        out_cols = ["codigo_centro", "cod_estado", *source_cols.keys()]
+    else:
+        raise ValueError(f"Tipo de perfil no soportado: {kind}")
+
+    grouped = df[df["codigo_centro"].ne("")].groupby(["codigo_centro", "cod_estado"], as_index=False)[
+        [c for c in out_cols if c.startswith("cand_")]
+    ].sum()
+    candidate_cols = [c for c in grouped.columns if c.startswith("cand_")]
+    grouped["votos_validos"] = grouped[candidate_cols].sum(axis=1)
+    grouped = grouped[grouped["votos_validos"] > 0].copy()
+    for col in candidate_cols:
+        grouped[f"pct_{col[5:]}"] = 100 * grouped[col] / grouped["votos_validos"]
+    return grouped
+
+
+def candidate_pct_columns(profile: pd.DataFrame) -> list[str]:
+    return sorted(col for col in profile.columns if col.startswith("pct_"))
+
+
+def state_candidate_profiles(profile: pd.DataFrame) -> pd.DataFrame:
+    candidate_vote_cols = sorted(col for col in profile.columns if col.startswith("cand_"))
+    grouped = profile.groupby("cod_estado", as_index=False)[candidate_vote_cols].sum()
+    grouped["votos_validos"] = grouped[candidate_vote_cols].sum(axis=1)
+    grouped = grouped[grouped["votos_validos"] > 0].copy()
+    for col in candidate_vote_cols:
+        grouped[f"pct_{col[5:]}"] = 100 * grouped[col] / grouped["votos_validos"]
+    return grouped
+
+
+def similarity_distance(
+    center_pct: dict[str, float],
+    state_pct: dict[str, float],
+    variant: str,
+) -> float:
+    if variant not in SIMILARITY_VARIANTS:
+        raise ValueError(f"Variante no soportada: {variant}")
+    candidates = sorted(state_pct)
+    if not candidates:
+        raise ValueError("Perfil estatal vacio")
+    if variant == "winner_share":
+        winner = max(candidates, key=lambda c: (state_pct[c], c))
+        return abs(float(center_pct.get(winner, 0.0)) - float(state_pct[winner]))
+    if variant == "top2_gap":
+        ordered = sorted(candidates, key=lambda c: (-state_pct[c], c))
+        if len(ordered) < 2:
+            return 0.0
+        first, second = ordered[:2]
+        state_gap = float(state_pct[first]) - float(state_pct[second])
+        center_gap = float(center_pct.get(first, 0.0)) - float(center_pct.get(second, 0.0))
+        return abs(center_gap - state_gap)
+    return 0.5 * sum(abs(float(center_pct.get(c, 0.0)) - float(state_pct[c])) for c in candidates)
+
+
+def enrich_similarity_distances(profile: pd.DataFrame, variant: str) -> pd.DataFrame:
+    pct_cols = candidate_pct_columns(profile)
+    state_profiles = state_candidate_profiles(profile)
+    state_pct = {
+        row["cod_estado"]: {col[4:]: float(row[col]) for col in pct_cols}
+        for row in state_profiles.to_dict("records")
+    }
+    rows = []
+    for row in profile.to_dict("records"):
+        state = row["cod_estado"]
+        if state not in state_pct:
+            continue
+        center_pct = {col[4:]: float(row[col]) for col in pct_cols}
+        state_row = state_pct[state]
+        ordered = sorted(state_row, key=lambda c: (-state_row[c], c))
+        rows.append(
+            {
+                "codigo_centro": row["codigo_centro"],
+                "cod_estado": state,
+                "similarity": variant,
+                "distancia_hist_pp": similarity_distance(center_pct, state_row, variant),
+                "state_winner": ordered[0] if ordered else "",
+                "state_top1": ordered[0] if ordered else "",
+                "state_top2": ordered[1] if len(ordered) > 1 else "",
+                "candidate_profile": ",".join(sorted(state_row)),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def aggregate_pct(rows: pd.DataFrame) -> float | None:
     if rows.empty:
         return None
@@ -314,6 +432,61 @@ def select_legacy(
                     "cuota": quota,
                     "seleccionados": len(chosen),
                     "faltantes": quota - len(chosen),
+                }
+            )
+    return pd.DataFrame(selected), pd.DataFrame(incomplete)
+
+
+def select_legacy_similarity(
+    frame: pd.DataFrame,
+    historical_profile: pd.DataFrame,
+    quotas: dict[str, int],
+    tolerance_ladder_pp: list[float],
+    min_electores: int,
+    similarity: str,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    distances = enrich_similarity_distances(historical_profile, similarity)
+    eligible = frame.merge(distances, on=["codigo_centro", "cod_estado"], how="inner")
+    eligible = eligible[eligible["electores"] >= min_electores].copy()
+
+    def entry_pass(diff: float) -> int | None:
+        for idx, tolerance in enumerate(tolerance_ladder_pp, start=1):
+            if diff <= tolerance:
+                return idx
+        return None
+
+    def entry_tolerance(diff: float) -> str | float | None:
+        for tolerance in tolerance_ladder_pp:
+            if diff <= tolerance:
+                return "inf" if math.isinf(tolerance) else tolerance
+        return None
+
+    eligible["pasada"] = eligible["distancia_hist_pp"].map(entry_pass)
+    eligible["tolerancia_de_entrada"] = eligible["distancia_hist_pp"].map(entry_tolerance)
+    eligible = eligible.dropna(subset=["pasada"]).copy()
+    eligible["pasada"] = eligible["pasada"].astype(int)
+
+    selected = []
+    incomplete = []
+    for state, quota in sorted(quotas.items()):
+        chosen = (
+            eligible[eligible["cod_estado"].eq(state)]
+            .sort_values(["pasada", "electores", "codigo_centro"], ascending=[True, False, True])
+            .head(quota)
+            .copy()
+        )
+        if not chosen.empty:
+            chosen["metodo"] = "legacy_similarity"
+            selected.extend(chosen.to_dict("records"))
+        if len(chosen) < quota:
+            incomplete.append(
+                {
+                    "cod_estado": state,
+                    "estado": STATE_NAMES.get(state, state),
+                    "cuota": quota,
+                    "seleccionados": len(chosen),
+                    "faltantes": quota - len(chosen),
+                    "similarity": similarity,
                 }
             )
     return pd.DataFrame(selected), pd.DataFrame(incomplete)
@@ -497,6 +670,216 @@ def national_metrics(states: pd.DataFrame) -> dict[str, float | int | str | None
     }
 
 
+def similarity_summary_metrics(states: pd.DataFrame) -> dict[str, float | int | str | None]:
+    valid = states.dropna(subset=["error_outcome_pp"]).copy()
+    if valid.empty:
+        return {}
+    valid["abs_error"] = valid["error_outcome_pp"].abs()
+    max_row = valid.sort_values(["abs_error", "cod_estado"], ascending=[False, True]).iloc[0]
+    errors = [float(x) for x in valid["error_outcome_pp"]]
+    abs_errors = [abs(x) for x in errors]
+    swing_valid = states.dropna(subset=["swing_error_pp"]).copy()
+    swing_errors = [float(x) for x in swing_valid["swing_error_pp"]]
+    return {
+        "transicion": states.iloc[0]["transicion"],
+        "similarity": states.iloc[0]["similarity"],
+        "centros_seleccionados": int(states["n_seleccionados"].sum()),
+        "estados_evaluados": int(len(valid)),
+        "mae": mean(abs_errors),
+        "rmse": math.sqrt(mean([e * e for e in errors])),
+        "medae": median(abs_errors),
+        "pct_dentro_2pp": sum(1 for x in abs_errors if x <= 2) / len(abs_errors),
+        "pct_dentro_5pp": sum(1 for x in abs_errors if x <= 5) / len(abs_errors),
+        "pct_dentro_10pp": sum(1 for x in abs_errors if x <= 10) / len(abs_errors),
+        "max_error_abs": float(max_row["abs_error"]),
+        "max_error_estado": max_row["estado"],
+        "max_error_firmado": float(max_row["error_outcome_pp"]),
+        "mae_swing_error_pp": mean([abs(x) for x in swing_errors]) if swing_errors else None,
+        "rmse_swing_error_pp": math.sqrt(mean([x * x for x in swing_errors])) if swing_errors else None,
+    }
+
+
+def similarity_state_diagnostics(
+    selected: pd.DataFrame,
+    transition: str,
+    similarity: str,
+    quotas: dict[str, int],
+) -> pd.DataFrame:
+    rows = []
+    for state, quota in sorted(quotas.items()):
+        group = selected[selected["cod_estado"].eq(state)].copy()
+        tolerance_counts = defaultdict(int)
+        for value in group["tolerancia_de_entrada"].tolist() if not group.empty else []:
+            tolerance_counts[str(value)] += 1
+        rows.append(
+            {
+                "transicion": transition,
+                "similarity": similarity,
+                "cod_estado": state,
+                "estado": STATE_NAMES.get(state, state),
+                "cuota": quota,
+                "distancia_media_sel": float(group["distancia_hist_pp"].mean()) if not group.empty else None,
+                "distancia_mediana_sel": float(group["distancia_hist_pp"].median()) if not group.empty else None,
+                "distancia_max_sel": float(group["distancia_hist_pp"].max()) if not group.empty else None,
+                "pasada_maxima": int(group["pasada"].max()) if not group.empty else None,
+                "tolerancia_maxima": group["tolerancia_de_entrada"].iloc[-1] if not group.empty else None,
+                "conteo_por_tolerancia": ";".join(f"{k}:{v}" for k, v in sorted(tolerance_counts.items())),
+                "electores_medianos_sel": float(group["electores"].median()) if not group.empty else None,
+                "electores_minimos_sel": float(group["electores"].min()) if not group.empty else None,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def add_sample_overlap_diagnostics(states: pd.DataFrame, centers: pd.DataFrame) -> pd.DataFrame:
+    out = states.copy()
+    selected_sets = {
+        (transition, similarity, state): set(group["codigo_centro"])
+        for (transition, similarity, state), group in centers.groupby(["transicion", "similarity", "cod_estado"])
+    }
+    rows = []
+    for row in out.to_dict("records"):
+        key_base = (row["transicion"], row["cod_estado"])
+        current = selected_sets.get((row["transicion"], row["similarity"], row["cod_estado"]), set())
+        others = [
+            selected_sets.get((key_base[0], other, key_base[1]), set())
+            for other in SIMILARITY_VARIANTS
+            if other != row["similarity"]
+        ]
+        common_all = set(current)
+        for other_set in others:
+            common_all &= other_set
+        row["n_difiere_otras_variantes"] = len(current - common_all)
+        for other in SIMILARITY_VARIANTS:
+            if other == row["similarity"]:
+                row[f"n_difiere_vs_{other}"] = 0
+                continue
+            other_set = selected_sets.get((key_base[0], other, key_base[1]), set())
+            row[f"n_difiere_vs_{other}"] = len(current - other_set)
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def common_centers_summary(centers: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for transition, group in centers.groupby("transicion"):
+        sets = [
+            set(group[group["similarity"].eq(similarity)]["codigo_centro"])
+            for similarity in SIMILARITY_VARIANTS
+        ]
+        common = set.intersection(*sets) if sets else set()
+        rows.append(
+            {
+                "transicion": transition,
+                "centros_comunes_tres_variantes": len(common),
+                "pct_comun_sobre_120": 100 * len(common) / N_BASE,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def run_similarity_transition(transition: Transition) -> dict[str, pd.DataFrame]:
+    frame = load_frame(transition.frame_path)
+    if transition.name == "2013_2018":
+        frame = complete_2018_frame_with_venpres_dc(frame)
+    quotas = allocate_dhondt_quotas(frame)
+    historical_eval = load_results(transition.historical_kind, transition.historical_path)
+    historical_profile = load_candidate_results(transition.historical_kind, transition.historical_path)
+    outcome = load_results(transition.outcome_kind, transition.outcome_path)
+
+    state_rows = []
+    center_rows = []
+    diagnostics = []
+    incomplete_rows = []
+    for similarity in SIMILARITY_VARIANTS:
+        selected, incomplete = select_legacy_similarity(
+            frame,
+            historical_profile,
+            quotas,
+            DEFAULT_TOLERANCE_LADDERS[PRIMARY_CONFIG[0]],
+            PRIMARY_CONFIG[1],
+            similarity,
+        )
+        selected = selected.assign(transicion=transition.name, similarity=similarity)
+        states = evaluate_selection(
+            transition.name,
+            "legacy_similarity",
+            frame,
+            selected,
+            historical_eval,
+            outcome,
+            quotas,
+            PRIMARY_CONFIG[0],
+            PRIMARY_CONFIG[1],
+        ).assign(similarity=similarity)
+        state_rows.append(states)
+        center_rows.append(selected)
+        diagnostics.append(similarity_state_diagnostics(selected, transition.name, similarity, quotas))
+        if not incomplete.empty:
+            incomplete_rows.append(incomplete.assign(transicion=transition.name))
+
+    centers = pd.concat(center_rows, ignore_index=True)
+    states = add_sample_overlap_diagnostics(pd.concat(state_rows, ignore_index=True), centers)
+    diagnostics_df = pd.concat(diagnostics, ignore_index=True)
+    diagnostics_df = diagnostics_df.merge(
+        states[
+            [
+                "transicion",
+                "similarity",
+                "cod_estado",
+                "n_difiere_otras_variantes",
+                "n_difiere_vs_winner_share",
+                "n_difiere_vs_top2_gap",
+                "n_difiere_vs_full_profile",
+            ]
+        ],
+        on=["transicion", "similarity", "cod_estado"],
+        how="left",
+    )
+    diagnostic_cols = [
+        "transicion",
+        "similarity",
+        "cod_estado",
+        "estado",
+        "cuota",
+        "distancia_media_sel",
+        "distancia_mediana_sel",
+        "distancia_max_sel",
+        "pasada_maxima",
+        "tolerancia_maxima",
+        "conteo_por_tolerancia",
+        "electores_medianos_sel",
+        "electores_minimos_sel",
+    ]
+    states = states.merge(
+        diagnostics_df[diagnostic_cols],
+        on=["transicion", "similarity", "cod_estado", "estado", "cuota"],
+        how="left",
+    )
+    summary = pd.DataFrame(
+        [similarity_summary_metrics(group) for _, group in states.groupby(["transicion", "similarity"])]
+    )
+    summary = summary.merge(common_centers_summary(centers), on="transicion", how="left")
+    return {
+        "summary": summary,
+        "states": states,
+        "centers": centers,
+        "incomplete": pd.concat(incomplete_rows, ignore_index=True) if incomplete_rows else pd.DataFrame(),
+    }
+
+
+def run_similarity_experiment(output_dir: Path) -> dict[str, pd.DataFrame]:
+    results = [run_similarity_transition(transition) for transition in TRANSITIONS]
+    outputs = {
+        key: pd.concat([result[key] for result in results], ignore_index=True)
+        for key in ("summary", "states", "centers")
+    }
+    incomplete = [result["incomplete"] for result in results if not result["incomplete"].empty]
+    outputs["incomplete"] = pd.concat(incomplete, ignore_index=True) if incomplete else pd.DataFrame()
+    write_similarity_outputs(output_dir, outputs)
+    return outputs
+
+
 def run_transition(transition: Transition, ladder_name: str, min_electores: int) -> dict[str, pd.DataFrame]:
     frame = load_frame(transition.frame_path)
     if transition.name == "2013_2018":
@@ -624,6 +1007,24 @@ def write_outputs(output_dir: Path, outputs: dict[str, pd.DataFrame]) -> None:
     if not outputs["incomplete"].empty:
         outputs["incomplete"].to_csv(output_dir / "backtest_legacy_incompletos.csv", index=False, encoding="utf-8")
     write_markdown(output_dir / "BACKTEST_LEGACY_NACIONAL.md", outputs)
+
+
+def write_similarity_outputs(output_dir: Path, outputs: dict[str, pd.DataFrame]) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _round_floats(outputs["summary"]).to_csv(
+        output_dir / "backtest_legacy_similarity_summary.csv", index=False, encoding="utf-8"
+    )
+    _round_floats(outputs["states"]).to_csv(
+        output_dir / "backtest_legacy_similarity_estados.csv", index=False, encoding="utf-8"
+    )
+    _round_floats(outputs["centers"]).to_csv(
+        output_dir / "backtest_legacy_similarity_centros.csv", index=False, encoding="utf-8"
+    )
+    if not outputs["incomplete"].empty:
+        outputs["incomplete"].to_csv(
+            output_dir / "backtest_legacy_similarity_incompletos.csv", index=False, encoding="utf-8"
+        )
+    write_similarity_markdown(output_dir / "BACKTEST_LEGACY_SIMILARITY.md", outputs)
 
 
 def _fmt(value: object) -> str:
@@ -780,14 +1181,182 @@ def write_markdown(path: Path, outputs: dict[str, pd.DataFrame]) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def write_similarity_markdown(path: Path, outputs: dict[str, pd.DataFrame]) -> None:
+    summary = outputs["summary"].copy()
+    states = outputs["states"].copy()
+    centers = outputs["centers"].copy()
+    best_mae = (
+        summary.sort_values(["transicion", "mae", "rmse"])
+        .groupby("transicion", as_index=False)
+        .first()[["transicion", "similarity", "mae"]]
+        .rename(columns={"similarity": "menor_mae_similarity", "mae": "menor_mae"})
+    )
+    best_rmse = (
+        summary.sort_values(["transicion", "rmse", "mae"])
+        .groupby("transicion", as_index=False)
+        .first()[["transicion", "similarity", "rmse"]]
+        .rename(columns={"similarity": "menor_rmse_similarity", "rmse": "menor_rmse"})
+    )
+    least_outlier = (
+        summary.sort_values(["transicion", "max_error_abs", "mae"])
+        .groupby("transicion", as_index=False)
+        .first()[["transicion", "similarity", "max_error_abs"]]
+        .rename(columns={"similarity": "menor_outlier_similarity", "max_error_abs": "menor_max_error_abs"})
+    )
+    tolerance = (
+        states.groupby(["transicion", "similarity"], as_index=False)
+        .agg(pasada_maxima=("pasada_maxima", "max"), distancia_max_sel=("distancia_max_sel", "max"))
+        .sort_values(["transicion", "pasada_maxima", "distancia_max_sel"])
+        .groupby("transicion", as_index=False)
+        .first()
+        .rename(columns={"similarity": "menor_ampliacion_similarity"})
+    )
+    stability = best_mae.merge(best_rmse, on="transicion").merge(least_outlier, on="transicion").merge(
+        tolerance[["transicion", "menor_ampliacion_similarity", "pasada_maxima", "distancia_max_sel"]],
+        on="transicion",
+    )
+    common = summary[["transicion", "centros_comunes_tres_variantes", "pct_comun_sobre_120"]].drop_duplicates()
+    state_preview = states[
+        [
+            "transicion",
+            "similarity",
+            "estado",
+            "cuota",
+            "error_outcome_pp",
+            "distancia_media_sel",
+            "pasada_maxima",
+            "tolerancia_maxima",
+            "n_difiere_otras_variantes",
+        ]
+    ].sort_values(["transicion", "similarity", "estado"])
+
+    lines = [
+        "# Comparacion de formalizaciones de similitud legacy",
+        "",
+        "Este ejercicio mantiene fijo el procedimiento legacy de 120 centros y cambia solo la definicion matematica de `se parece` usada contra la presidencial inmediatamente anterior.",
+        "",
+        "## Formulas",
+        "",
+        "- `winner_share`: distancia absoluta entre el porcentaje del candidato ganador estatal historico y ese mismo candidato en el centro.",
+        "- `top2_gap`: distancia absoluta entre el gap firmado de los dos candidatos principales estatales y el gap firmado de esos mismos candidatos en el centro.",
+        "- `full_profile`: Total Variation Distance en puntos porcentuales, `0.5 * sum(abs(p_cj - p_sj))`, sobre todos los candidatos comparables dentro de la eleccion historica.",
+        "",
+        "La escalera comun es `[2, 4, 6, 8, 10, 15, 20, inf]` pp y `min_electores=300`. No se optimiza por variante.",
+        "",
+        "## Fuentes y tratamiento de candidatos",
+        "",
+        "- `2013_2018`: marco `backend/tm_2018_estandar.csv`, Distrito Capital completado desde VENPRES-A 2018 solo como marco, similitud desde `resultados oficiales elecciones presidenciales 2013.xlsx`, outcome desde VENPRES-A 2018.",
+        "- Perfil 2013: Maduro, Capriles, Sequera, Bolivar, Mora y Mendez; porcentajes sobre votos validos agregados por centro/estado.",
+        "- `2018_2024`: marco `backend/tm_2024_estandar.csv`, similitud desde VENPRES-A 2018, outcome desde `backend/resultados_cne2024.csv`.",
+        "- Perfil 2018: Maduro, Falcon y Bertucci+Quijada. VENPRES-A conserva Falcon separado como oposicion y Bertucci+Quijada como bloque `otros`; no se separa Quijada porque el CSV normalizado del repo no lo expone aparte.",
+        "",
+        "La implementacion legacy previa usa porcentaje de Maduro/gobierno contra el porcentaje estatal historico. Es equivalente a `winner_share` solo en estados donde Maduro fue el ganador estatal historico; si gana otro candidato, `winner_share` compara contra ese ganador estatal y no contra Maduro.",
+        "",
+        "## Resumen nacional",
+        "",
+        markdown_table(
+            summary[
+                [
+                    "transicion",
+                    "similarity",
+                    "mae",
+                    "rmse",
+                    "medae",
+                    "pct_dentro_2pp",
+                    "pct_dentro_5pp",
+                    "pct_dentro_10pp",
+                    "max_error_abs",
+                    "max_error_estado",
+                ]
+            ].to_dict("records"),
+            [
+                "transicion",
+                "similarity",
+                "mae",
+                "rmse",
+                "medae",
+                "pct_dentro_2pp",
+                "pct_dentro_5pp",
+                "pct_dentro_10pp",
+                "max_error_abs",
+                "max_error_estado",
+            ],
+        ),
+        "",
+        "## Estabilidad comparativa",
+        "",
+        markdown_table(
+            stability.merge(common, on="transicion").to_dict("records"),
+            [
+                "transicion",
+                "menor_mae_similarity",
+                "menor_mae",
+                "menor_rmse_similarity",
+                "menor_rmse",
+                "menor_outlier_similarity",
+                "menor_max_error_abs",
+                "menor_ampliacion_similarity",
+                "pasada_maxima",
+                "distancia_max_sel",
+                "centros_comunes_tres_variantes",
+                "pct_comun_sobre_120",
+            ],
+        ),
+        "",
+        "## Resultados estatales",
+        "",
+        markdown_table(
+            state_preview.to_dict("records"),
+            [
+                "transicion",
+                "similarity",
+                "estado",
+                "cuota",
+                "error_outcome_pp",
+                "distancia_media_sel",
+                "pasada_maxima",
+                "tolerancia_maxima",
+                "n_difiere_otras_variantes",
+            ],
+        ),
+        "",
+        "## Archivos reproducibles",
+        "",
+        "- `backtest_legacy_similarity_summary.csv`",
+        "- `backtest_legacy_similarity_estados.csv`",
+        "- `backtest_legacy_similarity_centros.csv`",
+        "",
+        "## Limitaciones",
+        "",
+        "- Este no es un nuevo selector productivo ni una optimizacion moderna; solo formaliza el componente `se parece`.",
+        "- No se agregan fuentes externas ni se modifican datasets originales.",
+        "- Las metricas de swing se conservan en los CSV como diagnostico secundario.",
+        "- Diferencias pequenas entre variantes no se interpretan automaticamente como victoria metodologica.",
+        "",
+    ]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=REPO_DIR / "docs" / "muestreo")
+    parser.add_argument(
+        "--only",
+        choices=["all", "legacy", "similarity"],
+        default="all",
+        help="Controla que artefactos se regeneran.",
+    )
     args = parser.parse_args()
-    outputs = run_all(args.output_dir)
-    print(f"Estados: {len(outputs['states'])} filas")
-    print(f"Centros legacy primarios: {len(outputs['centers'])} filas")
-    print(f"Sensibilidad: {len(outputs['sensitivity'])} filas")
+    if args.only in {"all", "legacy"}:
+        outputs = run_all(args.output_dir)
+        print(f"Estados: {len(outputs['states'])} filas")
+        print(f"Centros legacy primarios: {len(outputs['centers'])} filas")
+        print(f"Sensibilidad: {len(outputs['sensitivity'])} filas")
+    if args.only in {"all", "similarity"}:
+        similarity_outputs = run_similarity_experiment(args.output_dir)
+        print(f"Similarity summary: {len(similarity_outputs['summary'])} filas")
+        print(f"Similarity estados: {len(similarity_outputs['states'])} filas")
+        print(f"Similarity centros: {len(similarity_outputs['centers'])} filas")
     print(f"Salida: {args.output_dir}")
     return 0
 
