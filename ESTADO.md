@@ -2,7 +2,7 @@
 
 > Estado actual del proyecto: qué funciona, qué está pendiente, qué bugs hay abiertos.
 > Actualizar al cierre de cada sesión de trabajo significativa.
-> Última actualización: 2026-08-23 (sesión de rendimiento)
+> Última actualización: 2026-08-24 (documentacion metodologia de muestra)
 
 ---
 
@@ -24,7 +24,7 @@ Sistema de exit poll electoral venezolano en producción activa en Azure. Fases 
 | Deploy | GitHub Actions en push a `main` (`.github/workflows/master_exit-poll-ve.yml`): empaqueta `backend/` como raíz, instala deps en `.python_packages` y despliega con publish profile |
 | Versión desplegada | `GET /version` → `commit` + `built_at`, y badge en el navbar |
 
-### Verificaciones última sesión (2026-08-23)
+### Verificaciones última sesión de rendimiento (2026-08-23)
 
 Medido contra producción tras desplegar los arreglos de rendimiento:
 
@@ -63,6 +63,9 @@ Medido contra producción tras desplegar los arreglos de rendimiento:
 
 ### Lógica de negocio
 - [x] Selector de muestra con elegibilidad por elección (`selector_muestra.py`)
+- [x] Metodologia productiva V1 documentada: seleccion aleatoria estratificada
+  por estado, reproducible por seed, sin uso de historicos para inclusion
+  (decision metodologica; implementacion productiva en cambio separado)
 - [x] Calculador pesos jerárquico 4 niveles con excepciones DC/La Guaira/Miranda-Caracas
 - [x] Analista IA determinístico con guardrails (`analista_ia.py`)
 - [x] Abstracción multi-proveedor: OpenAI, Anthropic, Groq, Gemini (`agent.py`)
@@ -85,6 +88,8 @@ Medido contra producción tras desplegar los arreglos de rendimiento:
 ### Dashboard de configuración FastAPI
 - [x] Gestión de elecciones y candidatos (con fotos, ámbito geográfico, circuitos)
 - [x] Muestra: generador automático + aplicar
+- [x] Documentacion consolidada de muestreo en `docs/muestreo/`: metodologia
+  productiva, historial experimental, resultados de backtest y decisiones
 - [x] Pesos: edición inline masiva
 - [x] TM: carga legacy + carga IA multi-formato con preview MATCHED/NEW/AMBIGUOUS/CONFLICT
 - [x] Ficha técnica estilo CIS (imprimible, error muestral calculado)

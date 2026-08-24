@@ -348,3 +348,47 @@ En paralelo, dos rutas GET hacian trabajo de escritura en cada peticion (`ensure
 - Si alguna vez se necesita forzar una resiembra sin tocar las fuentes, basta con borrar la fila de `seed_state`.
 
 **Estado**: Fija.
+
+---
+
+## ADR-016 - Seleccion productiva de muestra V1 aleatoria estratificada
+
+**Decision**: La seleccion productiva de muestra usa `stratified_random`: cuotas
+por estado proporcionales a electores inscritos del frame de la eleccion
+corriente y seleccion aleatoria reproducible por `seed` dentro de cada estado.
+
+**Contexto**: Los backtests y diagnosticos historicos muestran que RMSE, `mu` y
+`sigma` contienen senal real, pero no una victoria robusta ni preregistrada que
+justifique usarlos para rankear, filtrar, corregir o redibujar centros en
+produccion. Usar resultados anteriores como correccion operativa tambien
+cambia la naturaleza del sistema: deja de ser una medicion pura de la eleccion
+corriente.
+
+**Reglas**:
+- El universo metodologico es la Tabla Mesa de la eleccion corriente.
+- Para presidencial V1, el estrato es el estado.
+- Las cuotas se asignan proporcionalmente a electores inscritos, con minimos y
+  redondeo deterministicos.
+- La muestra genera titulares y reservas sin solapamiento.
+- Cada generacion registra eleccion, hash/version de Tabla Mesa, metodo,
+  tamano, seed, cuotas, timestamp y version de algoritmo.
+- RMSE, score, `mu`, `sigma`, recency, factores de fuente y ranking historico
+  quedan fuera de la seleccion productiva.
+- `historical_greedy` y backtests quedan como estrategias experimentales no
+  promovidas a produccion.
+
+**Consecuencias**:
+- ADR-011 y ADR-012 siguen documentando el laboratorio historico, pero no
+  definen el selector productivo V1.
+- El estimador productivo no cambia: mantiene pesos preelectorales,
+  actualmente electores inscritos.
+- El experimento oracle con votos validos target queda como investigacion, no
+  como comportamiento productivo.
+
+**Documentacion permanente**:
+- `docs/muestreo/METODOLOGIA_MUESTREO.md`
+- `docs/muestreo/HISTORIAL_EXPERIMENTAL.md`
+- `docs/muestreo/RESULTADOS_BACKTEST.md`
+- `docs/muestreo/DECISIONES_MUESTREO.md`
+
+**Estado**: Fija para V1.

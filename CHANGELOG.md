@@ -8,6 +8,12 @@
 
 ## [Unreleased]
 
+### docs - Metodologia de muestreo consolidada
+- `docs/muestreo/METODOLOGIA_MUESTREO.md`: documenta la decision metodologica V1 como seleccion aleatoria estratificada por estado, reproducible por seed y sin uso de historicos para inclusion.
+- `docs/muestreo/HISTORIAL_EXPERIMENTAL.md`, `RESULTADOS_BACKTEST.md` y `DECISIONES_MUESTREO.md`: consolidan la evolucion experimental, resultados verificados localmente y decisiones especificas de muestreo.
+- `DECISIONES.md`: agrega ADR-016 y deja `historical_greedy` como estrategia experimental no promovida a produccion.
+- Cambio documental solamente; no modifica comportamiento productivo ni cierra la implementacion productiva en este commit.
+
 ### fix — 500 "database is locked" en /config y /muestra
 - `backend/seed_resultados_historicos.py`: el seed se salta si las fuentes no cambiaron. La huella cubre tamaño y mtime de cada fichero más los metadatos declarados en `DATASETS`/`EXCEL_DATASETS`, y se guarda en la nueva tabla `seed_state`. Tocar un CSV o editar un dataset vuelve a disparar el seed completo, así que un deploy con datos nuevos los sigue aplicando. Medido: 34.6 s → 0.0 s con los mismos 91.429 registros en 8 refs.
 - `backend/app.py` · `ensure_config_table` y `backend/muestra_lab.py` · `construir_laboratorio`: dejan de escribir en cada petición GET. El trabajo idempotente se hace una vez por BD, con guard por ruta de fichero (no booleano) porque los tests intercambian `DB_PATH` dentro del mismo proceso.
