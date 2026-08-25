@@ -110,6 +110,16 @@ def test_presidential_frame_excludes_non_24_entities():
     assert [row["id_estado"] for row in sl.presidential_frame(frame)] == [1, 24]
 
 
+def test_eligible_longitudinal_frame_applies_domestic_and_elector_floor():
+    frame = [
+        {"id_estado": 1, "estado": "A", "num_electores": 800, "codigo_cne": "010000001"},
+        {"id_estado": 1, "estado": "A", "num_electores": 799, "codigo_cne": "010000002"},
+        {"id_estado": 25, "estado": "Exterior", "num_electores": 5000, "codigo_cne": "250000001"},
+    ]
+
+    assert [row["codigo_cne"] for row in sl.eligible_longitudinal_frame(frame)] == ["010000001"]
+
+
 def test_build_features_uses_only_history_before_target_and_normalized_tables():
     conn = _conn_24_states()
     code = "010000001"
@@ -170,7 +180,63 @@ def test_generate_longitudinal_is_deterministic_and_uses_only_frame_centers():
     assert {row["codigo_cne"] for row in one["titulares"]} <= frame_codes
     assert one["method"] == sl.METHOD
     assert one["algorithm_version"] == sl.ALGORITHM_VERSION
+    assert one["min_electores_centro"] == sl.MIN_ELECTORES_CENTRO
     assert one["history_coverage"]["n_hist_ge_2"] == 288
+
+
+def test_generate_longitudinal_excludes_centers_below_elector_floor_even_with_good_score():
+    conn = _conn_24_states()
+    tiny_code = "130999999"
+    conn.execute(
+        """INSERT INTO centros
+           (codigo_cne, nombre, id_estado, num_mesas, num_electores, activo)
+           VALUES (?, 'Centro tiny', 13, 1, 30, 1)""",
+        (tiny_code,),
+    )
+    conn.execute(
+        "INSERT INTO election_centers (eleccion_id, centro_id, eligible) VALUES (1, ?, 1)",
+        (tiny_code,),
+    )
+    for state in range(1, 25):
+        for idx in range(1, 13):
+            code = f"{state:02d}{idx:07d}"
+            _insert_historical(conn, "2006-presidencial", code, 50 + idx)
+            _insert_historical(conn, "2012-presidencial", code, 50 - idx)
+    _insert_historical(conn, "2006-presidencial", tiny_code, 50.0)
+    _insert_historical(conn, "2012-presidencial", tiny_code, 50.0)
+    conn.commit()
+
+    propuesta = sl.generar_muestra_longitudinal(conn, 1)
+
+    assert tiny_code not in {row["codigo_cne"] for row in propuesta["titulares"]}
+    assert min(row["num_electores"] for row in propuesta["titulares"]) >= sl.MIN_ELECTORES_CENTRO
+
+
+def test_apply_longitudinal_persists_method_and_roles():
+    conn = _conn_24_states()
+    for state in range(1, 25):
+        for idx in range(1, 13):
+            code = f"{state:02d}{idx:07d}"
+            _insert_historical(conn, "2006-presidencial", code, 50 + idx)
+            _insert_historical(conn, "2012-presidencial", code, 50 - idx)
+    conn.commit()
+
+    propuesta = sl.generar_muestra_longitudinal(conn, 1, sample_size=120, reserve_size=0)
+    n = sl.aplicar_muestra_longitudinal(
+        conn,
+        1,
+        [row["codigo_cne"] for row in propuesta["titulares"]],
+        [],
+        propuesta,
+    )
+
+    assert n == 120
+    meta = conn.execute("SELECT metodo, algorithm_version, seed FROM muestra_generaciones").fetchone()
+    assert meta["metodo"] == sl.METHOD
+    assert meta["algorithm_version"] == sl.ALGORITHM_VERSION
+    assert meta["seed"] == 0
+    roles = dict(conn.execute("SELECT rol_muestra, COUNT(*) c FROM muestra GROUP BY rol_muestra").fetchall())
+    assert roles == {"titular": 120}
 
 
 def test_productive_selector_remains_stratified_random_and_unchanged():

@@ -1,9 +1,8 @@
 # Metodo longitudinal V1
 
-`longitudinal_mae_v1` es un selector experimental para muestras presidenciales
-nacionales futuras. No reemplaza el selector productivo actual
-`stratified_random_v1` y debe invocarse de forma deliberada desde
-`backend/selector_longitudinal.py`.
+`longitudinal_mae_v1` es el selector usado por la seleccion automatica para
+muestras presidenciales nacionales domesticas. Reemplaza al flujo visible de
+`stratified_random_v1`, que queda como fallback compatible para metadata vieja.
 
 ## Origen
 
@@ -81,6 +80,11 @@ La arquitectura presidencial nacional reconstruida queda fija:
 
 Los 2 minimos territoriales no cuentan como plazas previas de D'Hondt. D'Hondt
 solo determina cuota por estado; no selecciona centros.
+
+Antes de asignar cuotas y calcular rankings, el frame operativo excluye
+`Exterior` y centros con menos de `800` electores inscritos. El laboratorio
+puede mostrar esos centros para auditoria, pero la seleccion automatica
+`longitudinal_mae_v1` no los propone como titulares ni reservas.
 
 En una corrida local read-only sobre la BD de desarrollo (`Presidenciales 2025`,
 frame de centros activos), las cuotas fueron:
@@ -203,5 +207,21 @@ Fuera de alcance:
 
 ## Estado operativo
 
-`longitudinal_mae_v1` queda como metodo sucesor experimental. El selector
-productivo por defecto sigue siendo `stratified_random_v1`.
+`longitudinal_mae_v1` queda como metodo de seleccion automatica. El selector
+`stratified_random_v1` queda como fallback compatible, no como flujo visible.
+
+## Relacion con el laboratorio
+
+El laboratorio de muestra muestra el metodo en tres capas separadas:
+
+- el selector automatico vigente (`longitudinal_mae_v1`);
+- el score diagnostico del laboratorio, usado para auditar y ordenar centros;
+- el selector legacy/fallback (`stratified_random_v1`).
+
+La tabla principal del laboratorio no expone todas las variables porque eso
+diluye la lectura operativa. Mantiene las columnas necesarias para revisar
+seleccionabilidad, territorio, tamano, cobertura historica y desvio. Las
+variables auxiliares permanecen disponibles en la ficha expandida: perfil
+historico, confianza, score, GPS, mesas, `n_eff`, presencia 2024, ruptura 2024,
+estabilidad relativa, convergencia, estabilidad de brecha y detalle de
+fuente/cobertura por eleccion.

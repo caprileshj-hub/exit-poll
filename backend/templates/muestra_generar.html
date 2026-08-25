@@ -1,28 +1,34 @@
 {% extends "base.html" %}
 {% set active_page = "muestra" %}
-{% block title %}Generar Muestra{% endblock %}
+{% block title %}Seleccion Automatica{% endblock %}
 
 {% block content %}
 <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="/muestra">Muestra</a></li>
-        <li class="breadcrumb-item active">Generar</li>
+        <li class="breadcrumb-item active">Seleccion automatica</li>
     </ol>
 </nav>
 
 <div class="d-flex justify-content-between align-items-start mb-3">
     <div>
-        <h3 class="mb-1"><i class="bi bi-shuffle me-2"></i>Generador de muestra</h3>
+        <h3 class="mb-1"><i class="bi bi-shuffle me-2"></i>Seleccion automatica</h3>
         <div class="text-muted small">{{ eleccion["nombre"] }}</div>
     </div>
-    <span class="badge bg-primary">stratified_random</span>
+    <span class="badge bg-primary">longitudinal_mae</span>
 </div>
 
 <div class="alert alert-light border">
-    Universo: <strong>{{ propuesta.frame_source }}</strong> |
+    Universo: <strong>frame domestico presidencial</strong> |
     Centros frame: <strong>{{ "{:,}".format(propuesta.frame_count) }}</strong> |
     Electores frame: <strong>{{ "{:,}".format(propuesta.frame_electores) }}</strong> |
-    Version TM: <code>{{ propuesta.frame_hash[:12] }}</code>
+    Version TM: <code>{{ propuesta.frame_hash[:12] }}</code> |
+    Historicos: <code>{{ propuesta.historical_data_hash[:12] }}</code>
+    {% if propuesta.history_coverage %}
+    | Cobertura hist.: <strong>{{ "{:,}".format(propuesta.history_coverage.n_hist_ge_2) }}</strong> con 2+,
+    <strong>{{ "{:,}".format(propuesta.history_coverage.n_hist_1) }}</strong> con 1,
+    <strong>{{ "{:,}".format(propuesta.history_coverage.n_hist_0) }}</strong> sin historial
+    {% endif %}
 </div>
 
 <form method="get" action="/muestra/generar" class="row g-2 mb-4 align-items-end bg-white border rounded p-3">
@@ -35,10 +41,6 @@
         <label class="form-label fw-semibold mb-1">Reservas</label>
         <input type="number" name="reserve_size" class="form-control" min="0" max="2000"
                value="{{ reserve_size }}" style="width: 110px;">
-    </div>
-    <div class="col-auto">
-        <label class="form-label fw-semibold mb-1">Semilla</label>
-        <input type="number" name="seed" class="form-control" value="{{ seed }}" style="width: 140px;">
     </div>
     <div class="col-auto">
         <button class="btn btn-outline-primary"><i class="bi bi-arrow-clockwise me-1"></i>Recalcular</button>
@@ -65,7 +67,6 @@
             Metodo {{ propuesta.metodo }} |
             Tamano {{ propuesta.titulares|length }} |
             Reservas {{ propuesta.reservas|length }} |
-            Seed {{ propuesta.seed }} |
             Algoritmo {{ propuesta.algorithm_version }}
         </div>
         <button type="submit" class="btn btn-success">
@@ -84,6 +85,8 @@
                             <th>Estado</th>
                             <th>Municipio</th>
                             <th class="text-end">Electores</th>
+                            <th class="text-end">Score</th>
+                            <th>Fuente</th>
                             <th>Rol</th>
                         </tr>
                     </thead>
@@ -94,6 +97,8 @@
                             <td class="small">{{ c.estado }}</td>
                             <td class="small">{{ c.municipio or "-" }}</td>
                             <td class="text-end">{{ "{:,}".format(c.num_electores or 0) }}</td>
+                            <td class="text-end">{{ "%.2f"|format(c.selector_score) }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ c.score_source }}</span></td>
                             <td><span class="badge bg-success">Titular</span></td>
                         </tr>
                     {% endfor %}
@@ -111,6 +116,8 @@
                             <th>Estado</th>
                             <th>Municipio</th>
                             <th class="text-end">Electores</th>
+                            <th class="text-end">Score</th>
+                            <th>Fuente</th>
                             <th>Rol</th>
                         </tr>
                     </thead>
@@ -121,11 +128,13 @@
                             <td class="small">{{ c.estado }}</td>
                             <td class="small">{{ c.municipio or "-" }}</td>
                             <td class="text-end">{{ "{:,}".format(c.num_electores or 0) }}</td>
+                            <td class="text-end">{{ "%.2f"|format(c.selector_score) }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ c.score_source }}</span></td>
                             <td><span class="badge bg-secondary">Reserva</span></td>
                         </tr>
                     {% endfor %}
                     {% if propuesta.reservas|length == 0 %}
-                        <tr><td colspan="5" class="text-muted small">Sin reservas generadas.</td></tr>
+                        <tr><td colspan="7" class="text-muted small">Sin reservas generadas.</td></tr>
                     {% endif %}
                     </tbody>
                 </table>

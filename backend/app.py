@@ -777,6 +777,58 @@ def pesos_list(request: Request, estado: str = "", msg: str = "", cat: str = "su
         db.close()
 
 
+def _pesos_context(db, eleccion, estado: str = "") -> dict:
+    rows = []
+    estados = []
+    tiene_muestra = False
+
+    if eleccion:
+        eid = eleccion["id"]
+        tiene_muestra = db.execute(
+            "SELECT COUNT(*) c FROM muestra WHERE id_eleccion=?", (eid,)
+        ).fetchone()["c"] > 0
+
+    if eleccion and tiene_muestra:
+        estados = db.execute(
+            """SELECT DISTINCT e.id, e.nombre FROM estados e
+               JOIN centros ct ON ct.id_estado=e.id
+               JOIN muestra m ON m.codigo_centro=ct.codigo_cne
+               WHERE m.id_eleccion=?
+               ORDER BY e.nombre""", (eleccion["id"],)
+        ).fetchall()
+
+        query = """
+            SELECT m.id as id_muestra, m.codigo_centro, ct.nombre as centro_nombre,
+                   e.nombre as estado, mu.nombre as municipio, p2.nombre as parroquia,
+                   m.tipo_centro, m.activo,
+                   COALESCE(p.peso_parroquia,0) as peso_parroquia,
+                   COALESCE(p.peso_municipio,0) as peso_municipio,
+                   COALESCE(p.peso_estado,0) as peso_estado,
+                   COALESCE(p.peso_nacion,0) as peso_nacion,
+                   ct.num_electores, ct.num_mesas
+            FROM muestra m
+            JOIN centros ct ON m.codigo_centro=ct.codigo_cne
+            JOIN estados e ON ct.id_estado=e.id
+            LEFT JOIN municipios mu ON ct.id_municipio=mu.id
+            LEFT JOIN parroquias p2 ON ct.id_parroquia=p2.id
+            LEFT JOIN pesos p ON p.id_muestra=m.id
+            WHERE m.id_eleccion=? AND m.activo=1
+        """
+        params = [eleccion["id"]]
+        if estado:
+            query += " AND e.id=?"
+            params.append(int(estado))
+        query += " ORDER BY e.nombre, mu.nombre, ct.nombre"
+        rows = db.execute(query, params).fetchall()
+
+    return {
+        "pesos": rows,
+        "estados_pesos": estados,
+        "estado_pesos_sel": estado,
+        "tiene_muestra": tiene_muestra,
+    }
+
+
 @app.post("/pesos/{id_muestra}/guardar")
 def peso_save(
     id_muestra: int,
@@ -801,7 +853,7 @@ def peso_save(
                 (id_muestra, peso_parroquia, peso_municipio, peso_estado, peso_nacion),
             )
         db.commit()
-        return RedirectResponse("/pesos?msg=Peso+actualizado", status_code=303)
+        return RedirectResponse("/muestra?tab=pesos&msg=Peso+actualizado", status_code=303)
     finally:
         db.close()
 
@@ -835,7 +887,7 @@ async def pesos_save_all(request: Request):
                     )
                 count += 1
         db.commit()
-        return RedirectResponse(f"/pesos?msg=Pesos+actualizados+({count}+centros)&cat=success", status_code=303)
+        return RedirectResponse(f"/muestra?tab=pesos&msg=Pesos+actualizados+({count}+centros)&cat=success", status_code=303)
     finally:
         db.close()
 
@@ -1756,8 +1808,13 @@ def muestra_index(
     request: Request,
     msg: str = "",
     cat: str = "success",
+    tab: str = "lab",
+    auto: int = 0,
+    sample_size: int = 120,
+    reserve_size: int = 0,
     q: str = "",
     estado: str = "",
+    estado_pesos: str = "",
     municipio: str = "",
     parroquia: str = "",
     estatus: str = "",
@@ -1785,6 +1842,7 @@ def muestra_index(
 
         eleccion_ref = _eleccion_ref_referencia(db)
         muestra_actual = []
+        muestra_estados = []
         if eleccion:
             muestra_actual = db.execute(
                 """SELECT m.id, m.codigo_centro, ct.nombre as centro_nombre,
@@ -1805,6 +1863,21 @@ def muestra_index(
                    ORDER BY CASE COALESCE(m.rol_muestra, 'titular') WHEN 'titular' THEN 0 WHEN 'reserva' THEN 1 ELSE 2 END,
                             e.nombre, mu.nombre, ct.num_electores DESC""",
                 (eleccion_ref, eleccion["id"])
+            ).fetchall()
+            muestra_estados = db.execute(
+                """SELECT e.nombre AS estado,
+                          COUNT(*) AS centros,
+                          SUM(CASE WHEN COALESCE(m.rol_muestra, 'titular')='titular' AND m.activo=1 THEN 1 ELSE 0 END) AS titulares,
+                          SUM(CASE WHEN COALESCE(m.rol_muestra, 'titular')='reserva' THEN 1 ELSE 0 END) AS reservas,
+                          SUM(CASE WHEN m.activo=1 THEN COALESCE(ct.num_electores,0) ELSE 0 END) AS electores
+                   FROM muestra m
+                   JOIN centros ct ON m.codigo_centro=ct.codigo_cne
+                   JOIN estados e ON ct.id_estado=e.id
+                   WHERE m.id_eleccion=?
+                     AND (m.activo=1 OR COALESCE(m.rol_muestra, 'titular')='reserva')
+                   GROUP BY e.id, e.nombre
+                   ORDER BY e.nombre""",
+                (eleccion["id"],),
             ).fetchall()
 
         muestra_meta = None
@@ -1839,18 +1912,58 @@ def muestra_index(
         refs = db.execute(
             "SELECT DISTINCT eleccion_ref FROM resultados_historicos"
         ).fetchall()
+        pesos_ctx = _pesos_context(db, eleccion, estado_pesos)
+        propuesta_auto = None
+        propuesta_auto_metadata = ""
+        if eleccion and auto:
+            import selector_longitudinal
+
+            sample_size = max(
+                selector_longitudinal.BASE_PER_STATE * len(selector_longitudinal.PRESIDENTIAL_STATE_IDS),
+                int(sample_size or selector_longitudinal.SAMPLE_SIZE),
+            )
+            reserve_size = max(0, int(reserve_size or 0))
+            propuesta_auto = selector_longitudinal.generar_muestra_longitudinal(
+                db,
+                id_eleccion=eleccion["id"],
+                sample_size=sample_size,
+                reserve_size=reserve_size,
+            )
+            propuesta_auto_metadata = json.dumps({
+                "metodo": propuesta_auto["metodo"],
+                "frame_hash": propuesta_auto["frame_hash"],
+                "frame_count": propuesta_auto["frame_count"],
+                "frame_electores": propuesta_auto["frame_electores"],
+                "min_electores_centro": propuesta_auto.get("min_electores_centro"),
+                "historical_data_hash": propuesta_auto["historical_data_hash"],
+                "history_coverage": propuesta_auto["history_coverage"],
+                "sample_size": propuesta_auto["sample_size"],
+                "reserve_size": propuesta_auto["reserve_size"],
+                "cuotas": propuesta_auto["cuotas"],
+                "cuotas_reserva": propuesta_auto["cuotas_reserva"],
+                "algorithm_version": propuesta_auto["algorithm_version"],
+            }, ensure_ascii=False)
 
         return templates.TemplateResponse(request=request, name="muestra.html", context={
             "eleccion": eleccion,
             "muestra": muestra_actual, "pct_nac": pct_nac,
+            "muestra_estados": muestra_estados,
             "refs": refs, "eleccion_ref": eleccion_ref,
             "muestra_meta": muestra_meta,
             "reservas_disponibles": reservas_disponibles,
             "msg": msg, "cat": cat,
             "lab": laboratorio,
+            "tab_activa": "actual" if auto else (tab if tab in {"lab", "actual", "pesos"} else "lab"),
+            "propuesta_auto": propuesta_auto,
+            "propuesta_auto_metadata": propuesta_auto_metadata,
+            "auto": auto,
+            "sample_size": sample_size,
+            "reserve_size": reserve_size,
+            **pesos_ctx,
             "filtros": {
                 "q": q,
                 "estado": estado,
+                "estado_pesos": estado_pesos,
                 "municipio": municipio,
                 "parroquia": parroquia,
                 "estatus": estatus,
@@ -1887,10 +2000,13 @@ async def muestra_agregar(request: Request):
 @app.get("/muestra/generar", response_class=HTMLResponse)
 def muestra_generar(
     request: Request,
-    sample_size: int = 180,
-    reserve_size: int = 180,
-    seed: int = 2026,
+    sample_size: int = 120,
+    reserve_size: int = 0,
 ):
+    return RedirectResponse(
+        f"/muestra?tab=actual&auto=1&sample_size={int(sample_size or 120)}&reserve_size={int(reserve_size or 0)}",
+        status_code=303,
+    )
     db = get_db()
     try:
         eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
@@ -1898,26 +2014,25 @@ def muestra_generar(
             db.close()
             return RedirectResponse("/muestra?msg=Active+una+elección+primero&cat=warning", status_code=303)
         _ensure_backend_path()
-        import selector_muestra
+        import selector_longitudinal
 
-        sample_size = max(1, int(sample_size or selector_muestra.DEFAULT_SAMPLE_SIZE))
+        sample_size = max(1, int(sample_size or selector_longitudinal.SAMPLE_SIZE))
         reserve_size = max(0, int(reserve_size or 0))
-        seed = int(seed if seed is not None else selector_muestra.DEFAULT_SEED)
-        propuesta = selector_muestra.generar_muestra_estratificada(
+        propuesta = selector_longitudinal.generar_muestra_longitudinal(
             db,
             id_eleccion=eleccion["id"],
             sample_size=sample_size,
             reserve_size=reserve_size,
-            seed=seed,
         )
         metadata_json = json.dumps({
+            "metodo": propuesta["metodo"],
             "frame_hash": propuesta["frame_hash"],
             "frame_count": propuesta["frame_count"],
             "frame_electores": propuesta["frame_electores"],
-            "frame_source": propuesta["frame_source"],
+            "historical_data_hash": propuesta["historical_data_hash"],
+            "history_coverage": propuesta["history_coverage"],
             "sample_size": propuesta["sample_size"],
             "reserve_size": propuesta["reserve_size"],
-            "seed": propuesta["seed"],
             "cuotas": propuesta["cuotas"],
             "cuotas_reserva": propuesta["cuotas_reserva"],
             "algorithm_version": propuesta["algorithm_version"],
@@ -1929,7 +2044,6 @@ def muestra_generar(
             "metadata_json": metadata_json,
             "sample_size": sample_size,
             "reserve_size": reserve_size,
-            "seed": seed,
         })
     finally:
         db.close()
@@ -1949,17 +2063,48 @@ async def muestra_aplicar(request: Request):
     db = get_db()
     try:
         _ensure_backend_path()
+        import selector_longitudinal
         import selector_muestra
 
         metadata = json.loads(metadata_raw)
-        n = selector_muestra.aplicar_muestra_estratificada(
-            db,
-            id_eleccion,
-            titulares,
-            reservas,
-            metadata,
-        )
-        return RedirectResponse(f"/muestra?msg=Muestra+creada+con+{n}+titulares&cat=success", status_code=303)
+        if metadata.get("metodo") == selector_longitudinal.METHOD:
+            min_electores = int(
+                metadata.get("min_electores_centro")
+                or selector_longitudinal.MIN_ELECTORES_CENTRO
+            )
+            codigos = titulares + reservas
+            if codigos:
+                placeholders = ",".join("?" for _ in codigos)
+                bajos = db.execute(
+                    f"""
+                    SELECT codigo_cne, COALESCE(num_electores, 0) AS num_electores
+                    FROM centros
+                    WHERE codigo_cne IN ({placeholders})
+                      AND COALESCE(num_electores, 0) < ?
+                    """,
+                    [*codigos, min_electores],
+                ).fetchall()
+                if bajos:
+                    return RedirectResponse(
+                        f"/muestra?tab=actual&auto=1&msg=Hay+{len(bajos)}+centros+por+debajo+del+piso+de+{min_electores}+electores.+Regenerar+seleccion+automatica.&cat=warning",
+                        status_code=303,
+                    )
+            n = selector_longitudinal.aplicar_muestra_longitudinal(
+                db,
+                id_eleccion,
+                titulares,
+                reservas,
+                metadata,
+            )
+        else:
+            n = selector_muestra.aplicar_muestra_estratificada(
+                db,
+                id_eleccion,
+                titulares,
+                reservas,
+                metadata,
+            )
+        return RedirectResponse(f"/muestra?tab=actual&msg=Muestra+creada+con+{n}+titulares&cat=success", status_code=303)
     finally:
         db.close()
 
@@ -2002,6 +2147,66 @@ def muestra_quitar(mid: int):
         db.execute("DELETE FROM muestra WHERE id=?", (mid,))
         db.commit()
         return RedirectResponse("/muestra?msg=Centro+removido+de+la+muestra&cat=warning", status_code=303)
+    finally:
+        db.close()
+
+
+@app.post("/muestra/eliminar-seleccion")
+async def muestra_eliminar_seleccion(request: Request):
+    form = await request.form()
+    ids = []
+    for raw in form.getlist("muestra_id"):
+        try:
+            ids.append(int(raw))
+        except (TypeError, ValueError):
+            continue
+    if not ids:
+        return RedirectResponse("/muestra?tab=actual&msg=No+se+marcaron+centros&cat=warning", status_code=303)
+
+    db = get_db()
+    try:
+        eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+        if not eleccion:
+            return RedirectResponse("/muestra?tab=actual&msg=Active+una+eleccion+primero&cat=warning", status_code=303)
+        placeholders = ",".join("?" for _ in ids)
+        params = [*ids, eleccion["id"]]
+        db.execute(
+            f"DELETE FROM pesos WHERE id_muestra IN (SELECT id FROM muestra WHERE id IN ({placeholders}) AND id_eleccion=?)",
+            params,
+        )
+        cur = db.execute(
+            f"DELETE FROM muestra WHERE id IN ({placeholders}) AND id_eleccion=?",
+            params,
+        )
+        db.commit()
+        return RedirectResponse(
+            f"/muestra?tab=actual&msg=Centros+eliminados+({cur.rowcount})&cat=warning",
+            status_code=303,
+        )
+    finally:
+        db.close()
+
+
+@app.post("/muestra/eliminar-toda")
+def muestra_eliminar_toda():
+    db = get_db()
+    try:
+        eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+        if not eleccion:
+            return RedirectResponse("/muestra?tab=actual&msg=Active+una+eleccion+primero&cat=warning", status_code=303)
+        eid = eleccion["id"]
+        db.execute(
+            "DELETE FROM pesos WHERE id_muestra IN (SELECT id FROM muestra WHERE id_eleccion=?)",
+            (eid,),
+        )
+        cur = db.execute("DELETE FROM muestra WHERE id_eleccion=?", (eid,))
+        db.execute("DELETE FROM muestra_sustituciones WHERE id_eleccion=?", (eid,))
+        db.execute("DELETE FROM muestra_generaciones WHERE id_eleccion=?", (eid,))
+        db.commit()
+        return RedirectResponse(
+            f"/muestra?tab=actual&msg=Muestra+eliminada+({cur.rowcount}+centros)&cat=warning",
+            status_code=303,
+        )
     finally:
         db.close()
 

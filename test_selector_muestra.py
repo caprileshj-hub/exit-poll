@@ -21,6 +21,9 @@ def _conn() -> sqlite3.Connection:
             (state_id, f"{state_id:02d}", name),
         )
     conn.execute(
+        "INSERT INTO estados (id, codigo_cne, nombre) VALUES (25, '99', 'Exterior')"
+    )
+    conn.execute(
         """INSERT INTO elecciones
            (id, nombre, tipo, fecha, hora_apertura, hora_cierre, activa)
            VALUES (1, 'Prueba presidencial', 'nacional', '2026-01-01', '07:00', '18:00', 1)"""
@@ -41,6 +44,18 @@ def _conn() -> sqlite3.Connection:
                     (code,),
                 )
             idx += 1
+    for local in range(3):
+        code = f"99{local:06d}"
+        conn.execute(
+            """INSERT INTO centros
+               (codigo_cne, nombre, id_estado, num_mesas, num_electores, activo)
+               VALUES (?, ?, 25, 1, 900, 1)""",
+            (code, f"Exterior {local}"),
+        )
+        conn.execute(
+            "INSERT INTO election_centers (eleccion_id, centro_id, eligible) VALUES (1, ?, 1)",
+            (code,),
+        )
     conn.execute(
         """INSERT INTO resultados_historicos
            (codigo_centro, eleccion_ref, votos_validos, votos_gobierno, votos_oposicion,
@@ -94,6 +109,16 @@ def test_titulares_reservas_no_solapan_y_pertenecen_al_frame_tm():
     assert "01000006" not in titulares | reservas
 
 
+def test_selector_productivo_excluye_exterior_domestico():
+    conn = _conn()
+    frame = sm.build_frame(conn, 1)
+    assert frame
+    assert {int(r["id_estado"]) for r in frame} == {1, 2, 3}
+    propuesta = sm.generar_muestra_estratificada(conn, 1, sample_size=9, reserve_size=6, seed=12)
+    seleccionados = propuesta["titulares"] + propuesta["reservas"]
+    assert all(int(r["id_estado"]) != 25 for r in seleccionados)
+
+
 def test_seleccion_no_consulta_resultados_historicos():
     conn = _conn()
     sql_seen: list[str] = []
@@ -142,3 +167,33 @@ def test_aplicar_guarda_metadatos_roles_y_sustitucion_auditable():
     ).fetchone()
     assert promoted["rol_muestra"] == "titular"
     assert promoted["activo"] == 1
+
+
+def test_aplicar_reemplaza_muestra_con_pesos_existentes():
+    conn = _conn()
+    propuesta = sm.generar_muestra_estratificada(conn, 1, sample_size=9, reserve_size=6, seed=12)
+    sm.aplicar_muestra_estratificada(
+        conn,
+        1,
+        _codes(propuesta["titulares"]),
+        _codes(propuesta["reservas"]),
+        propuesta,
+    )
+    first_id = conn.execute("SELECT id FROM muestra LIMIT 1").fetchone()["id"]
+    conn.execute(
+        """INSERT INTO pesos
+           (id_muestra, peso_parroquia, peso_municipio, peso_estado, peso_nacion)
+           VALUES (?, 1, 1, 1, 1)""",
+        (first_id,),
+    )
+    conn.commit()
+
+    nueva = sm.generar_muestra_estratificada(conn, 1, sample_size=9, reserve_size=6, seed=13)
+    assert sm.aplicar_muestra_estratificada(
+        conn,
+        1,
+        _codes(nueva["titulares"]),
+        _codes(nueva["reservas"]),
+        nueva,
+    ) == 9
+    assert conn.execute("SELECT COUNT(*) c FROM pesos").fetchone()["c"] == 0

@@ -425,9 +425,17 @@ def _uso_recomendado(row: dict[str, Any]) -> tuple[str, int]:
         return "no_ancla", 1
     if not row.get("tiene_2024"):
         return "condicional_sin_2024", 2
-    if row.get("semaforo") == "C":
+    if row.get("semaforo") == "C" or row.get("ruptura_2024"):
         return "condicional", 3
-    if float(row.get("n_eff") or 0.0) >= MIN_STRONG_N_EFF:
+    if (
+        row.get("semaforo") == "A"
+        and float(row.get("n_eff") or 0.0) >= MIN_STRONG_N_EFF
+        and float(row.get("score") or 0.0) >= 70.0
+        and row.get("desvio_pp") is not None
+        and float(row.get("desvio_pp") or 0.0) <= 8.0
+        and row.get("estabilidad_relativa_pp") is not None
+        and float(row.get("estabilidad_relativa_pp") or 0.0) <= 6.0
+    ):
         return "ancla", 4
     return "condicional", 3
 
@@ -854,6 +862,7 @@ def construir_laboratorio(
         "en_muestra": len(sample_codes),
         "electores_muestra": sum(int(c.get("num_electores") or 0) for c in sample_catalog),
         "estatus": Counter(c["estatus"] for c in centers.values()),
+        "uso": Counter(c.get("uso_recomendado") for c in centers.values()),
         "clasificaciones_muestra": Counter(c.get("clasificacion") for c in sample_detail),
         "confianza_muestra": Counter(c.get("semaforo") for c in sample_detail),
     }

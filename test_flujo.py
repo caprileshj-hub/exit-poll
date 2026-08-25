@@ -7,6 +7,7 @@ opiniones desde centros de la muestra y verifica el guardrail del analista.
 from __future__ import annotations
 
 import sqlite3
+import json
 from pathlib import Path
 
 import pytest
@@ -229,3 +230,59 @@ def test_live_usa_dashboard_referencia_si_no_hay_votos(tmp_path, monkeypatch):
     assert "AI Electoral Analyst" in response.text
     assert "ep-live-source" in response.text
     assert "Datos de referencia del dashboard" in response.text
+
+
+def test_aplicar_muestra_longitudinal_rechaza_centros_bajo_piso(tmp_path, monkeypatch):
+    db_path = _init_db(tmp_path, monkeypatch)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("INSERT INTO estados (id, codigo_cne, nombre) VALUES (13, '13', 'Miranda')")
+        conn.execute(
+            """INSERT INTO elecciones
+               (id, nombre, tipo, fecha, hora_apertura, hora_cierre, activa)
+               VALUES (1, 'Presidencial', 'nacional', '2026-12-06', '07:00', '18:00', 1)"""
+        )
+        conn.execute(
+            """INSERT INTO centros
+               (codigo_cne, nombre, id_estado, num_mesas, num_electores, activo)
+               VALUES ('130901055', 'Centro pequeno', 13, 1, 30, 1)"""
+        )
+        conn.execute(
+            "INSERT INTO election_centers (eleccion_id, centro_id, eligible) VALUES (1, '130901055', 1)"
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    client = TestClient(app_backend.app)
+    response = client.post(
+        "/muestra/aplicar",
+        data={
+            "id_eleccion": "1",
+            "titular_codigo": "130901055",
+            "metadata": json.dumps({
+                "metodo": "longitudinal_mae",
+                "frame_hash": "test",
+                "frame_count": 1,
+                "frame_electores": 30,
+                "min_electores_centro": 800,
+                "historical_data_hash": "test",
+                "history_coverage": {},
+                "sample_size": 1,
+                "reserve_size": 0,
+                "cuotas": {},
+                "cuotas_reserva": {},
+                "algorithm_version": "longitudinal_mae_v1",
+            }),
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert "debajo+del+piso+de+800" in response.headers["location"]
+    conn = sqlite3.connect(db_path)
+    try:
+        assert conn.execute("SELECT COUNT(*) FROM muestra_generaciones").fetchone()[0] == 0
+    finally:
+        conn.close()

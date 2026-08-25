@@ -1,20 +1,18 @@
 # Metodologia productiva de muestreo
 
-Estado de decision metodologica: V1 adoptada.
-Estado de implementacion: separado de este documento y de este commit.
-Metodo: `stratified_random`.
-Version algoritmo: `stratified_random_v1`.
+Estado de decision metodologica: selector longitudinal adoptado para seleccion
+automatica.
+Metodo: `longitudinal_mae`.
+Version algoritmo: `longitudinal_mae_v1`.
 
 ## Decision
 
-La seleccion productiva de centros para la muestra debe ser aleatoria
-estratificada.
-Los resultados historicos no se usan para rankear, filtrar, corregir ni
-redibujar centros en V1.
+La seleccion automatica de centros para la muestra presidencial nacional usa
+representatividad longitudinal centro-estado (`historical_mae`) dentro del frame
+domestico vigente.
 
-Los historicos pueden informar analisis, auditorias y backtests, pero no
-determinan la inclusion de centros ni corrigen los resultados observados de la
-eleccion corriente.
+Los historicos rankean centros dentro del estado, pero no corrigen los
+resultados observados de la eleccion corriente.
 
 ## Universo
 
@@ -29,6 +27,11 @@ de la generacion.
 No entran centros nulos, duplicados ni centros fuera del frame usado por el
 selector.
 
+Para la seleccion automatica presidencial, el frame operativo es domestico y
+aplica un piso de `800` electores inscritos por centro. Centros por debajo de
+ese umbral permanecen visibles en el laboratorio para auditoria o decisiones
+manuales, pero no entran al calculo de cuotas, ranking ni propuesta automatica.
+
 ## Estratificacion
 
 Para elecciones presidenciales V1, el estrato es el estado.
@@ -40,40 +43,27 @@ sobre electores inscritos del frame, no sobre votos historicos ni votos target.
 
 El tamano de la muestra lo define la ficha tecnica.
 
-Mientras la ficha no tenga un campo operativo definitivo para tamano de muestra,
-el default experimental actual es `180`.
+El default operativo actual es `120` titulares.
 
 ## Asignacion de cuotas
 
-La asignacion por estado es proporcional a electores inscritos del frame.
-
-Regla deterministica de minimos y redondeo:
-
-1. Calcular la cuota exacta del estado: `n * electores_estado / electores_frame`.
-2. Tomar el piso de cada cuota.
-3. Si el tamano alcanza para todos los estados con centros elegibles, garantizar
-   minimo 1 centro por estado.
-4. Repartir remanentes por mayor fraccion decimal.
-5. En empates, ordenar por mayor peso electoral y luego por nombre de estado.
-6. Nunca asignar mas centros que la capacidad real del estado en el frame.
-
-Las cuotas resultantes deben sumar el tamano solicitado, salvo que el frame
-tenga menos centros elegibles que `sample_size`; en ese caso la muestra no puede
-exceder la capacidad real del frame.
+La asignacion por estado usa 48 plazas fijas territoriales (2 por entidad) y 72
+plazas adicionales por D'Hondt sobre electores inscritos del frame.
 
 ## Seleccion dentro del estrato
 
-Dentro de cada estado, la seleccion es aleatoria reproducible mediante `seed`.
-El algoritmo ordena los centros por codigo antes de aplicar el generador
-deterministico, de modo que la misma eleccion, frame, ficha y semilla produzcan
-exactamente la misma muestra.
+Dentro de cada estado, la seleccion ordena centros grandes por tamano y los
+acepta si su `selector_score` longitudinal cae dentro de una escalera de
+tolerancia reproducible. No usa semilla ni aleatoriedad.
 
 La generacion produce:
 
 - titulares;
 - reservas.
 
-Titulares y reservas no se solapan.
+Titulares y reservas no se solapan. Para el estudio domestico, el frame
+productivo excluye `Exterior`; la seleccion automatica por defecto genera 120
+titulares.
 
 ## Reproducibilidad
 
@@ -81,17 +71,18 @@ Cada generacion debe guardar o asociar:
 
 - `id_eleccion`;
 - version o hash de la Tabla Mesa (`tm_hash`);
-- `metodo = stratified_random`;
+- `metodo = longitudinal_mae`;
 - `sample_size`;
 - `reserve_size`;
-- `seed`;
+- hash de datos historicos usados;
+- cobertura historica;
 - cuotas resultantes;
 - timestamp;
 - version del algoritmo;
 - conteo de centros y electores del frame.
 
-Contrato: la misma eleccion, el mismo frame, la misma ficha y la misma semilla
-deben producir exactamente la misma muestra.
+Contrato: la misma eleccion, el mismo frame, la misma ficha y los mismos
+historicos normalizados deben producir exactamente la misma muestra.
 
 ## Estimador
 

@@ -47,7 +47,7 @@
         margin: -.25rem 0 .4rem;
     }
     .lab-table {
-        min-width: 1740px;
+        min-width: 1040px;
         table-layout: fixed;
         margin-bottom: 0;
         border: 0 !important;
@@ -65,16 +65,40 @@
     .lab-table .badge { white-space: normal; }
     .score-pill { min-width: 58px; display: inline-block; }
     .trend-chip { display: inline-flex; align-items: center; gap: .25rem; }
-    .center-name { max-width: 340px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .center-name { max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .detail-row { background: #f8fafc; }
     .history-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: .65rem; }
     .history-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: .65rem; background: #fff; }
     .small-muted { font-size: .78rem; color: #6c757d; }
+    .method-panel {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: .75rem;
+        border: 1px solid #dbe3ee;
+        border-radius: 8px;
+        padding: .85rem;
+        background: #fff;
+    }
+    .method-panel h6 {
+        margin: 0 0 .25rem;
+        font-size: .86rem;
+        font-weight: 700;
+    }
+    .method-panel p { margin: 0; }
+    .lab-note {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        align-items: center;
+        color: #475569;
+        font-size: .82rem;
+    }
+    .lab-note .badge { font-weight: 500; }
     .sortable { cursor: pointer; user-select: none; }
     .sortable .sort-mark { color: #94a3b8; font-size: .75rem; margin-left: .2rem; }
     .sortable.active .sort-mark { color: #0d6efd; }
-    /* Filtro por columna categorica: el orden agrupa, pero para estatus/tipo/
-       uso/gps lo util es descartar lo que no interesa. Conviven con el sort. */
+    /* Filtro por columna categorica: el orden agrupa, pero para estatus/uso
+       lo util es descartar lo que no interesa. Conviven con el sort. */
     .col-filtro {
         display: block;
         width: 100%;
@@ -142,6 +166,15 @@
         vertical-align: baseline;
     }
     .help-tip:hover { color: #0d6efd; }
+    .peso-input {
+        width: 90px;
+        font-size: 13px;
+        padding: 2px 6px;
+        text-align: right;
+    }
+    .peso-input:focus { background: #fff3cd; }
+    .peso-changed { background: #d4edda !important; }
+    .btn-calc { font-size: 12px; }
 </style>
 {% endblock %}
 
@@ -195,8 +228,8 @@
         {% endif %}
     </div>
     {% if eleccion %}
-    <a href="/muestra/generar" class="btn btn-outline-primary">
-        <i class="bi bi-magic me-1"></i>Proponer candidatos
+    <a href="/muestra?tab=actual&auto=1" class="btn btn-outline-primary">
+        <i class="bi bi-magic me-1"></i>Seleccion automatica
     </a>
     {% endif %}
 </div>
@@ -217,19 +250,24 @@
 
 <ul class="nav nav-tabs mb-3" id="muestraTabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="tab-lab" data-bs-toggle="tab" data-bs-target="#pane-lab" type="button" role="tab">
+        <button class="nav-link {% if tab_activa == 'lab' %}active{% endif %}" id="tab-lab" data-bs-toggle="tab" data-bs-target="#pane-lab" type="button" role="tab">
             Laboratorio
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-actual" data-bs-toggle="tab" data-bs-target="#pane-actual" type="button" role="tab">
+        <button class="nav-link {% if tab_activa == 'actual' %}active{% endif %}" id="tab-actual" data-bs-toggle="tab" data-bs-target="#pane-actual" type="button" role="tab">
             Muestra actual <span class="badge bg-secondary ms-1">{{ muestra|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if tab_activa == 'pesos' %}active{% endif %}" id="tab-pesos" data-bs-toggle="tab" data-bs-target="#pane-pesos" type="button" role="tab">
+            Pesos
         </button>
     </li>
 </ul>
 
 <div class="tab-content" id="muestraTabsContent">
-<div class="tab-pane fade show active" id="pane-lab" role="tabpanel" aria-labelledby="tab-lab" tabindex="0">
+<div class="tab-pane fade {% if tab_activa == 'lab' %}show active{% endif %}" id="pane-lab" role="tabpanel" aria-labelledby="tab-lab" tabindex="0">
 
 <div class="kpi-grid mb-4">
     <div class="kpi">
@@ -249,8 +287,8 @@
         <div class="value">{{ lab.resumen.estatus.get("activo", 0) }}</div>
     </div>
     <div class="kpi">
-        <div class="small-muted">Solo historicos</div>
-        <div class="value">{{ lab.resumen.estatus.get("solo_historico", 0) }}</div>
+        <div class="small-muted">Anclas sugeridas</div>
+        <div class="value">{{ lab.resumen.get("uso", {}).get("ancla", 0) }}</div>
     </div>
 </div>
 
@@ -259,14 +297,29 @@
     <span class="small text-muted">{{ "{:,}".format(lab.paginacion.fin) }} de {{ "{:,}".format(lab.paginacion.total) }} centros filtrados</span>
 </div>
 
-<div class="alert alert-light border small mb-3">
-    <strong>Metodologia score v2:</strong>
-    herramienta experimental de auditoria; no determina la muestra productiva V1.
-    La seleccion productiva se genera con aleatorio estratificado por estado.
-    El score mide utilidad de seleccion exploratoria, no certeza del dato.
-    Formula barometro: 50% representatividad relativa, 30% estabilidad relativa robusta y 20% volumen log-normalizado.
-    La convergencia temporal agrega un bonus capado cuando el centro reduce su desvio frente al resultado nacional a traves de 3+ historicos.
-    La confianza A-D y la presencia de 2024 quedan como ejes paralelos; un centro sin 2024 puede ser util, pero no debe anclar si existe una opcion similar con 2024.
+<div class="method-panel small mb-3">
+    <div>
+        <h6>Laboratorio</h6>
+        <p>
+            Vista de auditoria para revisar centros, historial y aptitud operativa. El score visible es un barometro
+            diagnostico: representatividad relativa, estabilidad robusta, volumen y bonus capado de convergencia.
+        </p>
+    </div>
+    <div>
+        <h6>Seleccion automatica</h6>
+        <p>
+            La generacion aplicada usa <code>longitudinal_mae_v1</code>: 48 plazas fijas
+            (2 por entidad) y 72 adicionales por D'Hondt sobre electores. El frame excluye Exterior
+            y centros por debajo de 800 electores.
+        </p>
+    </div>
+    <div>
+        <h6>Selector legacy</h6>
+        <p>
+            <code>stratified_random_v1</code> queda como fallback compatible para metadata vieja,
+            pero no es el flujo de seleccion automatica.
+        </p>
+    </div>
 </div>
 
 <form method="get" action="/muestra" class="row g-2 align-items-end bg-white border rounded p-3 mb-3">
@@ -301,21 +354,12 @@
             {% endfor %}
         </select>
     </div>
-    <div class="col-lg-1 col-md-4">
+    <div class="col-lg-2 col-md-4">
         <label class="form-label small fw-semibold">Estatus</label>
         <select name="estatus" class="form-select">
             <option value="">Todos</option>
             {% for s in ["activo", "nuevo", "incierto", "solo_historico"] %}
             <option value="{{ s }}" {% if filtros.estatus == s %}selected{% endif %}>{{ "historico" if s == "solo_historico" else s }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-lg-1 col-md-4">
-        <label class="form-label small fw-semibold">Tipo</label>
-        <select name="clasificacion" class="form-select">
-            <option value="">Todos</option>
-            {% for c in lab.clasificaciones %}
-            <option value="{{ c }}" {% if filtros.clasificacion == c %}selected{% endif %}>{{ c }}</option>
             {% endfor %}
         </select>
     </div>
@@ -326,8 +370,11 @@
 
 {{ lab_pager(lab, filtros, "mb-3") }}
 
-<div class="lab-scroll-hint justify-content-between">
-    <span><i class="bi bi-arrows"></i> Desplace horizontalmente con la barra (arriba o abajo de la tabla) para ver todas las metricas.</span>
+<div class="lab-note justify-content-between mb-2">
+    <span>
+        <span class="badge bg-light text-dark border">Tabla reducida</span>
+        Columnas visibles: decision, cobertura historica, tamano y desvio. Perfil historico, confianza, score, GPS, estabilidad, convergencia y fuente quedan en la ficha.
+    </span>
     <span class="lab-filtros-estado d-none" id="labFiltrosEstado">
         <span id="labVisibles"></span>
         <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="labLimpiarFiltros">
@@ -342,16 +389,10 @@
             <col style="width: 250px;">
             <col style="width: 170px;">
             <col style="width: 95px;">
-            <col style="width: 125px;">
             <col style="width: 150px;">
-            <col style="width: 95px;">
             <col style="width: 115px;">
             <col style="width: 70px;">
             <col style="width: 95px;">
-            <col style="width: 110px;">
-            <col style="width: 95px;">
-            <col style="width: 95px;">
-            <col style="width: 80px;">
             <col style="width: 90px;">
         </colgroup>
         <thead class="table-light">
@@ -360,19 +401,11 @@
                 <th class="sortable" data-sort="geo" data-type="text">Geo <span class="sort-mark">sort</span></th>
                 <th class="sortable" data-sort="estatus" data-type="text">Estatus {{ help_tip("Activo: aparece en el registro permanente o TM vigente. Nuevo: activo sin historico por centro. Historico: existe en resultados viejos pero no es seleccionable.") }} <span class="sort-mark">sort</span>
                     <select class="col-filtro form-select form-select-sm" data-col="estatus" aria-label="Filtrar por Estatus"><option value="">(todos)</option></select></th>
-                <th class="sortable" data-sort="tipo" data-type="text">Tipo {{ help_tip("bastion_azul: oposicion fuerte y persistente. bastion_rojo: gobierno fuerte y persistente. representativo: baja distancia y baja variacion contra la referencia nacional. bisagra: brecha reciente pequena. volumen: centro grande dentro de su estado. cambiante: variacion relativa alta. sin_historico: activo sin serie. estandar: sin rasgo dominante.") }} <span class="sort-mark">sort</span>
-                    <select class="col-filtro form-select form-select-sm" data-col="tipo" aria-label="Filtrar por Tipo"><option value="">(todos)</option></select></th>
-                <th class="sortable active" data-sort="uso" data-type="number">Uso {{ help_tip("ancla: tiene 2024, n_eff suficiente y confianza A/B. condicional_sin_2024: buen historico pero sin dato reciente 2024; usar solo si no hay alternativa similar con 2024. condicional: util pero con confianza C o n_eff limitado. no_ancla: no debe sostener un estrato.") }} <span class="sort-mark">desc</span>
+                <th class="sortable active" data-sort="uso" data-type="number">Uso {{ help_tip("ancla: centro fuerte para sostener revision, con 2024, confianza A, n_eff suficiente, score >= 70, desvio <= 8pp, estabilidad <= 6pp y sin ruptura 2024. condicional: util pero no ancla fuerte. condicional_sin_2024: buen historico sin dato reciente 2024. no_ancla: no debe sostener un estrato.") }} <span class="sort-mark">desc</span>
                     <select class="col-filtro form-select form-select-sm" data-col="uso" aria-label="Filtrar por Uso"><option value="">(todos)</option></select></th>
-                <th class="text-center sortable" data-sort="gps" data-type="number">GPS {{ help_tip("Indica si el centro tiene latitud y longitud cargadas para poder gestionar geocerca del encuestador.") }} <span class="sort-mark">sort</span>
-                    <select class="col-filtro form-select form-select-sm" data-col="gps" aria-label="Filtrar por GPS"><option value="">(todos)</option></select></th>
                 <th class="num-col sortable" data-sort="electores" data-type="number">Electores {{ help_tip("Electores registrados en el centro segun el ultimo registro disponible o la TM vigente.") }} <span class="sort-mark">sort</span></th>
-                <th class="num-col sortable" data-sort="historicos" data-type="number">Hist. {{ help_tip("Cantidad cruda de elecciones historicas. En la ficha se muestra n_eff, que pondera por recencia.") }} <span class="sort-mark">sort</span></th>
+                <th class="num-col sortable" data-sort="historicos" data-type="number">Historicos {{ help_tip("Cantidad cruda de elecciones historicas. En la ficha se muestra n_eff, que pondera por recencia.") }} <span class="sort-mark">sort</span></th>
                 <th class="num-col sortable" data-sort="desvio" data-type="number">Desvio {{ help_tip("Desvio relativo shrunk: distancia promedio contra la brecha nacional, ponderada por recencia. El shrinkage hacia el estrato se aplica con series cortas y se apaga con n_eff >= 2.5.") }} <span class="sort-mark">sort</span></th>
-                <th class="num-col sortable" data-sort="estabilidad" data-type="number">Estab. rel. {{ help_tip("MAD del desvio relativo contra la brecha nacional. Usa shrinkage adaptativo hacia el estrato y menor valor significa movimiento mas estable contra la referencia.") }} <span class="sort-mark">sort</span></th>
-                <th class="num-col sortable" data-sort="convergencia" data-type="number">Conv. {{ help_tip("Convergencia temporal: mejora estimada en puntos si el desvio del centro contra el resultado nacional baja con el tiempo. Requiere 3+ historicos y solo suma un bonus capado al score; si empeora, no resta doblemente.") }} <span class="sort-mark">sort</span></th>
-                <th class="num-col sortable" data-sort="confianza" data-type="number">Conf. {{ help_tip("Eje paralelo al score: fuente, granularidad, cobertura, recencia y n_eff. No se suma al score para evitar que documentacion compense mala utilidad.") }} <span class="sort-mark">sort</span></th>
-                <th class="num-col sortable" data-sort="score" data-type="number">Score {{ help_tip("Utilidad barometro: 50% representatividad relativa, 30% estabilidad relativa y 20% volumen log-normalizado, mas bonus capado de convergencia temporal. Puede ordenar por esta columna si quiere ver utilidad sin la regla de uso/ancla.") }} <span class="sort-mark">sort</span></th>
                 <th></th>
             </tr>
         </thead>
@@ -415,36 +448,14 @@
                         {{ c.estatus_display }}
                     </span>
                 </td>
-                <td><span class="badge bg-light text-dark">{{ c.clasificacion }}</span></td>
                 <td>
                     <span class="badge {% if c.uso_recomendado == 'ancla' %}bg-success{% elif c.uso_recomendado == 'condicional_sin_2024' %}bg-warning text-dark{% elif c.uso_recomendado == 'condicional' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
                         {{ c.uso_recomendado }}
                     </span>
                 </td>
-                <td class="text-center">
-                    {% if c.tiene_gps %}
-                    <span class="badge bg-success" title="Tiene coordenadas"><i class="bi bi-check-lg"></i></span>
-                    {% else %}
-                    <span class="badge bg-light text-muted border" title="Sin coordenadas"><i class="bi bi-dash-lg"></i></span>
-                    {% endif %}
-                </td>
                 <td class="num-col">{{ "{:,}".format(c.num_electores or 0) }}</td>
                 <td class="num-col">{{ c.n_historicos }}</td>
                 <td class="num-col">{% if c.desvio_pp is not none %}{{ "%.1f"|format(c.desvio_pp) }}pp{% else %}-{% endif %}</td>
-                <td class="num-col">{% if c.estabilidad_relativa_pp is not none %}{{ "%.1f"|format(c.estabilidad_relativa_pp) }}pp{% else %}-{% endif %}</td>
-                <td class="num-col">{% if c.convergencia_pp is not none %}{{ "%+.1f"|format(c.convergencia_pp) }}pp{% else %}-{% endif %}</td>
-                <td class="num-col">
-                    <span class="badge {% if c.semaforo in ['A','B'] %}bg-success{% elif c.semaforo == 'C' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                        {{ c.semaforo }} {{ "%.0f"|format(c.confianza * 100) }}%
-                    </span>
-                </td>
-                <td class="num-col">
-                    {% if c.score is not none %}
-                    <span class="badge bg-dark score-pill">{{ "%.1f"|format(c.score) }}</span>
-                    {% else %}
-                    <span class="badge bg-light text-muted score-pill">insuf.</span>
-                    {% endif %}
-                </td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#{{ rowid }}" title="Ficha">
                         <i class="bi bi-eye"></i>
@@ -463,9 +474,10 @@
                 </td>
             </tr>
             <tr class="collapse detail-row" id="{{ rowid }}">
-                <td colspan="14">
+                <td colspan="8">
                     <div class="py-2">
                         <div class="d-flex flex-wrap gap-2 mb-2">
+                            <span class="badge bg-light text-dark">Perfil historico {{ help_tip("Etiqueta descriptiva heredada del barometro: bastion, representativo, cambiante, bisagra, volumen, estandar o sin historico. No decide por si sola la muestra.") }} {{ c.clasificacion }}</span>
                             <span class="badge bg-light text-dark">Mesas {{ help_tip("Cantidad de mesas del centro en el registro disponible.") }} {{ c.num_mesas or 0 }}</span>
                             <span class="badge bg-light text-dark">GPS {{ help_tip("Indica si el centro tiene coordenadas para geocerca. Si no las tiene, debe cargarse latitud/longitud antes de exigir validacion geografica al encuestador.") }} {{ "si" if c.tiene_gps else "no" }}</span>
                             <span class="badge bg-light text-dark">n_eff {{ help_tip("Historicos efectivos ponderados por recencia. 2024 pesa 1.0 y cada ciclo hacia atras pesa 0.85 del anterior.") }} {{ "%.2f"|format(c.n_eff or 0) }}</span>
@@ -513,7 +525,94 @@
 
 </div>
 
-<div class="tab-pane fade" id="pane-actual" role="tabpanel" aria-labelledby="tab-actual" tabindex="0">
+<div class="tab-pane fade {% if tab_activa == 'actual' %}show active{% endif %}" id="pane-actual" role="tabpanel" aria-labelledby="tab-actual" tabindex="0">
+{% if propuesta_auto %}
+<div class="border rounded bg-white p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h5 class="mb-1"><i class="bi bi-magic me-2"></i>Seleccion automatica propuesta</h5>
+            <div class="small text-muted">
+                Metodo {{ propuesta_auto.metodo }} |
+                Titulares {{ propuesta_auto.titulares|length }} |
+                Reservas {{ propuesta_auto.reservas|length }} |
+                Algoritmo {{ propuesta_auto.algorithm_version }}
+            </div>
+        </div>
+        <span class="badge bg-primary">longitudinal_mae</span>
+    </div>
+    <div class="alert alert-light border small">
+        Frame domestico: <strong>{{ "{:,}".format(propuesta_auto.frame_count) }}</strong> centros /
+        <strong>{{ "{:,}".format(propuesta_auto.frame_electores) }}</strong> electores |
+        Piso centro: <strong>{{ "{:,}".format(propuesta_auto.min_electores_centro or 0) }}</strong> electores |
+        TM <code>{{ propuesta_auto.frame_hash[:12] }}</code> |
+        Historicos <code>{{ propuesta_auto.historical_data_hash[:12] }}</code> |
+        Cobertura hist.: <strong>{{ "{:,}".format(propuesta_auto.history_coverage.n_hist_ge_2) }}</strong> con 2+,
+        <strong>{{ "{:,}".format(propuesta_auto.history_coverage.n_hist_1) }}</strong> con 1,
+        <strong>{{ "{:,}".format(propuesta_auto.history_coverage.n_hist_0) }}</strong> sin historial
+    </div>
+    <form method="get" action="/muestra" class="row g-2 mb-3 align-items-end">
+        <input type="hidden" name="tab" value="actual">
+        <input type="hidden" name="auto" value="1">
+        <div class="col-auto">
+            <label class="form-label fw-semibold mb-1">Titulares</label>
+            <input type="number" name="sample_size" class="form-control" min="48" max="2000" value="{{ sample_size }}" style="width: 110px;">
+        </div>
+        <div class="col-auto">
+            <label class="form-label fw-semibold mb-1">Reservas</label>
+            <input type="number" name="reserve_size" class="form-control" min="0" max="2000" value="{{ reserve_size }}" style="width: 110px;">
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-primary"><i class="bi bi-arrow-clockwise me-1"></i>Recalcular</button>
+        </div>
+    </form>
+    {% if propuesta_auto.titulares|length == 0 %}
+    <div class="alert alert-warning mb-0">No se pudo generar una propuesta con historial suficiente.</div>
+    {% else %}
+    <form method="post" action="/muestra/aplicar">
+        <input type="hidden" name="id_eleccion" value="{{ eleccion['id'] }}">
+        <input type="hidden" name="metadata" value="{{ propuesta_auto_metadata|e }}">
+        {% for c in propuesta_auto.titulares %}
+        <input type="hidden" name="titular_codigo" value="{{ c.codigo_cne }}">
+        {% endfor %}
+        {% for c in propuesta_auto.reservas %}
+        <input type="hidden" name="reserva_codigo" value="{{ c.codigo_cne }}">
+        {% endfor %}
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Titulares propuestos</h6>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-lg me-1"></i>Aplicar muestra
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover bg-white border mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Centro</th>
+                        <th>Estado</th>
+                        <th>Municipio</th>
+                        <th class="text-end">Electores</th>
+                        <th class="text-end">Score</th>
+                        <th>Fuente</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for c in propuesta_auto.titulares %}
+                    <tr>
+                        <td><code>{{ c.codigo_cne }}</code><br><span class="small">{{ c.nombre }}</span></td>
+                        <td class="small">{{ c.estado }}</td>
+                        <td class="small">{{ c.municipio or "-" }}</td>
+                        <td class="text-end">{{ "{:,}".format(c.num_electores or 0) }}</td>
+                        <td class="text-end">{{ "%.2f"|format(c.selector_score) }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ c.score_source }}</span></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+    {% endif %}
+</div>
+{% endif %}
 {% if muestra|length > 0 %}
 <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="mb-0">Muestra actual</h5>
@@ -521,11 +620,20 @@
     <span class="small text-muted">
         Metodo {{ muestra_meta.metodo }} |
         Tamano {{ muestra_meta.sample_size }} |
+        {% if muestra_meta.metodo != "longitudinal_mae" %}
         Semilla {{ muestra_meta.seed }} |
+        {% endif %}
         TM {{ muestra_meta.tm_hash[:12] }}
     </span>
     {% endif %}
 </div>
+{% if muestra_meta and muestra_meta.metodo != "longitudinal_mae" %}
+<div class="alert alert-warning small border">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    Esta muestra persistida fue generada con <strong>{{ muestra_meta.metodo }}</strong>.
+    Para usar el flujo vigente, elimine la muestra actual y aplique una seleccion automatica longitudinal.
+</div>
+{% endif %}
 {% if muestra_meta %}
 <div class="alert alert-light border small">
     Version algoritmo: <strong>{{ muestra_meta.algorithm_version }}</strong> |
@@ -534,10 +642,60 @@
     Reservas planificadas: <strong>{{ muestra_meta.reserve_size }}</strong>
 </div>
 {% endif %}
+{% if muestra_estados|length > 0 %}
+<div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0">Resumen por estado</h6>
+        <span class="small text-muted">{{ muestra_estados|length }} estados con centros en muestra</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm bg-white border">
+            <thead class="table-light">
+                <tr>
+                    <th>Estado</th>
+                    <th class="text-end">Titulares</th>
+                    <th class="text-end">Reservas</th>
+                    <th class="text-end">Centros</th>
+                    <th class="text-end">Electores activos</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for e in muestra_estados %}
+                <tr>
+                    <td>{{ e.estado }}</td>
+                    <td class="text-end">{{ e.titulares or 0 }}</td>
+                    <td class="text-end">{{ e.reservas or 0 }}</td>
+                    <td class="text-end">{{ e.centros or 0 }}</td>
+                    <td class="text-end">{{ "{:,}".format(e.electores or 0) }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
 <div class="table-responsive">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex gap-2">
+            <form method="post" action="/muestra/eliminar-seleccion" id="formEliminarSeleccion"
+                  onsubmit="return confirm('Eliminar los centros marcados de la muestra?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger" id="btnEliminarSeleccion" disabled>
+                    <i class="bi bi-trash me-1"></i>Eliminar seleccion
+                </button>
+            </form>
+            <form method="post" action="/muestra/eliminar-toda"
+                  onsubmit="return confirm('Eliminar toda la muestra actual, sus pesos y metadata de generacion?')">
+                <button type="submit" class="btn btn-sm btn-danger">
+                    <i class="bi bi-trash3 me-1"></i>Eliminar toda la muestra
+                </button>
+            </form>
+        </div>
+        <span class="small text-muted" id="muestraSeleccionInfo">0 centros marcados</span>
+    </div>
     <table class="table table-sm table-hover bg-white border">
         <thead class="table-light">
             <tr>
+                <th style="width: 34px;"><input type="checkbox" class="form-check-input" id="checkMuestraTodos" aria-label="Marcar todos"></th>
                 <th>Codigo</th>
                 <th>Centro</th>
                 <th>Estado</th>
@@ -550,6 +708,9 @@
         <tbody>
         {% for m in muestra %}
             <tr>
+                <td>
+                    <input type="checkbox" class="form-check-input muestra-check" name="muestra_id" value="{{ m.id }}" form="formEliminarSeleccion" aria-label="Marcar {{ m.codigo_centro }}">
+                </td>
                 <td><code>{{ m.codigo_centro }}</code></td>
                 <td class="small">{{ m.centro_nombre }}</td>
                 <td class="small">{{ m.estado }}</td>
@@ -589,10 +750,109 @@
         </tbody>
     </table>
 </div>
-{% else %}
+{% elif not propuesta_auto %}
 <div class="alert alert-info">
-    La eleccion activa no tiene centros en muestra. Use el laboratorio o la propuesta automatica para agregar centros.
+    La eleccion activa no tiene centros en muestra. Use el laboratorio o la seleccion automatica para agregar centros.
 </div>
+{% endif %}
+</div>
+
+<div class="tab-pane fade {% if tab_activa == 'pesos' %}show active{% endif %}" id="pane-pesos" role="tabpanel" aria-labelledby="tab-pesos" tabindex="0">
+{% if not eleccion %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    No hay eleccion activa. <a href="/elecciones" class="alert-link">Active una eleccion</a> primero.
+</div>
+{% elif not tiene_muestra %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>
+    La eleccion <strong>{{ eleccion["nombre"] }}</strong> no tiene muestra seleccionada.
+    Use seleccion automatica o agregue centros desde el laboratorio antes de configurar pesos.
+</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">Pesos de la muestra</h5>
+    <span class="small text-muted">{{ pesos|length }} centros activos{% if estado_pesos_sel %} filtrados{% endif %}</span>
+</div>
+<div class="alert alert-light border small">
+    Cada centro tiene pesos de parroquia, municipio, estado y nacion. Se usan para extrapolar resultados parciales
+    del exit poll segun el nivel geografico.
+</div>
+
+<form method="get" action="/muestra" class="row g-2 mb-3 align-items-end">
+    <input type="hidden" name="tab" value="pesos">
+    <div class="col-auto">
+        <label class="form-label fw-semibold mb-1">Filtrar por estado</label>
+        <select name="estado_pesos" class="form-select form-select-sm" style="width: 250px;">
+            <option value="">Todos los estados</option>
+            {% for e in estados_pesos %}
+            <option value="{{ e.id }}" {{ 'selected' if estado_pesos_sel == e.id|string }}>
+                {{ e.nombre }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+    </div>
+    {% if estado_pesos_sel %}
+    <div class="col-auto">
+        <a href="/muestra?tab=pesos" class="btn btn-sm btn-outline-secondary">Limpiar</a>
+    </div>
+    {% endif %}
+    <div class="col-auto ms-auto">
+        <button type="button" class="btn btn-sm btn-outline-success btn-calc" id="btnCalcAuto"
+                title="Calcula pesos automaticamente segun proporcion de electores en la muestra">
+            <i class="bi bi-calculator me-1"></i>Auto-calcular pesos
+        </button>
+    </div>
+</form>
+
+<form method="post" action="/pesos/guardar-todos" id="formPesos">
+    <input type="hidden" name="id_eleccion" value="{{ eleccion['id'] }}">
+    <div class="table-responsive">
+        <table class="table table-sm table-hover bg-white border" id="tablaPesos">
+            <thead class="table-light">
+                <tr>
+                    <th>Codigo</th>
+                    <th>Centro</th>
+                    <th>Estado</th>
+                    <th>Municipio</th>
+                    <th class="text-end">Electores</th>
+                    <th class="text-end">P. Parroquia</th>
+                    <th class="text-end">P. Municipio</th>
+                    <th class="text-end">P. Estado</th>
+                    <th class="text-end">P. Nacion</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in pesos %}
+                <tr data-id="{{ r.id_muestra }}"
+                    data-electores="{{ r.num_electores or 0 }}"
+                    data-estado="{{ r.estado }}"
+                    data-municipio="{{ r.municipio or '' }}"
+                    data-parroquia="{{ r.parroquia or '' }}">
+                    <td><code>{{ r.codigo_centro }}</code></td>
+                    <td class="small">{{ r.centro_nombre[:35] }}</td>
+                    <td class="small">{{ r.estado }}</td>
+                    <td class="small">{{ r.municipio or "-" }}</td>
+                    <td class="text-end">{{ "{:,}".format(r.num_electores or 0) }}</td>
+                    <td class="text-end"><input type="number" name="pp_{{ r.id_muestra }}" class="form-control form-control-sm peso-input" step="0.000001" min="0" max="99" value="{{ '%.6f'|format(r.peso_parroquia) }}"></td>
+                    <td class="text-end"><input type="number" name="pm_{{ r.id_muestra }}" class="form-control form-control-sm peso-input" step="0.000001" min="0" max="99" value="{{ '%.6f'|format(r.peso_municipio) }}"></td>
+                    <td class="text-end"><input type="number" name="pe_{{ r.id_muestra }}" class="form-control form-control-sm peso-input" step="0.000001" min="0" max="99" value="{{ '%.6f'|format(r.peso_estado) }}"></td>
+                    <td class="text-end"><input type="number" name="pn_{{ r.id_muestra }}" class="form-control form-control-sm peso-input" step="0.000001" min="0" max="99" value="{{ '%.6f'|format(r.peso_nacion) }}"></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-3 mb-4">
+        <span class="text-muted small" id="cambiosInfo">Sin cambios</span>
+        <button type="submit" class="btn btn-primary" id="btnGuardar" disabled>
+            <i class="bi bi-check-lg me-1"></i>Guardar todos los pesos
+        </button>
+    </div>
+</form>
 {% endif %}
 </div>
 </div>
@@ -746,6 +1006,111 @@ document.addEventListener('DOMContentLoaded', () => {
             aplicarFiltros();
         });
     }
+
+    const tablaPesos = document.getElementById('tablaPesos');
+    if (tablaPesos) {
+        const search = document.createElement('input');
+        search.type = 'text';
+        search.className = 'form-control form-control-sm mb-3';
+        search.placeholder = 'Buscar centro por nombre o codigo...';
+        search.style.maxWidth = '350px';
+        tablaPesos.parentElement.insertBefore(search, tablaPesos);
+        search.addEventListener('input', function() {
+            const val = this.value.toLowerCase();
+            tablaPesos.querySelectorAll('tbody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(val) ? '' : 'none';
+            });
+        });
+
+        const origValues = {};
+        tablaPesos.querySelectorAll('.peso-input').forEach(inp => {
+            origValues[inp.name] = inp.value;
+            inp.addEventListener('input', function() {
+                this.classList.toggle('peso-changed', this.value !== origValues[this.name]);
+                updateCambios();
+            });
+        });
+
+        function updateCambios() {
+            const changed = tablaPesos.querySelectorAll('.peso-changed').length;
+            const info = document.getElementById('cambiosInfo');
+            const btn = document.getElementById('btnGuardar');
+            if (!info || !btn) return;
+            if (changed > 0) {
+                info.textContent = changed + ' peso(s) modificado(s)';
+                info.className = 'text-warning small fw-semibold';
+                btn.disabled = false;
+            } else {
+                info.textContent = 'Sin cambios';
+                info.className = 'text-muted small';
+                btn.disabled = true;
+            }
+        }
+
+        const btnCalc = document.getElementById('btnCalcAuto');
+        if (btnCalc) {
+            btnCalc.addEventListener('click', function() {
+                const rows = Array.from(tablaPesos.querySelectorAll('tbody tr'));
+                const byParroquia = {};
+                const byMunicipio = {};
+                const byEstado = {};
+                let totalNacional = 0;
+
+                rows.forEach(row => {
+                    const elec = parseInt(row.dataset.electores) || 0;
+                    const edo = row.dataset.estado;
+                    const mun = row.dataset.municipio;
+                    const par = row.dataset.parroquia;
+                    const kp = edo + '|' + mun + '|' + par;
+                    const km = edo + '|' + mun;
+                    byParroquia[kp] = (byParroquia[kp] || 0) + elec;
+                    byMunicipio[km] = (byMunicipio[km] || 0) + elec;
+                    byEstado[edo] = (byEstado[edo] || 0) + elec;
+                    totalNacional += elec;
+                });
+
+                rows.forEach(row => {
+                    const elec = parseInt(row.dataset.electores) || 0;
+                    const edo = row.dataset.estado;
+                    const mun = row.dataset.municipio;
+                    const par = row.dataset.parroquia;
+                    const kp = edo + '|' + mun + '|' + par;
+                    const km = edo + '|' + mun;
+                    const inputs = row.querySelectorAll('.peso-input');
+                    if (inputs.length === 4 && elec > 0) {
+                        inputs[0].value = (elec / (byParroquia[kp] || 1)).toFixed(6);
+                        inputs[1].value = (elec / (byMunicipio[km] || 1)).toFixed(6);
+                        inputs[2].value = (elec / (byEstado[edo] || 1)).toFixed(6);
+                        inputs[3].value = (elec / (totalNacional || 1)).toFixed(6);
+                        inputs.forEach(inp => inp.classList.add('peso-changed'));
+                    }
+                });
+                updateCambios();
+            });
+        }
+    }
+
+    const checksMuestra = Array.from(document.querySelectorAll('.muestra-check'));
+    const checkTodos = document.getElementById('checkMuestraTodos');
+    const btnEliminarSeleccion = document.getElementById('btnEliminarSeleccion');
+    const muestraSeleccionInfo = document.getElementById('muestraSeleccionInfo');
+    function actualizarSeleccionMuestra() {
+        const marcados = checksMuestra.filter(ch => ch.checked).length;
+        if (btnEliminarSeleccion) btnEliminarSeleccion.disabled = marcados === 0;
+        if (muestraSeleccionInfo) muestraSeleccionInfo.textContent = `${marcados} centros marcados`;
+        if (checkTodos) {
+            checkTodos.checked = marcados > 0 && marcados === checksMuestra.length;
+            checkTodos.indeterminate = marcados > 0 && marcados < checksMuestra.length;
+        }
+    }
+    checksMuestra.forEach(ch => ch.addEventListener('change', actualizarSeleccionMuestra));
+    if (checkTodos) {
+        checkTodos.addEventListener('change', () => {
+            checksMuestra.forEach(ch => { ch.checked = checkTodos.checked; });
+            actualizarSeleccionMuestra();
+        });
+    }
+    actualizarSeleccionMuestra();
 });
 </script>
 {% endblock %}

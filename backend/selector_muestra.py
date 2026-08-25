@@ -16,9 +16,10 @@ from typing import Any
 
 METODO_PRODUCTIVO = "stratified_random"
 ALGORITHM_VERSION = "stratified_random_v1"
-DEFAULT_SAMPLE_SIZE = 180
+DEFAULT_SAMPLE_SIZE = 120
 DEFAULT_RESERVE_SIZE = 180
 DEFAULT_SEED = 2026
+DOMESTIC_STATE_IDS = set(range(1, 25))
 
 
 def _json_dumps(value: Any) -> str:
@@ -109,6 +110,7 @@ def build_frame(conn: sqlite3.Connection, id_eleccion: int | None = None) -> lis
         LEFT JOIN parroquias p ON c.id_parroquia = p.id
         WHERE {eligible_where}
           AND COALESCE(c.num_electores, 0) > 0
+          AND e.id IN ({",".join(str(i) for i in sorted(DOMESTIC_STATE_IDS))})
         ORDER BY e.nombre, c.codigo_cne
         """,
         params,
@@ -309,8 +311,16 @@ def aplicar_muestra_estratificada(
     )
     generation_id = generation.lastrowid
 
+    conn.execute(
+        """
+        DELETE FROM pesos
+        WHERE id_muestra IN (
+            SELECT id FROM muestra WHERE id_eleccion = ?
+        )
+        """,
+        (id_eleccion,),
+    )
     conn.execute("DELETE FROM muestra WHERE id_eleccion = ?", (id_eleccion,))
-    conn.execute("DELETE FROM pesos WHERE id_muestra NOT IN (SELECT id FROM muestra)")
     for role, codes in (("titular", titular_codes), ("reserva", reserva_codes)):
         for code in codes:
             conn.execute(

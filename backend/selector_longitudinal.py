@@ -17,9 +17,9 @@ from statistics import mean
 from typing import Any, Iterable
 
 try:
-    from selector_muestra import build_frame, frame_hash
+    from selector_muestra import build_frame, ensure_selector_schema, frame_hash
 except ImportError:  # pragma: no cover - package import path
-    from .selector_muestra import build_frame, frame_hash
+    from .selector_muestra import build_frame, ensure_selector_schema, frame_hash
 
 
 METHOD = "longitudinal_mae"
@@ -29,6 +29,7 @@ BASE_PER_STATE = 2
 EXTRAS_DHONDT = 72
 TOLERANCE_LADDER_PP = [2, 4, 6, 8, 10, 15, 20, math.inf]
 PRESIDENTIAL_STATE_IDS = set(range(1, 25))
+MIN_ELECTORES_CENTRO = 800
 
 
 def _json_dumps(value: Any) -> str:
@@ -120,6 +121,15 @@ def allocate_longitudinal_dhondt_quotas(
 
 def presidential_frame(frame: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [row for row in frame if int(row["id_estado"]) in PRESIDENTIAL_STATE_IDS]
+
+
+def eligible_longitudinal_frame(frame: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Frame operativo para seleccion automatica presidencial."""
+    return [
+        row
+        for row in presidential_frame(frame)
+        if int(row.get("num_electores") or 0) >= MIN_ELECTORES_CENTRO
+    ]
 
 
 def historical_election_refs(conn: sqlite3.Connection, target_year: int) -> list[str]:
@@ -292,8 +302,11 @@ def select_centers_by_longitudinal_score(
                     selected.append(
                         {
                             "codigo_cne": row["codigo_cne"],
+                            "nombre": row.get("nombre"),
                             "estado": row["estado"],
                             "id_estado": int(row["id_estado"]),
+                            "municipio": row.get("municipio"),
+                            "parroquia": row.get("parroquia"),
                             "num_electores": int(row.get("num_electores") or 0),
                             "cuota_estado": int(quota),
                             "selector_score": float(row["selector_score"]),
@@ -340,7 +353,7 @@ def generar_muestra_longitudinal(
     reserve_size: int = 0,
 ) -> dict[str, Any]:
     target_year = _target_year(conn, id_eleccion)
-    frame = presidential_frame(build_frame(conn, id_eleccion=id_eleccion))
+    frame = eligible_longitudinal_frame(build_frame(conn, id_eleccion=id_eleccion))
     quotas = allocate_longitudinal_dhondt_quotas(frame, sample_size=sample_size)
     features = build_longitudinal_features(conn, id_eleccion, frame=frame)
     titulares = select_centers_by_longitudinal_score(features, quotas, role="titular")
@@ -375,8 +388,91 @@ def generar_muestra_longitudinal(
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "frame_count": len(frame),
         "frame_electores": sum(int(row.get("num_electores") or 0) for row in frame),
+        "min_electores_centro": MIN_ELECTORES_CENTRO,
         "history_coverage": coverage_by_history(features),
         "titulares": titulares,
         "reservas": reservas,
         "features": features,
     }
+
+
+def aplicar_muestra_longitudinal(
+    conn: sqlite3.Connection,
+    id_eleccion: int,
+    titulares: list[str],
+    reservas: list[str],
+    metadata: dict[str, Any],
+) -> int:
+    """Guarda la muestra longitudinal y su metadata reproducible."""
+    ensure_selector_schema(conn)
+    frame = eligible_longitudinal_frame(build_frame(conn, id_eleccion=id_eleccion))
+    frame_codes = {row["codigo_cne"] for row in frame}
+    titular_codes: list[str] = []
+    for code in titulares:
+        if code in frame_codes and code not in titular_codes:
+            titular_codes.append(code)
+    titular_set = set(titular_codes)
+    reserva_codes: list[str] = []
+    for code in reservas:
+        if code in frame_codes and code not in titular_set and code not in reserva_codes:
+            reserva_codes.append(code)
+
+    generation = conn.execute(
+        """
+        INSERT INTO muestra_generaciones (
+            id_eleccion, tm_hash, metodo, sample_size, reserve_size, seed,
+            cuotas_json, frame_count, frame_electores, algorithm_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            id_eleccion,
+            metadata["frame_hash"],
+            METHOD,
+            int(metadata["sample_size"]),
+            int(metadata.get("reserve_size") or 0),
+            0,
+            _json_dumps(
+                {
+                    "titulares": metadata.get("cuotas", {}),
+                    "reservas": metadata.get("cuotas_reserva", {}),
+                    "history_coverage": metadata.get("history_coverage", {}),
+                    "historical_data_hash": metadata.get("historical_data_hash"),
+                }
+            ),
+            int(metadata.get("frame_count") or len(frame)),
+            int(metadata.get("frame_electores") or 0),
+            ALGORITHM_VERSION,
+        ),
+    )
+    generation_id = generation.lastrowid
+
+    conn.execute(
+        """
+        DELETE FROM pesos
+        WHERE id_muestra IN (
+            SELECT id FROM muestra WHERE id_eleccion = ?
+        )
+        """,
+        (id_eleccion,),
+    )
+    conn.execute("DELETE FROM muestra WHERE id_eleccion = ?", (id_eleccion,))
+    for role, codes in (("titular", titular_codes), ("reserva", reserva_codes)):
+        for code in codes:
+            conn.execute(
+                """
+                INSERT INTO muestra (
+                    id_eleccion, codigo_centro, tipo_centro, activo, motivo,
+                    agregado_por, rol_muestra, generacion_id
+                ) VALUES (?, ?, 'estandar', ?, ?, 'selector_longitudinal', ?, ?)
+                """,
+                (
+                    id_eleccion,
+                    code,
+                    1 if role == "titular" else 0,
+                    f"{METHOD}; role={role}; algorithm={ALGORITHM_VERSION}",
+                    role,
+                    generation_id,
+                ),
+            )
+    conn.commit()
+    return len(titular_codes)

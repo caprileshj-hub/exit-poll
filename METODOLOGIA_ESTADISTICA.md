@@ -178,6 +178,62 @@ la serie de turnos muestra autocorrelación anormalmente alta.
 
 ---
 
+### 1.6 Laboratorio de muestra y columnas diagnosticas
+
+El laboratorio de centros es una vista de auditoria operativa, no el selector
+productivo de la muestra. La tabla principal debe mostrar solo columnas que
+ayudan a decidir o revisar rapido:
+
+- centro y geografia;
+- estatus seleccionable;
+- uso recomendado como aptitud operativa;
+- electores actuales;
+- cobertura historica disponible;
+- desvio relativo.
+
+Las columnas con valor diagnostico pero menor uso en la primera lectura no se
+eliminan del metodo; se mueven a la ficha expandida del centro. Este grupo
+incluye GPS, mesas, `n_eff`, presencia 2024, ruptura 2024, confianza documental,
+score del laboratorio, estabilidad relativa, convergencia, estabilidad de
+brecha, perfil historico, fuente, granularidad y cobertura de cada historico.
+
+`Uso` no es una clase politica del centro. La etiqueta `ancla` queda reservada a
+centros fuertes para revision: dato 2024, confianza A, historico efectivo
+suficiente, score de laboratorio >= 70, desvio <= 8 pp, estabilidad <= 6 pp y
+sin ruptura 2024. Los demas centros con informacion util quedan como
+`condicional`, `condicional_sin_2024`, `no_ancla` o `sin_score`.
+
+El antiguo `Tipo` se conserva solo como `perfil historico` en la ficha expandida.
+Es una etiqueta descriptiva heredada del barometro (`bastion`, `representativo`,
+`cambiante`, `bisagra`, `volumen`, `estandar`, `sin_historico`) y no debe leerse
+como decision de seleccion.
+
+El flujo operativo queda:
+
+1. Revisar el laboratorio, que contiene todos los centros de la base y la ficha
+   diagnostica completa por centro.
+2. Usar `Seleccion automatica` dentro de la pestana `Muestra actual` para
+   generar la muestra candidata reproducible con `longitudinal_mae_v1`. En
+   estudios domesticos se excluye `Exterior` del frame productivo.
+3. Revisar en esa misma pestana los 120 centros titulares seleccionados, la
+   lista de centros y el resumen por estado.
+4. Gestionar los pesos desde la pestana `Pesos` dentro de `Muestra`, no como una
+   pagina principal separada.
+
+Esta separacion evita confundir tres capas:
+
+- `longitudinal_mae_v1`: selector de seleccion automatica vigente para
+  presidenciales nacionales. Usa 48 plazas fijas territoriales (2 por entidad)
+  y 72 adicionales asignadas por D'Hondt sobre electores. El frame automatico
+  es domestico y aplica un piso operativo de 800 electores inscritos por centro.
+- Score del laboratorio: barometro exploratorio para ordenar y auditar centros;
+  combina representatividad relativa, estabilidad robusta, volumen y un bonus
+  capado de convergencia temporal.
+- `stratified_random_v1`: selector legacy/fallback compatible para metadata
+  anterior; no es el flujo visible de seleccion automatica.
+
+---
+
 ## 2. Tipos de estudio: particularidades y hallazgos
 
 ### 2.1 Presidencial (2006, 2012, 2013)
