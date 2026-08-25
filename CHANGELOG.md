@@ -8,6 +8,13 @@
 
 ## [Unreleased]
 
+### feat - Backtest longitudinal de representatividad historica
+- `backend/backtest_legacy_nacional.py`: agrega experimento walk-forward longitudinal para targets 2013, 2018 y 2024, con residuales centro-estado y selectores `recent_distance`, `historical_mae`, `historical_rmse` y `historical_volatility`.
+- Mantiene fijas las reglas legacy: N=120, minimo 2 por entidad, D'Hondt de 72 adicionales, prioridad por electores, bandas comunes y sin uso de outcomes target para construir features.
+- Genera `docs/muestreo/backtest_longitudinal_summary.csv`, `backtest_longitudinal_estados.csv`, `backtest_longitudinal_centros.csv`, `backtest_longitudinal_features.csv` y `backtest_longitudinal_persistencia.csv`.
+- `docs/muestreo/BACKTEST_LONGITUDINAL.md`: documenta hipotesis, residual, linking por codigo CNE normalizado, missing como NULL, cohortes common/operational, persistencia, cuantiles y comparacion recent vs longitudinal.
+- `test_backtest_legacy_nacional.py`: agrega pruebas de residual, MAE/RMSE/bias/volatilidad, ventanas temporales antileakage y seleccion longitudinal.
+
 ### feat - Comparacion de similitudes legacy
 - `backend/backtest_legacy_nacional.py`: agrega comparacion aislada de tres formalizaciones de "se parece" (`winner_share`, `top2_gap`, `full_profile`) manteniendo fijos N=120, cuotas legacy, D'Hondt de 72 adicionales, historico obligatorio, orden por electores y escalera comun.
 - `docs/muestreo/backtest_legacy_similarity_summary.csv`, `backtest_legacy_similarity_estados.csv` y `backtest_legacy_similarity_centros.csv`: artefactos reproducibles con metricas nacionales, estatales, diagnosticos de tolerancia/distancia y comparacion de muestras.

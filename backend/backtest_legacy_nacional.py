@@ -33,6 +33,12 @@ DEFAULT_TOLERANCE_LADDERS = {
 DEFAULT_MIN_ELECTORES = [0, 300, 600]
 PRIMARY_CONFIG = ("baseline", 300)
 SIMILARITY_VARIANTS = ("winner_share", "top2_gap", "full_profile")
+LONGITUDINAL_TARGETS = {
+    2013: [2006, 2012],
+    2018: [2006, 2012, 2013],
+    2024: [2006, 2012, 2013, 2018],
+}
+LONGITUDINAL_SELECTORS = ("recent_distance", "historical_mae", "historical_rmse", "historical_volatility")
 STATE_NAMES = {
     "01": "Distrito Capital",
     "02": "Anzoategui",
@@ -89,6 +95,45 @@ TRANSITIONS = [
         outcome_path=BASE_DIR / "resultados_cne2024.csv",
     ),
 ]
+
+PRESIDENTIAL_EXCEL_SOURCES = {
+    2006: {
+        "path": BASE_DIR / "data" / "2006" / "resultado elecciones presidenciales 2006.xlsx",
+        "sheet": "resultados_2006-12-03",
+        "codigo_col": "codigo_centro_nuevo",
+        "nombre_col": "centro",
+        "electores_col": "inscritos_rep",
+        "gobierno_cols": ["votos_chavez"],
+        "oposicion_cols": ["votos_rosales"],
+        "otros_cols": [],
+        "validos_col": "votos_validos",
+        "cod_edo_col": "codigo_estado",
+    },
+    2012: {
+        "path": BASE_DIR / "data" / "2012" / "presidenciales" / "resultados oficiales presidenciales 2012.xlsx",
+        "sheet": "resultados_2012-10-07",
+        "codigo_col": "codigo nuevo",
+        "nombre_col": "centro",
+        "electores_col": "electores escrutados",
+        "gobierno_cols": ["chavez"],
+        "oposicion_cols": ["capriles"],
+        "otros_cols": ["chirino", "sequera", "reyes", "bolivar"],
+        "validos_col": "votos validos",
+        "cod_edo_col": "cod_edo",
+    },
+    2013: {
+        "path": BASE_DIR / "data" / "2013" / "presidenciales" / "resultados oficiales elecciones presidenciales 2013.xlsx",
+        "sheet": "resultados_2013-04-14",
+        "codigo_col": "codigo nuevo",
+        "nombre_col": "centro",
+        "electores_col": "electores esperados",
+        "gobierno_cols": ["maduro"],
+        "oposicion_cols": ["capriles"],
+        "otros_cols": ["sequera", "bolivar", "mora", "mendez"],
+        "validos_col": "votos validos",
+        "cod_edo_col": "cod_edo",
+    },
+}
 
 
 def code9(value: object) -> str:
@@ -215,6 +260,139 @@ def load_results(kind: str, path: Path) -> pd.DataFrame:
     out = out[out["votos_validos"] > 0].copy()
     out["pct_maduro"] = 100 * out["votos_gobierno"] / out["votos_validos"]
     return out
+
+
+def residual(center_pct: float, state_pct: float) -> float:
+    return float(center_pct) - float(state_pct)
+
+
+def longitudinal_feature_values(residuals: list[float | None]) -> dict[str, float | int | None]:
+    values = [float(value) for value in residuals if value is not None and not pd.isna(value)]
+    if not values:
+        return {
+            "n_hist": 0,
+            "recent_distance": None,
+            "historical_mae": None,
+            "historical_rmse": None,
+            "historical_bias": None,
+            "abs_historical_bias": None,
+            "historical_volatility": None,
+        }
+    bias = mean(values)
+    return {
+        "n_hist": len(values),
+        "recent_distance": abs(values[-1]),
+        "historical_mae": mean(abs(value) for value in values),
+        "historical_rmse": math.sqrt(mean(value * value for value in values)),
+        "historical_bias": bias,
+        "abs_historical_bias": abs(bias),
+        "historical_volatility": (
+            math.sqrt(mean((value - bias) ** 2 for value in values)) if len(values) >= 2 else None
+        ),
+    }
+
+
+def _source_col(columns: Iterable[object], configured_name: str) -> object:
+    return _find_column(columns, *str(configured_name).replace("_", " ").split())
+
+
+@lru_cache(maxsize=None)
+def load_presidential_result(year: int) -> pd.DataFrame:
+    if year in PRESIDENTIAL_EXCEL_SOURCES:
+        source = PRESIDENTIAL_EXCEL_SOURCES[year]
+        df = pd.read_excel(source["path"], sheet_name=source["sheet"], dtype=object)
+        code_col = _source_col(df.columns, source["codigo_col"])
+        name_col = _source_col(df.columns, source["nombre_col"])
+        electors_col = _source_col(df.columns, source["electores_col"])
+        valid_col = _source_col(df.columns, source["validos_col"])
+        state_col = _source_col(df.columns, source["cod_edo_col"])
+        gov_cols = [_source_col(df.columns, col) for col in source["gobierno_cols"]]
+        opos_cols = [_source_col(df.columns, col) for col in source["oposicion_cols"]]
+        otros_cols = [_source_col(df.columns, col) for col in source["otros_cols"]]
+        df["codigo_centro"] = df[code_col].map(code9)
+        df["cod_estado"] = _num(df[state_col]).astype(int).map(lambda value: f"{value:02d}")
+        df = df[~df["cod_estado"].eq("99")].copy()
+        df["nombre_centro"] = df[name_col].astype(str)
+        df["electores"] = _num(df[electors_col])
+        df["votos_gobierno"] = sum(_num(df[col]) for col in gov_cols)
+        df["votos_oposicion"] = sum(_num(df[col]) for col in opos_cols)
+        df["votos_otros"] = sum(_num(df[col]) for col in otros_cols) if otros_cols else 0
+        df["votos_validos"] = _num(df[valid_col])
+        rows = (
+            df[df["codigo_centro"].ne("")]
+            .groupby(["codigo_centro", "cod_estado"], as_index=False)
+            .agg(
+                nombre_centro=("nombre_centro", "first"),
+                electores=("electores", "sum"),
+                votos_gobierno=("votos_gobierno", "sum"),
+                votos_oposicion=("votos_oposicion", "sum"),
+                votos_otros=("votos_otros", "sum"),
+                votos_validos=("votos_validos", "sum"),
+            )
+        )
+    elif year == 2018:
+        rows = load_results("venpres2018_csv", BASE_DIR / "data" / "2018" / "resultados_venpres_a_2018.csv").copy()
+        source = pd.read_csv(BASE_DIR / "data" / "2018" / "resultados_venpres_a_2018.csv", dtype=str)
+        source["codigo_centro"] = source["codigo_centro"].map(code9)
+        source["nombre_centro"] = source["nombre_centro"].astype(str)
+        source["electores"] = _num(source["electores_inscritos"])
+        rows = rows.merge(source[["codigo_centro", "nombre_centro", "electores"]], on="codigo_centro", how="left")
+    elif year == 2024:
+        rows = load_results("cne2024_csv", BASE_DIR / "resultados_cne2024.csv").copy()
+        frame = load_frame(BASE_DIR / "tm_2024_estandar.csv")
+        rows = rows.merge(frame[["codigo_centro", "nombre_centro", "electores"]], on="codigo_centro", how="left")
+    else:
+        raise ValueError(f"Eleccion presidencial no soportada: {year}")
+
+    rows = rows[rows["votos_validos"] > 0].copy()
+    rows["pct_gobierno"] = 100 * rows["votos_gobierno"] / rows["votos_validos"]
+    rows["estado"] = rows["cod_estado"].map(STATE_NAMES)
+    rows["year"] = year
+    return rows.reset_index(drop=True)
+
+
+def frame_for_longitudinal_target(target_year: int) -> pd.DataFrame:
+    if target_year == 2013:
+        rows = load_presidential_result(2013)[
+            ["codigo_centro", "cod_estado", "nombre_centro", "estado", "electores"]
+        ].copy()
+        rows["mesas"] = None
+    elif target_year == 2018:
+        rows = complete_2018_frame_with_venpres_dc(load_frame(BASE_DIR / "tm_2018_estandar.csv"))
+    elif target_year == 2024:
+        rows = load_frame(BASE_DIR / "tm_2024_estandar.csv")
+    else:
+        raise ValueError(f"Target longitudinal no soportado: {target_year}")
+    rows = rows[rows["cod_estado"].isin(STATE_NAMES)].copy()
+    rows = rows.sort_values(["cod_estado", "electores", "codigo_centro"], ascending=[True, False, True])
+    rows["rank_por_tamano"] = rows.groupby("cod_estado")["electores"].rank(method="first", ascending=False).astype(int)
+    return rows.reset_index(drop=True)
+
+
+def residuals_for_year(year: int) -> pd.DataFrame:
+    result = load_presidential_result(year)
+    state = (
+        result.groupby("cod_estado", as_index=False)
+        .agg(votos_gobierno=("votos_gobierno", "sum"), votos_validos=("votos_validos", "sum"))
+    )
+    state["pct_gobierno_estado"] = 100 * state["votos_gobierno"] / state["votos_validos"]
+    rows = result.merge(state[["cod_estado", "pct_gobierno_estado"]], on="cod_estado", how="left")
+    rows[f"residual_{year}"] = rows["pct_gobierno"] - rows["pct_gobierno_estado"]
+    return rows[["codigo_centro", "cod_estado", f"residual_{year}"]].copy()
+
+
+def build_longitudinal_features(target_year: int) -> pd.DataFrame:
+    frame = frame_for_longitudinal_target(target_year)
+    history_years = LONGITUDINAL_TARGETS[target_year]
+    features = frame[["codigo_centro", "cod_estado", "estado", "nombre_centro", "electores", "rank_por_tamano"]].copy()
+    for year in history_years:
+        features = features.merge(residuals_for_year(year), on=["codigo_centro", "cod_estado"], how="left")
+    residual_cols = [f"residual_{year}" for year in history_years]
+    computed = []
+    for _, row in features.iterrows():
+        vals = [row[col] if not pd.isna(row[col]) else None for col in residual_cols]
+        computed.append(longitudinal_feature_values(vals))
+    return pd.concat([features, pd.DataFrame(computed)], axis=1)
 
 
 @lru_cache(maxsize=None)
@@ -880,6 +1058,273 @@ def run_similarity_experiment(output_dir: Path) -> dict[str, pd.DataFrame]:
     return outputs
 
 
+def select_longitudinal_feature(
+    features: pd.DataFrame,
+    quotas: dict[str, int],
+    selector: str,
+    cohort: str,
+    tolerance_ladder_pp: list[float],
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    eligible = features.dropna(subset=[selector]).copy()
+    if cohort == "common":
+        eligible = eligible[eligible["historical_volatility"].notna()].copy()
+    elif cohort != "operational":
+        raise ValueError(f"Cohorte no soportada: {cohort}")
+
+    def entry_pass(score: float) -> int | None:
+        for idx, tolerance in enumerate(tolerance_ladder_pp, start=1):
+            if score <= tolerance:
+                return idx
+        return None
+
+    def entry_tolerance(score: float) -> str | float | None:
+        for tolerance in tolerance_ladder_pp:
+            if score <= tolerance:
+                return "inf" if math.isinf(tolerance) else tolerance
+        return None
+
+    eligible["selector"] = selector
+    eligible["cohort"] = cohort
+    eligible["score"] = eligible[selector].astype(float)
+    eligible["pasada"] = eligible["score"].map(entry_pass)
+    eligible["tolerancia_de_entrada"] = eligible["score"].map(entry_tolerance)
+    eligible = eligible.dropna(subset=["pasada"]).copy()
+    eligible["pasada"] = eligible["pasada"].astype(int)
+
+    selected = []
+    incomplete = []
+    for state, quota in sorted(quotas.items()):
+        chosen = (
+            eligible[eligible["cod_estado"].eq(state)]
+            .sort_values(["pasada", "electores", "codigo_centro"], ascending=[True, False, True])
+            .head(quota)
+            .copy()
+        )
+        if not chosen.empty:
+            chosen["metodo"] = "longitudinal"
+            selected.extend(chosen.to_dict("records"))
+        if len(chosen) < quota:
+            incomplete.append(
+                {
+                    "cod_estado": state,
+                    "estado": STATE_NAMES.get(state, state),
+                    "cuota": quota,
+                    "seleccionados": len(chosen),
+                    "faltantes": quota - len(chosen),
+                    "selector": selector,
+                    "cohort": cohort,
+                }
+            )
+    return pd.DataFrame(selected), pd.DataFrame(incomplete)
+
+
+def longitudinal_state_metrics(states: pd.DataFrame) -> dict[str, float | int | str | None]:
+    valid = states.dropna(subset=["error_outcome_pp"]).copy()
+    if valid.empty:
+        return {}
+    valid["abs_error"] = valid["error_outcome_pp"].abs()
+    max_row = valid.sort_values(["abs_error", "cod_estado"], ascending=[False, True]).iloc[0]
+    errors = [float(value) for value in valid["error_outcome_pp"]]
+    abs_errors = [abs(value) for value in errors]
+    return {
+        "target": int(states.iloc[0]["target"]),
+        "cohort": states.iloc[0]["cohort"],
+        "selector": states.iloc[0]["selector"],
+        "centros_seleccionados": int(states["n_seleccionados"].sum()),
+        "estados_completos": int((states["n_seleccionados"] >= states["cuota"]).sum()),
+        "estados_evaluados": int(len(valid)),
+        "mae": mean(abs_errors),
+        "rmse": math.sqrt(mean([value * value for value in errors])),
+        "medae": median(abs_errors),
+        "pct_dentro_2pp": sum(1 for value in abs_errors if value <= 2) / len(abs_errors),
+        "pct_dentro_5pp": sum(1 for value in abs_errors if value <= 5) / len(abs_errors),
+        "pct_dentro_10pp": sum(1 for value in abs_errors if value <= 10) / len(abs_errors),
+        "max_error_abs": float(max_row["abs_error"]),
+        "max_error_estado": max_row["estado"],
+        "max_error_firmado": float(max_row["error_outcome_pp"]),
+    }
+
+
+def add_longitudinal_overlap(states: pd.DataFrame, centers: pd.DataFrame) -> pd.DataFrame:
+    selected_sets = {
+        (target, cohort, selector, state): set(group["codigo_centro"])
+        for (target, cohort, selector, state), group in centers.groupby(["target", "cohort", "selector", "cod_estado"])
+    }
+    rows = []
+    for row in states.to_dict("records"):
+        current = selected_sets.get((row["target"], row["cohort"], row["selector"], row["cod_estado"]), set())
+        common = set(current)
+        for selector in LONGITUDINAL_SELECTORS:
+            common &= selected_sets.get((row["target"], row["cohort"], selector, row["cod_estado"]), set())
+        row["n_difiere_otras_features"] = len(current - common)
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def longitudinal_common_centers_summary(centers: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for (target, cohort), group in centers.groupby(["target", "cohort"]):
+        sets = [
+            set(group[group["selector"].eq(selector)]["codigo_centro"])
+            for selector in LONGITUDINAL_SELECTORS
+        ]
+        common = set.intersection(*sets) if sets else set()
+        rows.append(
+            {
+                "target": int(target),
+                "cohort": cohort,
+                "centros_comunes_cuatro_selectores": len(common),
+                "pct_comun_sobre_120": 100 * len(common) / N_BASE,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def run_longitudinal_target(target_year: int) -> dict[str, pd.DataFrame]:
+    features = build_longitudinal_features(target_year)
+    frame = frame_for_longitudinal_target(target_year)
+    quotas = allocate_dhondt_quotas(frame)
+    prev_year = LONGITUDINAL_TARGETS[target_year][-1]
+    historical_eval = load_presidential_result(prev_year)
+    outcome = load_presidential_result(target_year)
+    state_rows = []
+    center_rows = []
+    incomplete_rows = []
+    for cohort in ("common", "operational"):
+        for selector in LONGITUDINAL_SELECTORS:
+            selected, incomplete = select_longitudinal_feature(
+                features,
+                quotas,
+                selector,
+                cohort,
+                DEFAULT_TOLERANCE_LADDERS[PRIMARY_CONFIG[0]],
+            )
+            selected = selected.assign(target=target_year, selector=selector, cohort=cohort)
+            states = evaluate_selection(
+                str(target_year),
+                "longitudinal",
+                frame,
+                selected,
+                historical_eval,
+                outcome,
+                quotas,
+                PRIMARY_CONFIG[0],
+                PRIMARY_CONFIG[1],
+            ).assign(target=target_year, selector=selector, cohort=cohort)
+            state_rows.append(states)
+            center_rows.append(selected)
+            if not incomplete.empty:
+                incomplete_rows.append(incomplete.assign(target=target_year))
+    centers = pd.concat(center_rows, ignore_index=True)
+    states = add_longitudinal_overlap(pd.concat(state_rows, ignore_index=True), centers)
+    summary = pd.DataFrame(
+        [longitudinal_state_metrics(group) for _, group in states.groupby(["target", "cohort", "selector"])]
+    )
+    summary = summary.merge(longitudinal_common_centers_summary(centers), on=["target", "cohort"], how="left")
+    features = features.assign(target=target_year)
+    return {
+        "summary": summary,
+        "states": states,
+        "centers": centers,
+        "features": features,
+        "incomplete": pd.concat(incomplete_rows, ignore_index=True) if incomplete_rows else pd.DataFrame(),
+    }
+
+
+def transition_residual_diagnostics() -> pd.DataFrame:
+    rows = []
+    for prev_year, next_year in [(2006, 2012), (2012, 2013), (2013, 2018), (2018, 2024)]:
+        prev = residuals_for_year(prev_year)
+        nxt = residuals_for_year(next_year)
+        prev_col = f"residual_{prev_year}"
+        next_col = f"residual_{next_year}"
+        merged = prev.merge(nxt, on=["codigo_centro", "cod_estado"], how="inner").dropna(subset=[prev_col, next_col])
+        x = merged[prev_col].astype(float)
+        y = merged[next_col].astype(float)
+        if len(merged) >= 2 and float(x.var(ddof=0)) > 0:
+            slope = float(((x - x.mean()) * (y - y.mean())).mean() / x.var(ddof=0))
+            intercept = float(y.mean() - slope * x.mean())
+            pred = intercept + slope * x
+            ss_tot = float(((y - y.mean()) ** 2).sum())
+            r2 = 1 - float(((y - pred) ** 2).sum()) / ss_tot if ss_tot > 0 else None
+        else:
+            slope = intercept = r2 = None
+        rows.append(
+            {
+                "record_type": "transition_correlation",
+                "from_year": prev_year,
+                "to_year": next_year,
+                "n_centros": len(merged),
+                "pearson": float(x.corr(y, method="pearson")) if len(merged) >= 2 else None,
+                "spearman": float(x.rank(method="average").corr(y.rank(method="average"))) if len(merged) >= 2 else None,
+                "ols_slope": slope,
+                "ols_intercept": intercept,
+                "r2": r2,
+                "mae_delta_residual": float((y - x).abs().mean()) if len(merged) else None,
+            }
+        )
+        for prev_threshold in (1, 2, 5, 10):
+            base = merged[x.abs() <= prev_threshold]
+            for next_threshold in (2, 5, 10):
+                rows.append(
+                    {
+                        "record_type": "threshold_persistence",
+                        "from_year": prev_year,
+                        "to_year": next_year,
+                        "prev_threshold_pp": prev_threshold,
+                        "next_threshold_pp": next_threshold,
+                        "n_centros": len(base),
+                        "pct_permanece": (
+                            float((base[next_col].abs() <= next_threshold).mean()) if len(base) else None
+                        ),
+                    }
+                )
+    return pd.DataFrame(rows)
+
+
+def feature_quantile_diagnostics(features_all: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for target, features in features_all.groupby("target"):
+        outcome_res = residuals_for_year(int(target)).rename(columns={f"residual_{int(target)}": "residual_target"})
+        merged = features.merge(outcome_res, on=["codigo_centro", "cod_estado"], how="inner")
+        merged["abs_residual_target"] = merged["residual_target"].abs()
+        for feature in ("historical_volatility", "historical_mae", "abs_historical_bias", "recent_distance"):
+            observed = merged.dropna(subset=[feature, "abs_residual_target"]).copy()
+            if observed[feature].nunique() < 4:
+                continue
+            observed["quantile"] = pd.qcut(observed[feature], 4, labels=["Q1", "Q2", "Q3", "Q4"], duplicates="drop")
+            for quantile, group in observed.groupby("quantile", observed=True):
+                rows.append(
+                    {
+                        "record_type": "feature_quantile",
+                        "target": int(target),
+                        "feature": feature,
+                        "quantile": str(quantile),
+                        "n_centros": len(group),
+                        "feature_min": float(group[feature].min()),
+                        "feature_max": float(group[feature].max()),
+                        "abs_residual_target_mae": float(group["abs_residual_target"].mean()),
+                        "abs_residual_target_median": float(group["abs_residual_target"].median()),
+                    }
+                )
+    return pd.DataFrame(rows)
+
+
+def run_longitudinal_experiment(output_dir: Path) -> dict[str, pd.DataFrame]:
+    results = [run_longitudinal_target(target) for target in LONGITUDINAL_TARGETS]
+    outputs = {
+        key: pd.concat([result[key] for result in results], ignore_index=True)
+        for key in ("summary", "states", "centers", "features")
+    }
+    incomplete = [result["incomplete"] for result in results if not result["incomplete"].empty]
+    outputs["incomplete"] = pd.concat(incomplete, ignore_index=True) if incomplete else pd.DataFrame()
+    persistence = transition_residual_diagnostics()
+    quantiles = feature_quantile_diagnostics(outputs["features"])
+    outputs["persistencia"] = pd.concat([persistence, quantiles], ignore_index=True, sort=False)
+    write_longitudinal_outputs(output_dir, outputs)
+    return outputs
+
+
 def run_transition(transition: Transition, ladder_name: str, min_electores: int) -> dict[str, pd.DataFrame]:
     frame = load_frame(transition.frame_path)
     if transition.name == "2013_2018":
@@ -1025,6 +1470,28 @@ def write_similarity_outputs(output_dir: Path, outputs: dict[str, pd.DataFrame])
             output_dir / "backtest_legacy_similarity_incompletos.csv", index=False, encoding="utf-8"
         )
     write_similarity_markdown(output_dir / "BACKTEST_LEGACY_SIMILARITY.md", outputs)
+
+
+def write_longitudinal_outputs(output_dir: Path, outputs: dict[str, pd.DataFrame]) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _round_floats(outputs["summary"]).to_csv(
+        output_dir / "backtest_longitudinal_summary.csv", index=False, encoding="utf-8"
+    )
+    _round_floats(outputs["states"]).to_csv(
+        output_dir / "backtest_longitudinal_estados.csv", index=False, encoding="utf-8"
+    )
+    _round_floats(outputs["centers"]).to_csv(
+        output_dir / "backtest_longitudinal_centros.csv", index=False, encoding="utf-8"
+    )
+    _round_floats(outputs["features"]).to_csv(
+        output_dir / "backtest_longitudinal_features.csv", index=False, encoding="utf-8"
+    )
+    _round_floats(outputs["persistencia"]).to_csv(
+        output_dir / "backtest_longitudinal_persistencia.csv", index=False, encoding="utf-8"
+    )
+    if not outputs["incomplete"].empty:
+        outputs["incomplete"].to_csv(output_dir / "backtest_longitudinal_incompletos.csv", index=False, encoding="utf-8")
+    write_longitudinal_markdown(output_dir / "BACKTEST_LONGITUDINAL.md", outputs)
 
 
 def _fmt(value: object) -> str:
@@ -1337,12 +1804,169 @@ def write_similarity_markdown(path: Path, outputs: dict[str, pd.DataFrame]) -> N
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def write_longitudinal_markdown(path: Path, outputs: dict[str, pd.DataFrame]) -> None:
+    summary = outputs["summary"].copy()
+    persistence = outputs["persistencia"].copy()
+    corr = persistence[persistence["record_type"].eq("transition_correlation")].copy()
+    quant = persistence[persistence["record_type"].eq("feature_quantile")].copy()
+    winners = (
+        summary.sort_values(["target", "cohort", "mae", "rmse"])
+        .groupby(["target", "cohort"], as_index=False)
+        .first()[["target", "cohort", "selector", "mae"]]
+        .rename(columns={"selector": "menor_mae_selector", "mae": "menor_mae"})
+    )
+    recent_vs_long = summary[summary["selector"].isin(["recent_distance", "historical_mae", "historical_rmse"])][
+        ["target", "cohort", "selector", "mae", "rmse", "medae"]
+    ].copy()
+    rank_rows = []
+    for (target, cohort), group in summary.groupby(["target", "cohort"]):
+        ranked = group.sort_values(["mae", "rmse"]).reset_index(drop=True)
+        for idx, row in ranked.iterrows():
+            rank_rows.append(
+                {
+                    "target": int(target),
+                    "cohort": cohort,
+                    "rank_mae": idx + 1,
+                    "selector": row["selector"],
+                    "mae": row["mae"],
+                }
+            )
+    lines = [
+        "# Backtest longitudinal de representatividad historica por centro",
+        "",
+        "Este experimento evalua si la posicion historica relativa de un centro frente a su estado aporta informacion para seleccionar centros, manteniendo fijo el procedimiento legacy de cuotas y prioridad por tamano.",
+        "",
+        "## Definicion",
+        "",
+        "`residual_i,t = pct_gobierno_centro_i,t - pct_gobierno_estado_s,t`. Un residual positivo indica que el centro fue mas gobierno que su estado en esa eleccion.",
+        "",
+        "Features por centro antes de cada target:",
+        "",
+        "- `recent_distance`: valor absoluto del residual de la eleccion presidencial inmediatamente anterior.",
+        "- `historical_mae`: promedio historico de `abs(residual)` antes del target.",
+        "- `historical_rmse`: raiz del promedio de residual al cuadrado antes del target.",
+        "- `historical_volatility`: desviacion estandar poblacional de los residuales previos; queda NULL con menos de 2 observaciones.",
+        "- `historical_bias`: promedio firmado de residuales previos; se reporta como diagnostico, no como selector principal.",
+        "",
+        "## Elecciones y linking",
+        "",
+        "- Target 2013 usa features 2006 y 2012.",
+        "- Target 2018 usa features 2006, 2012 y 2013.",
+        "- Target 2024 usa features 2006, 2012, 2013 y 2018.",
+        "- El enlace entre procesos usa el codigo CNE nuevo normalizado a 9 digitos que ya emplean `seed_resultados_historicos.py` y los CSV/XLSX versionados. No se inventan mappings adicionales.",
+        "- Para 2013 se usa el archivo oficial 2013 como marco de codigo/electores/estado; sus votos se revelan solo en evaluacion.",
+        "- Para 2018 se usa `tm_2018_estandar.csv` y Distrito Capital se completa desde VENPRES-A 2018 solo como marco.",
+        "",
+        "## Cohortes",
+        "",
+        "- `common`: todos los selectores compiten sobre centros con historial suficiente para calcular tambien volatilidad (`n_hist >= 2`).",
+        "- `operational`: cada selector usa el universo que naturalmente puede calcular; `recent_distance`, MAE y RMSE requieren al menos 1 historico, volatilidad requiere 2.",
+        "",
+        "## Resumen principal",
+        "",
+        markdown_table(
+            summary[
+                [
+                    "target",
+                    "cohort",
+                    "selector",
+                    "mae",
+                    "rmse",
+                    "medae",
+                    "pct_dentro_2pp",
+                    "pct_dentro_5pp",
+                    "pct_dentro_10pp",
+                    "max_error_abs",
+                    "max_error_estado",
+                    "centros_comunes_cuatro_selectores",
+                ]
+            ].to_dict("records"),
+            [
+                "target",
+                "cohort",
+                "selector",
+                "mae",
+                "rmse",
+                "medae",
+                "pct_dentro_2pp",
+                "pct_dentro_5pp",
+                "pct_dentro_10pp",
+                "max_error_abs",
+                "max_error_estado",
+                "centros_comunes_cuatro_selectores",
+            ],
+        ),
+        "",
+        "## Ganadores por MAE",
+        "",
+        markdown_table(winners.to_dict("records"), ["target", "cohort", "menor_mae_selector", "menor_mae"]),
+        "",
+        "## Ranking por MAE",
+        "",
+        markdown_table(
+            rank_rows,
+            ["target", "cohort", "rank_mae", "selector", "mae"],
+        ),
+        "",
+        "## Recent vs longitudinal",
+        "",
+        markdown_table(
+            recent_vs_long.to_dict("records"),
+            ["target", "cohort", "selector", "mae", "rmse", "medae"],
+        ),
+        "",
+        "## Persistencia de residuales",
+        "",
+        markdown_table(
+            corr[
+                [
+                    "from_year",
+                    "to_year",
+                    "n_centros",
+                    "pearson",
+                    "spearman",
+                    "ols_slope",
+                    "r2",
+                    "mae_delta_residual",
+                ]
+            ].to_dict("records"),
+            ["from_year", "to_year", "n_centros", "pearson", "spearman", "ols_slope", "r2", "mae_delta_residual"],
+        ),
+        "",
+        "## Diagnostico por cuantiles",
+        "",
+        markdown_table(
+            quant.head(48)[
+                ["target", "feature", "quantile", "n_centros", "feature_min", "feature_max", "abs_residual_target_mae"]
+            ].to_dict("records"),
+            ["target", "feature", "quantile", "n_centros", "feature_min", "feature_max", "abs_residual_target_mae"],
+        ),
+        "",
+        "## Archivos reproducibles",
+        "",
+        "- `backtest_longitudinal_summary.csv`",
+        "- `backtest_longitudinal_estados.csv`",
+        "- `backtest_longitudinal_centros.csv`",
+        "- `backtest_longitudinal_features.csv`",
+        "- `backtest_longitudinal_persistencia.csv`",
+        "",
+        "## Limitaciones",
+        "",
+        "- El estudio no modifica el selector productivo moderno ni propone un score compuesto.",
+        "- Missing historico permanece NULL y reduce `n_hist`; no se imputa ni se convierte en cero.",
+        "- Las series dependen del enlace por codigo CNE nuevo ya presente en los archivos normalizados/importadores del repo.",
+        "- La interpretacion es descriptiva; diferencias pequenas no justifican cambios productivos por si solas.",
+        "",
+    ]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=REPO_DIR / "docs" / "muestreo")
     parser.add_argument(
         "--only",
-        choices=["all", "legacy", "similarity"],
+        choices=["all", "legacy", "similarity", "longitudinal"],
         default="all",
         help="Controla que artefactos se regeneran.",
     )
@@ -1357,6 +1981,12 @@ def main() -> int:
         print(f"Similarity summary: {len(similarity_outputs['summary'])} filas")
         print(f"Similarity estados: {len(similarity_outputs['states'])} filas")
         print(f"Similarity centros: {len(similarity_outputs['centers'])} filas")
+    if args.only in {"all", "longitudinal"}:
+        longitudinal_outputs = run_longitudinal_experiment(args.output_dir)
+        print(f"Longitudinal summary: {len(longitudinal_outputs['summary'])} filas")
+        print(f"Longitudinal estados: {len(longitudinal_outputs['states'])} filas")
+        print(f"Longitudinal centros: {len(longitudinal_outputs['centers'])} filas")
+        print(f"Longitudinal features: {len(longitudinal_outputs['features'])} filas")
     print(f"Salida: {args.output_dir}")
     return 0
 

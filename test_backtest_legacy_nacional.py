@@ -11,6 +11,10 @@ from backend.backtest_legacy_nacional import (
     allocate_dhondt_quotas,
     code9,
     evaluate_selection,
+    longitudinal_feature_values,
+    LONGITUDINAL_TARGETS,
+    residual,
+    select_longitudinal_feature,
     select_legacy_similarity,
     select_legacy,
     similarity_distance,
@@ -185,3 +189,58 @@ def test_similarity_variant_is_only_selection_component_that_changes():
 
     assert len(winner) == len(gap) == 2
     assert set(common_kwargs) == {"frame", "historical_profile", "quotas", "tolerance_ladder_pp", "min_electores"}
+
+
+def test_residual_center_minus_state_and_zero_identity():
+    assert residual(57.0, 55.0) == 2.0
+    assert residual(55.0, 55.0) == 0.0
+
+
+def test_longitudinal_features_preserve_missing_and_bias_sign():
+    values = longitudinal_feature_values([2.0, None, -4.0])
+
+    assert values["n_hist"] == 2
+    assert values["recent_distance"] == 4.0
+    assert values["historical_mae"] == 3.0
+    assert round(values["historical_rmse"], 6) == round(math.sqrt(10), 6)
+    assert values["historical_bias"] == -1.0
+    assert values["abs_historical_bias"] == 1.0
+    assert values["historical_volatility"] == 3.0
+
+
+def test_longitudinal_volatility_null_with_less_than_two_observations():
+    values = longitudinal_feature_values([2.0, None])
+
+    assert values["n_hist"] == 1
+    assert values["historical_volatility"] is None
+
+
+def test_longitudinal_target_windows_do_not_include_target_or_future():
+    assert LONGITUDINAL_TARGETS[2013] == [2006, 2012]
+    assert LONGITUDINAL_TARGETS[2018] == [2006, 2012, 2013]
+    assert LONGITUDINAL_TARGETS[2024] == [2006, 2012, 2013, 2018]
+    for target, years in LONGITUDINAL_TARGETS.items():
+        assert all(year < target for year in years)
+
+
+def test_longitudinal_selector_changes_only_feature_column():
+    features = pd.DataFrame(
+        [
+            {"codigo_centro": "010000001", "cod_estado": "01", "estado": "DC", "nombre_centro": "A", "electores": 3000, "rank_por_tamano": 1, "n_hist": 2, "recent_distance": 8.0, "historical_mae": 1.0, "historical_rmse": 1.0, "historical_volatility": 1.0},
+            {"codigo_centro": "010000002", "cod_estado": "01", "estado": "DC", "nombre_centro": "B", "electores": 2000, "rank_por_tamano": 2, "n_hist": 2, "recent_distance": 1.0, "historical_mae": 8.0, "historical_rmse": 8.0, "historical_volatility": 8.0},
+            {"codigo_centro": "010000003", "cod_estado": "01", "estado": "DC", "nombre_centro": "C", "electores": 1000, "rank_por_tamano": 3, "n_hist": 2, "recent_distance": 1.0, "historical_mae": 1.0, "historical_rmse": 1.0, "historical_volatility": 1.0},
+        ]
+    )
+    kwargs = {
+        "features": features,
+        "quotas": {"01": 2},
+        "cohort": "common",
+        "tolerance_ladder_pp": [2, 10, math.inf],
+    }
+
+    recent, _ = select_longitudinal_feature(selector="recent_distance", **kwargs)
+    mae, _ = select_longitudinal_feature(selector="historical_mae", **kwargs)
+
+    assert list(recent["codigo_centro"]) == ["010000002", "010000003"]
+    assert list(mae["codigo_centro"]) == ["010000001", "010000003"]
+    assert set(kwargs) == {"features", "quotas", "cohort", "tolerance_ladder_pp"}
