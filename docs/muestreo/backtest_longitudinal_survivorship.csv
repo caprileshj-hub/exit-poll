@@ -1,0 +1,351 @@
+record_type,target,n_hist,n_centros,pct_frame,electores_median,electores_mean,abs_residual_target_mean,abs_residual_target_median,has_recent_distance_pct,has_historical_mae_pct,selectable_common_cohort_pct,cod_estado,estado,pct_state_frame,history_group,from_year,to_year,total_centros_origen,total_centros_destino,matched,unmatched,match_rate
+n_hist_summary,2013.0,0.0,7.0,0.051166,529.0,521.714286,16.004798,14.921314,0.0,0.0,0.0,,,,,,,,,,,
+n_hist_state_distribution,2013.0,0.0,1.0,,,,,,,,,06,Bolivar,0.141243,,,,,,,,
+n_hist_state_distribution,2013.0,0.0,2.0,,,,,,,,,10,Guarico,0.464037,,,,,,,,
+n_hist_state_distribution,2013.0,0.0,1.0,,,,,,,,,14,Monagas,0.21322,,,,,,,,
+n_hist_state_distribution,2013.0,0.0,2.0,,,,,,,,,22,Amazonas,1.587302,,,,,,,,
+n_hist_state_distribution,2013.0,0.0,1.0,,,,,,,,,23,Delta Amacuro,0.561798,,,,,,,,
+n_hist_summary,2013.0,1.0,3135.0,22.914992,324.0,485.765869,20.025672,18.811517,100.0,100.0,0.0,,,,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,225.0,,,,,,,,,01,Distrito Capital,25.027809,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,105.0,,,,,,,,,02,Anzoategui,17.558528,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,104.0,,,,,,,,,03,Apure,32.807571,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,201.0,,,,,,,,,04,Aragua,32.263242,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,117.0,,,,,,,,,05,Barinas,23.031496,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,178.0,,,,,,,,,06,Bolivar,25.141243,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,175.0,,,,,,,,,07,Carabobo,26.595745,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,80.0,,,,,,,,,08,Cojedes,32.258065,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,114.0,,,,,,,,,09,Falcon,16.497829,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,143.0,,,,,,,,,10,Guarico,33.178654,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,216.0,,,,,,,,,11,Lara,21.818182,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,99.0,,,,,,,,,12,Merida,19.2607,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,203.0,,,,,,,,,13,Miranda,19.519231,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,112.0,,,,,,,,,14,Monagas,23.880597,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,68.0,,,,,,,,,15,Nueva Esparta,29.565217,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,88.0,,,,,,,,,16,Portuguesa,14.170692,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,94.0,,,,,,,,,17,Sucre,14.551084,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,143.0,,,,,,,,,18,Tachira,21.1226,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,144.0,,,,,,,,,19,Trujillo,22.712934,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,110.0,,,,,,,,,20,Yaracuy,23.809524,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,240.0,,,,,,,,,21,Zulia,19.753086,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,62.0,,,,,,,,,22,Amazonas,49.206349,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,52.0,,,,,,,,,23,Delta Amacuro,29.213483,,,,,,,,
+n_hist_state_distribution,2013.0,1.0,62.0,,,,,,,,,24,La Guaira,31.313131,,,,,,,,
+n_hist_summary,2013.0,2.0,10539.0,77.033843,1195.0,1638.704147,14.430332,12.211384,100.0,100.0,100.0,,,,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,674.0,,,,,,,,,01,Distrito Capital,74.972191,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,493.0,,,,,,,,,02,Anzoategui,82.441472,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,213.0,,,,,,,,,03,Apure,67.192429,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,422.0,,,,,,,,,04,Aragua,67.736758,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,391.0,,,,,,,,,05,Barinas,76.968504,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,529.0,,,,,,,,,06,Bolivar,74.717514,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,483.0,,,,,,,,,07,Carabobo,73.404255,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,168.0,,,,,,,,,08,Cojedes,67.741935,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,577.0,,,,,,,,,09,Falcon,83.502171,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,286.0,,,,,,,,,10,Guarico,66.357309,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,774.0,,,,,,,,,11,Lara,78.181818,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,415.0,,,,,,,,,12,Merida,80.7393,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,837.0,,,,,,,,,13,Miranda,80.480769,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,356.0,,,,,,,,,14,Monagas,75.906183,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,162.0,,,,,,,,,15,Nueva Esparta,70.434783,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,533.0,,,,,,,,,16,Portuguesa,85.829308,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,552.0,,,,,,,,,17,Sucre,85.448916,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,534.0,,,,,,,,,18,Tachira,78.8774,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,490.0,,,,,,,,,19,Trujillo,77.287066,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,352.0,,,,,,,,,20,Yaracuy,76.190476,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,975.0,,,,,,,,,21,Zulia,80.246914,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,62.0,,,,,,,,,22,Amazonas,49.206349,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,125.0,,,,,,,,,23,Delta Amacuro,70.224719,,,,,,,,
+n_hist_state_distribution,2013.0,2.0,136.0,,,,,,,,,24,La Guaira,68.686869,,,,,,,,
+history_length_summary,2013.0,,3142.0,22.966157,324.0,485.845958,20.016714,18.808125,,,,,,,short_history,,,,,,,
+history_length_summary,2013.0,,10539.0,77.033843,1195.0,1638.704147,14.430332,12.211384,,,,,,,long_history,,,,,,,
+n_hist_summary,2018.0,0.0,1071.0,7.411765,303.0,458.625584,13.471722,12.779707,0.0,0.0,0.0,,,,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,32.0,,,,,,,,,01,Distrito Capital,3.59147,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,56.0,,,,,,,,,02,Anzoategui,8.615385,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,38.0,,,,,,,,,03,Apure,10.888252,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,27.0,,,,,,,,,04,Aragua,4.285714,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,77.0,,,,,,,,,05,Barinas,13.676732,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,29.0,,,,,,,,,06,Bolivar,4.027778,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,63.0,,,,,,,,,07,Carabobo,8.860759,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,14.0,,,,,,,,,08,Cojedes,5.343511,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,49.0,,,,,,,,,09,Falcon,6.721536,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,51.0,,,,,,,,,10,Guarico,11.015119,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,81.0,,,,,,,,,11,Lara,7.758621,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,15.0,,,,,,,,,12,Merida,2.851711,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,95.0,,,,,,,,,13,Miranda,8.497317,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,106.0,,,,,,,,,14,Monagas,19.776119,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,19.0,,,,,,,,,15,Nueva Esparta,7.755102,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,47.0,,,,,,,,,16,Portuguesa,7.121212,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,40.0,,,,,,,,,17,Sucre,5.856515,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,11.0,,,,,,,,,18,Tachira,1.617647,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,7.0,,,,,,,,,19,Trujillo,1.097179,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,27.0,,,,,,,,,20,Yaracuy,5.544148,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,153.0,,,,,,,,,21,Zulia,11.434978,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,22.0,,,,,,,,,22,Amazonas,15.172414,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,8.0,,,,,,,,,23,Delta Amacuro,4.444444,,,,,,,,
+n_hist_state_distribution,2018.0,0.0,4.0,,,,,,,,,24,La Guaira,1.980198,,,,,,,,
+n_hist_summary,2018.0,1.0,8.0,0.055363,428.0,491.0,8.079484,8.500819,100.0,100.0,0.0,,,,,,,,,,,
+n_hist_state_distribution,2018.0,1.0,1.0,,,,,,,,,05,Barinas,0.17762,,,,,,,,
+n_hist_state_distribution,2018.0,1.0,1.0,,,,,,,,,06,Bolivar,0.138889,,,,,,,,
+n_hist_state_distribution,2018.0,1.0,2.0,,,,,,,,,10,Guarico,0.431965,,,,,,,,
+n_hist_state_distribution,2018.0,1.0,1.0,,,,,,,,,14,Monagas,0.186567,,,,,,,,
+n_hist_state_distribution,2018.0,1.0,2.0,,,,,,,,,22,Amazonas,1.37931,,,,,,,,
+n_hist_state_distribution,2018.0,1.0,1.0,,,,,,,,,23,Delta Amacuro,0.555556,,,,,,,,
+n_hist_summary,2018.0,2.0,3024.0,20.927336,431.5,611.508929,9.937968,8.018907,100.0,100.0,100.0,,,,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,199.0,,,,,,,,,01,Distrito Capital,22.334456,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,105.0,,,,,,,,,02,Anzoategui,16.153846,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,101.0,,,,,,,,,03,Apure,28.939828,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,192.0,,,,,,,,,04,Aragua,30.47619,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,112.0,,,,,,,,,05,Barinas,19.893428,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,174.0,,,,,,,,,06,Bolivar,24.166667,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,170.0,,,,,,,,,07,Carabobo,23.909986,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,80.0,,,,,,,,,08,Cojedes,30.534351,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,114.0,,,,,,,,,09,Falcon,15.63786,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,132.0,,,,,,,,,10,Guarico,28.509719,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,206.0,,,,,,,,,11,Lara,19.731801,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,98.0,,,,,,,,,12,Merida,18.631179,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,198.0,,,,,,,,,13,Miranda,17.710197,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,101.0,,,,,,,,,14,Monagas,18.843284,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,66.0,,,,,,,,,15,Nueva Esparta,26.938776,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,86.0,,,,,,,,,16,Portuguesa,13.030303,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,94.0,,,,,,,,,17,Sucre,13.762811,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,140.0,,,,,,,,,18,Tachira,20.588235,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,142.0,,,,,,,,,19,Trujillo,22.257053,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,109.0,,,,,,,,,20,Yaracuy,22.38193,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,230.0,,,,,,,,,21,Zulia,17.189836,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,61.0,,,,,,,,,22,Amazonas,42.068966,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,52.0,,,,,,,,,23,Delta Amacuro,28.888889,,,,,,,,
+n_hist_state_distribution,2018.0,2.0,62.0,,,,,,,,,24,La Guaira,30.693069,,,,,,,,
+n_hist_summary,2018.0,3.0,10347.0,71.605536,1259.0,1686.701073,8.798813,6.498005,100.0,100.0,100.0,,,,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,660.0,,,,,,,,,01,Distrito Capital,74.074074,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,489.0,,,,,,,,,02,Anzoategui,75.230769,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,210.0,,,,,,,,,03,Apure,60.17192,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,411.0,,,,,,,,,04,Aragua,65.238095,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,373.0,,,,,,,,,05,Barinas,66.25222,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,516.0,,,,,,,,,06,Bolivar,71.666667,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,478.0,,,,,,,,,07,Carabobo,67.229255,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,168.0,,,,,,,,,08,Cojedes,64.122137,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,566.0,,,,,,,,,09,Falcon,77.640604,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,278.0,,,,,,,,,10,Guarico,60.043197,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,757.0,,,,,,,,,11,Lara,72.509579,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,413.0,,,,,,,,,12,Merida,78.51711,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,825.0,,,,,,,,,13,Miranda,73.792487,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,328.0,,,,,,,,,14,Monagas,61.19403,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,160.0,,,,,,,,,15,Nueva Esparta,65.306122,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,527.0,,,,,,,,,16,Portuguesa,79.848485,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,549.0,,,,,,,,,17,Sucre,80.380673,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,529.0,,,,,,,,,18,Tachira,77.794118,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,489.0,,,,,,,,,19,Trujillo,76.645768,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,351.0,,,,,,,,,20,Yaracuy,72.073922,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,955.0,,,,,,,,,21,Zulia,71.375187,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,60.0,,,,,,,,,22,Amazonas,41.37931,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,119.0,,,,,,,,,23,Delta Amacuro,66.111111,,,,,,,,
+n_hist_state_distribution,2018.0,3.0,136.0,,,,,,,,,24,La Guaira,67.326733,,,,,,,,
+history_length_summary,2018.0,,1079.0,7.467128,304.0,458.865616,13.430243,12.768362,,,,,,,short_history,,,,,,,
+history_length_summary,2018.0,,13371.0,92.532872,935.0,1443.53444,9.055396,6.770305,,,,,,,long_history,,,,,,,
+n_hist_summary,2024.0,0.0,1113.0,9.331768,270.0,394.226415,19.250166,17.837093,0.0,0.0,0.0,,,,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,85.0,,,,,,,,,01,Distrito Capital,14.119601,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,54.0,,,,,,,,,02,Anzoategui,9.424084,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,27.0,,,,,,,,,03,Apure,8.653846,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,46.0,,,,,,,,,04,Aragua,7.679466,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,119.0,,,,,,,,,05,Barinas,20.446735,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,54.0,,,,,,,,,06,Bolivar,10.505837,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,23.0,,,,,,,,,07,Carabobo,4.842105,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,36.0,,,,,,,,,08,Cojedes,16.216216,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,22.0,,,,,,,,,09,Falcon,3.577236,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,54.0,,,,,,,,,10,Guarico,12.134831,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,68.0,,,,,,,,,11,Lara,9.985316,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,39.0,,,,,,,,,12,Merida,7.722772,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,114.0,,,,,,,,,13,Miranda,13.539192,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,38.0,,,,,,,,,14,Monagas,9.178744,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,51.0,,,,,,,,,15,Nueva Esparta,19.465649,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,34.0,,,,,,,,,16,Portuguesa,5.792164,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,26.0,,,,,,,,,17,Sucre,4.20712,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,58.0,,,,,,,,,18,Tachira,8.695652,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,31.0,,,,,,,,,19,Trujillo,5.245347,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,28.0,,,,,,,,,20,Yaracuy,6.320542,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,77.0,,,,,,,,,21,Zulia,7.512195,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,3.0,,,,,,,,,22,Amazonas,4.6875,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,21.0,,,,,,,,,23,Delta Amacuro,16.935484,,,,,,,,
+n_hist_state_distribution,2024.0,0.0,5.0,,,,,,,,,24,La Guaira,3.030303,,,,,,,,
+n_hist_summary,2024.0,1.0,731.0,6.128951,629.0,871.71409,16.027501,13.420828,100.0,100.0,0.0,,,,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,14.0,,,,,,,,,01,Distrito Capital,2.325581,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,37.0,,,,,,,,,02,Anzoategui,6.457243,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,30.0,,,,,,,,,03,Apure,9.615385,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,31.0,,,,,,,,,04,Aragua,5.175292,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,66.0,,,,,,,,,05,Barinas,11.340206,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,5.0,,,,,,,,,06,Bolivar,0.972763,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,40.0,,,,,,,,,07,Carabobo,8.421053,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,11.0,,,,,,,,,08,Cojedes,4.954955,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,42.0,,,,,,,,,09,Falcon,6.829268,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,42.0,,,,,,,,,10,Guarico,9.438202,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,43.0,,,,,,,,,11,Lara,6.314244,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,23.0,,,,,,,,,12,Merida,4.554455,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,51.0,,,,,,,,,13,Miranda,6.057007,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,61.0,,,,,,,,,14,Monagas,14.7343,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,14.0,,,,,,,,,15,Nueva Esparta,5.343511,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,30.0,,,,,,,,,16,Portuguesa,5.110733,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,31.0,,,,,,,,,17,Sucre,5.016181,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,17.0,,,,,,,,,18,Tachira,2.548726,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,7.0,,,,,,,,,19,Trujillo,1.184433,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,22.0,,,,,,,,,20,Yaracuy,4.96614,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,99.0,,,,,,,,,21,Zulia,9.658537,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,8.0,,,,,,,,,22,Amazonas,12.5,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,3.0,,,,,,,,,23,Delta Amacuro,2.419355,,,,,,,,
+n_hist_state_distribution,2024.0,1.0,4.0,,,,,,,,,24,La Guaira,2.424242,,,,,,,,
+n_hist_summary,2024.0,2.0,13.0,0.108996,285.0,545.923077,10.206999,8.250001,100.0,100.0,100.0,,,,,,,,,,,
+n_hist_state_distribution,2024.0,2.0,1.0,,,,,,,,,03,Apure,0.320513,,,,,,,,
+n_hist_state_distribution,2024.0,2.0,1.0,,,,,,,,,04,Aragua,0.166945,,,,,,,,
+n_hist_state_distribution,2024.0,2.0,3.0,,,,,,,,,05,Barinas,0.515464,,,,,,,,
+n_hist_state_distribution,2024.0,2.0,1.0,,,,,,,,,06,Bolivar,0.194553,,,,,,,,
+n_hist_state_distribution,2024.0,2.0,2.0,,,,,,,,,10,Guarico,0.449438,,,,,,,,
+n_hist_state_distribution,2024.0,2.0,1.0,,,,,,,,,20,Yaracuy,0.225734,,,,,,,,
+n_hist_state_distribution,2024.0,2.0,1.0,,,,,,,,,21,Zulia,0.097561,,,,,,,,
+n_hist_state_distribution,2024.0,2.0,2.0,,,,,,,,,22,Amazonas,3.125,,,,,,,,
+n_hist_state_distribution,2024.0,2.0,1.0,,,,,,,,,23,Delta Amacuro,0.806452,,,,,,,,
+n_hist_summary,2024.0,3.0,2052.0,17.204662,673.0,884.054581,12.184747,9.060585,100.0,100.0,100.0,,,,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,61.0,,,,,,,,,01,Distrito Capital,10.13289,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,77.0,,,,,,,,,02,Anzoategui,13.438045,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,79.0,,,,,,,,,03,Apure,25.320513,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,155.0,,,,,,,,,04,Aragua,25.876461,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,94.0,,,,,,,,,05,Barinas,16.151203,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,97.0,,,,,,,,,06,Bolivar,18.871595,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,88.0,,,,,,,,,07,Carabobo,18.526316,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,58.0,,,,,,,,,08,Cojedes,26.126126,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,83.0,,,,,,,,,09,Falcon,13.495935,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,107.0,,,,,,,,,10,Guarico,24.044944,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,117.0,,,,,,,,,11,Lara,17.180617,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,75.0,,,,,,,,,12,Merida,14.851485,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,109.0,,,,,,,,,13,Miranda,12.945368,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,68.0,,,,,,,,,14,Monagas,16.425121,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,50.0,,,,,,,,,15,Nueva Esparta,19.083969,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,67.0,,,,,,,,,16,Portuguesa,11.413969,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,83.0,,,,,,,,,17,Sucre,13.430421,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,121.0,,,,,,,,,18,Tachira,18.14093,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,124.0,,,,,,,,,19,Trujillo,20.981387,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,84.0,,,,,,,,,20,Yaracuy,18.961625,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,145.0,,,,,,,,,21,Zulia,14.146341,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,28.0,,,,,,,,,22,Amazonas,43.75,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,36.0,,,,,,,,,23,Delta Amacuro,29.032258,,,,,,,,
+n_hist_state_distribution,2024.0,3.0,46.0,,,,,,,,,24,La Guaira,27.878788,,,,,,,,
+n_hist_summary,2024.0,4.0,8018.0,67.225623,1480.0,1821.569219,10.301604,7.900343,100.0,100.0,100.0,,,,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,442.0,,,,,,,,,01,Distrito Capital,73.421927,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,405.0,,,,,,,,,02,Anzoategui,70.680628,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,175.0,,,,,,,,,03,Apure,56.089744,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,366.0,,,,,,,,,04,Aragua,61.101836,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,300.0,,,,,,,,,05,Barinas,51.546392,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,357.0,,,,,,,,,06,Bolivar,69.455253,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,324.0,,,,,,,,,07,Carabobo,68.210526,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,117.0,,,,,,,,,08,Cojedes,52.702703,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,468.0,,,,,,,,,09,Falcon,76.097561,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,240.0,,,,,,,,,10,Guarico,53.932584,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,453.0,,,,,,,,,11,Lara,66.519824,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,368.0,,,,,,,,,12,Merida,72.871287,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,568.0,,,,,,,,,13,Miranda,67.458432,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,247.0,,,,,,,,,14,Monagas,59.661836,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,147.0,,,,,,,,,15,Nueva Esparta,56.10687,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,456.0,,,,,,,,,16,Portuguesa,77.683135,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,478.0,,,,,,,,,17,Sucre,77.346278,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,471.0,,,,,,,,,18,Tachira,70.614693,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,429.0,,,,,,,,,19,Trujillo,72.588832,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,308.0,,,,,,,,,20,Yaracuy,69.525959,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,703.0,,,,,,,,,21,Zulia,68.585366,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,23.0,,,,,,,,,22,Amazonas,35.9375,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,63.0,,,,,,,,,23,Delta Amacuro,50.806452,,,,,,,,
+n_hist_state_distribution,2024.0,4.0,110.0,,,,,,,,,24,La Guaira,66.666667,,,,,,,,
+history_length_summary,2024.0,,1844.0,15.460719,339.0,583.512473,17.972635,16.212151,,,,,,,short_history,,,,,,,
+history_length_summary,2024.0,,10083.0,84.539281,1221.0,1629.13012,10.684611,8.108995,,,,,,,long_history,,,,,,,
+link_rate,,,,,,,,,,,,01,Distrito Capital,,,2006.0,2012.0,718.0,899.0,674.0,44.0,0.938719
+link_rate,,,,,,,,,,,,02,Anzoategui,,,2006.0,2012.0,520.0,598.0,493.0,27.0,0.948077
+link_rate,,,,,,,,,,,,03,Apure,,,2006.0,2012.0,221.0,316.0,213.0,8.0,0.963801
+link_rate,,,,,,,,,,,,04,Aragua,,,2006.0,2012.0,443.0,623.0,422.0,21.0,0.952596
+link_rate,,,,,,,,,,,,05,Barinas,,,2006.0,2012.0,394.0,507.0,391.0,3.0,0.992386
+link_rate,,,,,,,,,,,,06,Bolivar,,,2006.0,2012.0,541.0,707.0,529.0,12.0,0.977819
+link_rate,,,,,,,,,,,,07,Carabobo,,,2006.0,2012.0,502.0,658.0,483.0,19.0,0.962151
+link_rate,,,,,,,,,,,,08,Cojedes,,,2006.0,2012.0,168.0,248.0,168.0,0.0,1.0
+link_rate,,,,,,,,,,,,09,Falcon,,,2006.0,2012.0,586.0,691.0,577.0,9.0,0.984642
+link_rate,,,,,,,,,,,,10,Guarico,,,2006.0,2012.0,296.0,422.0,286.0,10.0,0.966216
+link_rate,,,,,,,,,,,,11,Lara,,,2006.0,2012.0,784.0,990.0,774.0,10.0,0.987245
+link_rate,,,,,,,,,,,,12,Merida,,,2006.0,2012.0,420.0,514.0,415.0,5.0,0.988095
+link_rate,,,,,,,,,,,,13,Miranda,,,2006.0,2012.0,876.0,1038.0,837.0,39.0,0.955479
+link_rate,,,,,,,,,,,,14,Monagas,,,2006.0,2012.0,361.0,467.0,356.0,5.0,0.98615
+link_rate,,,,,,,,,,,,15,Nueva Esparta,,,2006.0,2012.0,165.0,230.0,162.0,3.0,0.981818
+link_rate,,,,,,,,,,,,16,Portuguesa,,,2006.0,2012.0,549.0,620.0,533.0,16.0,0.970856
+link_rate,,,,,,,,,,,,17,Sucre,,,2006.0,2012.0,572.0,646.0,552.0,20.0,0.965035
+link_rate,,,,,,,,,,,,18,Tachira,,,2006.0,2012.0,564.0,677.0,534.0,30.0,0.946809
+link_rate,,,,,,,,,,,,19,Trujillo,,,2006.0,2012.0,504.0,634.0,491.0,13.0,0.974206
+link_rate,,,,,,,,,,,,20,Yaracuy,,,2006.0,2012.0,357.0,462.0,352.0,5.0,0.985994
+link_rate,,,,,,,,,,,,21,Zulia,,,2006.0,2012.0,1015.0,1212.0,975.0,40.0,0.960591
+link_rate,,,,,,,,,,,,22,Amazonas,,,2006.0,2012.0,65.0,124.0,62.0,3.0,0.953846
+link_rate,,,,,,,,,,,,23,Delta Amacuro,,,2006.0,2012.0,127.0,177.0,125.0,2.0,0.984252
+link_rate,,,,,,,,,,,,24,La Guaira,,,2006.0,2012.0,139.0,198.0,136.0,3.0,0.978417
+link_rate,,,,,,,,,,,,01,Distrito Capital,,,2012.0,2013.0,899.0,899.0,899.0,0.0,1.0
+link_rate,,,,,,,,,,,,02,Anzoategui,,,2012.0,2013.0,598.0,598.0,598.0,0.0,1.0
+link_rate,,,,,,,,,,,,03,Apure,,,2012.0,2013.0,316.0,317.0,316.0,0.0,1.0
+link_rate,,,,,,,,,,,,04,Aragua,,,2012.0,2013.0,623.0,623.0,623.0,0.0,1.0
+link_rate,,,,,,,,,,,,05,Barinas,,,2012.0,2013.0,507.0,508.0,506.0,1.0,0.998028
+link_rate,,,,,,,,,,,,06,Bolivar,,,2012.0,2013.0,707.0,708.0,707.0,0.0,1.0
+link_rate,,,,,,,,,,,,07,Carabobo,,,2012.0,2013.0,658.0,658.0,658.0,0.0,1.0
+link_rate,,,,,,,,,,,,08,Cojedes,,,2012.0,2013.0,248.0,248.0,248.0,0.0,1.0
+link_rate,,,,,,,,,,,,09,Falcon,,,2012.0,2013.0,691.0,691.0,691.0,0.0,1.0
+link_rate,,,,,,,,,,,,10,Guarico,,,2012.0,2013.0,422.0,431.0,422.0,0.0,1.0
+link_rate,,,,,,,,,,,,11,Lara,,,2012.0,2013.0,990.0,990.0,990.0,0.0,1.0
+link_rate,,,,,,,,,,,,12,Merida,,,2012.0,2013.0,514.0,514.0,514.0,0.0,1.0
+link_rate,,,,,,,,,,,,13,Miranda,,,2012.0,2013.0,1038.0,1040.0,1038.0,0.0,1.0
+link_rate,,,,,,,,,,,,14,Monagas,,,2012.0,2013.0,467.0,469.0,467.0,0.0,1.0
+link_rate,,,,,,,,,,,,15,Nueva Esparta,,,2012.0,2013.0,230.0,230.0,230.0,0.0,1.0
+link_rate,,,,,,,,,,,,16,Portuguesa,,,2012.0,2013.0,620.0,621.0,620.0,0.0,1.0
+link_rate,,,,,,,,,,,,17,Sucre,,,2012.0,2013.0,646.0,646.0,646.0,0.0,1.0
+link_rate,,,,,,,,,,,,18,Tachira,,,2012.0,2013.0,677.0,677.0,677.0,0.0,1.0
+link_rate,,,,,,,,,,,,19,Trujillo,,,2012.0,2013.0,634.0,634.0,633.0,1.0,0.998423
+link_rate,,,,,,,,,,,,20,Yaracuy,,,2012.0,2013.0,462.0,462.0,462.0,0.0,1.0
+link_rate,,,,,,,,,,,,21,Zulia,,,2012.0,2013.0,1212.0,1215.0,1212.0,0.0,1.0
+link_rate,,,,,,,,,,,,22,Amazonas,,,2012.0,2013.0,124.0,126.0,124.0,0.0,1.0
+link_rate,,,,,,,,,,,,23,Delta Amacuro,,,2012.0,2013.0,177.0,178.0,177.0,0.0,1.0
+link_rate,,,,,,,,,,,,24,La Guaira,,,2012.0,2013.0,198.0,198.0,198.0,0.0,1.0
+link_rate,,,,,,,,,,,,01,Distrito Capital,,,2013.0,2018.0,899.0,891.0,859.0,40.0,0.955506
+link_rate,,,,,,,,,,,,02,Anzoategui,,,2013.0,2018.0,598.0,651.0,594.0,4.0,0.993311
+link_rate,,,,,,,,,,,,03,Apure,,,2013.0,2018.0,317.0,342.0,303.0,14.0,0.955836
+link_rate,,,,,,,,,,,,04,Aragua,,,2013.0,2018.0,623.0,630.0,588.0,35.0,0.94382
+link_rate,,,,,,,,,,,,05,Barinas,,,2013.0,2018.0,508.0,550.0,474.0,34.0,0.933071
+link_rate,,,,,,,,,,,,06,Bolivar,,,2013.0,2018.0,708.0,708.0,681.0,27.0,0.961864
+link_rate,,,,,,,,,,,,07,Carabobo,,,2013.0,2018.0,658.0,722.0,653.0,5.0,0.992401
+link_rate,,,,,,,,,,,,08,Cojedes,,,2013.0,2018.0,248.0,256.0,239.0,9.0,0.96371
+link_rate,,,,,,,,,,,,09,Falcon,,,2013.0,2018.0,691.0,727.0,673.0,18.0,0.973951
+link_rate,,,,,,,,,,,,10,Guarico,,,2013.0,2018.0,431.0,463.0,412.0,19.0,0.955916
+link_rate,,,,,,,,,,,,11,Lara,,,2013.0,2018.0,990.0,1039.0,950.0,40.0,0.959596
+link_rate,,,,,,,,,,,,12,Merida,,,2013.0,2018.0,514.0,541.0,511.0,3.0,0.994163
+link_rate,,,,,,,,,,,,13,Miranda,,,2013.0,2018.0,1040.0,1130.0,1026.0,14.0,0.986538
+link_rate,,,,,,,,,,,,14,Monagas,,,2013.0,2018.0,469.0,522.0,425.0,44.0,0.906183
+link_rate,,,,,,,,,,,,15,Nueva Esparta,,,2013.0,2018.0,230.0,245.0,226.0,4.0,0.982609
+link_rate,,,,,,,,,,,,16,Portuguesa,,,2013.0,2018.0,621.0,654.0,610.0,11.0,0.982287
+link_rate,,,,,,,,,,,,17,Sucre,,,2013.0,2018.0,646.0,672.0,633.0,13.0,0.979876
+link_rate,,,,,,,,,,,,18,Tachira,,,2013.0,2018.0,677.0,687.0,666.0,11.0,0.983752
+link_rate,,,,,,,,,,,,19,Trujillo,,,2013.0,2018.0,634.0,638.0,630.0,4.0,0.993691
+link_rate,,,,,,,,,,,,20,Yaracuy,,,2013.0,2018.0,462.0,483.0,456.0,6.0,0.987013
+link_rate,,,,,,,,,,,,21,Zulia,,,2013.0,2018.0,1215.0,1342.0,1178.0,37.0,0.969547
+link_rate,,,,,,,,,,,,22,Amazonas,,,2013.0,2018.0,126.0,142.0,119.0,7.0,0.944444
+link_rate,,,,,,,,,,,,23,Delta Amacuro,,,2013.0,2018.0,178.0,163.0,156.0,22.0,0.876404
+link_rate,,,,,,,,,,,,24,La Guaira,,,2013.0,2018.0,198.0,202.0,198.0,0.0,1.0
+link_rate,,,,,,,,,,,,01,Distrito Capital,,,2018.0,2024.0,891.0,602.0,517.0,374.0,0.580247
+link_rate,,,,,,,,,,,,02,Anzoategui,,,2018.0,2024.0,651.0,573.0,519.0,132.0,0.797235
+link_rate,,,,,,,,,,,,03,Apure,,,2018.0,2024.0,342.0,312.0,283.0,59.0,0.827485
+link_rate,,,,,,,,,,,,04,Aragua,,,2018.0,2024.0,630.0,599.0,550.0,80.0,0.873016
+link_rate,,,,,,,,,,,,05,Barinas,,,2018.0,2024.0,550.0,582.0,459.0,91.0,0.834545
+link_rate,,,,,,,,,,,,06,Bolivar,,,2018.0,2024.0,708.0,514.0,458.0,250.0,0.646893
+link_rate,,,,,,,,,,,,07,Carabobo,,,2018.0,2024.0,722.0,475.0,452.0,270.0,0.626039
+link_rate,,,,,,,,,,,,08,Cojedes,,,2018.0,2024.0,256.0,222.0,184.0,72.0,0.71875
+link_rate,,,,,,,,,,,,09,Falcon,,,2018.0,2024.0,727.0,615.0,592.0,135.0,0.814305
+link_rate,,,,,,,,,,,,10,Guarico,,,2018.0,2024.0,463.0,445.0,391.0,72.0,0.844492
+link_rate,,,,,,,,,,,,11,Lara,,,2018.0,2024.0,1039.0,681.0,611.0,428.0,0.588065
+link_rate,,,,,,,,,,,,12,Merida,,,2018.0,2024.0,541.0,505.0,466.0,75.0,0.861368
+link_rate,,,,,,,,,,,,13,Miranda,,,2018.0,2024.0,1130.0,842.0,727.0,403.0,0.643363
+link_rate,,,,,,,,,,,,14,Monagas,,,2018.0,2024.0,522.0,414.0,376.0,146.0,0.720307
+link_rate,,,,,,,,,,,,15,Nueva Esparta,,,2018.0,2024.0,245.0,262.0,211.0,34.0,0.861224
+link_rate,,,,,,,,,,,,16,Portuguesa,,,2018.0,2024.0,654.0,587.0,550.0,104.0,0.840979
+link_rate,,,,,,,,,,,,17,Sucre,,,2018.0,2024.0,672.0,618.0,587.0,85.0,0.873512
+link_rate,,,,,,,,,,,,18,Tachira,,,2018.0,2024.0,687.0,667.0,608.0,79.0,0.885007
+link_rate,,,,,,,,,,,,19,Trujillo,,,2018.0,2024.0,638.0,591.0,560.0,78.0,0.877743
+link_rate,,,,,,,,,,,,20,Yaracuy,,,2018.0,2024.0,483.0,443.0,413.0,70.0,0.855072
+link_rate,,,,,,,,,,,,21,Zulia,,,2018.0,2024.0,1342.0,1024.0,943.0,399.0,0.702683
+link_rate,,,,,,,,,,,,22,Amazonas,,,2018.0,2024.0,142.0,64.0,61.0,81.0,0.429577
+link_rate,,,,,,,,,,,,23,Delta Amacuro,,,2018.0,2024.0,163.0,123.0,97.0,66.0,0.595092
+link_rate,,,,,,,,,,,,24,La Guaira,,,2018.0,2024.0,202.0,165.0,160.0,42.0,0.792079

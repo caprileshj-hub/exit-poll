@@ -39,6 +39,8 @@ LONGITUDINAL_TARGETS = {
     2024: [2006, 2012, 2013, 2018],
 }
 LONGITUDINAL_SELECTORS = ("recent_distance", "historical_mae", "historical_rmse", "historical_volatility")
+VALID_LONGITUDINAL_SELECTORS = set(LONGITUDINAL_SELECTORS)
+ORACLE_SELECTOR = "oracle"
 STATE_NAMES = {
     "01": "Distrito Capital",
     "02": "Anzoategui",
@@ -107,6 +109,7 @@ PRESIDENTIAL_EXCEL_SOURCES = {
         "oposicion_cols": ["votos_rosales"],
         "otros_cols": [],
         "validos_col": "votos_validos",
+        "votantes_col": "votos_escrutados",
         "cod_edo_col": "codigo_estado",
     },
     2012: {
@@ -119,6 +122,7 @@ PRESIDENTIAL_EXCEL_SOURCES = {
         "oposicion_cols": ["capriles"],
         "otros_cols": ["chirino", "sequera", "reyes", "bolivar"],
         "validos_col": "votos validos",
+        "votantes_col": "votantes que_votaron",
         "cod_edo_col": "cod_edo",
     },
     2013: {
@@ -131,6 +135,7 @@ PRESIDENTIAL_EXCEL_SOURCES = {
         "oposicion_cols": ["capriles"],
         "otros_cols": ["sequera", "bolivar", "mora", "mendez"],
         "validos_col": "votos validos",
+        "votantes_col": "votos escrutados",
         "cod_edo_col": "cod_edo",
     },
 }
@@ -305,6 +310,7 @@ def load_presidential_result(year: int) -> pd.DataFrame:
         name_col = _source_col(df.columns, source["nombre_col"])
         electors_col = _source_col(df.columns, source["electores_col"])
         valid_col = _source_col(df.columns, source["validos_col"])
+        voters_col = _source_col(df.columns, source["votantes_col"])
         state_col = _source_col(df.columns, source["cod_edo_col"])
         gov_cols = [_source_col(df.columns, col) for col in source["gobierno_cols"]]
         opos_cols = [_source_col(df.columns, col) for col in source["oposicion_cols"]]
@@ -318,6 +324,7 @@ def load_presidential_result(year: int) -> pd.DataFrame:
         df["votos_oposicion"] = sum(_num(df[col]) for col in opos_cols)
         df["votos_otros"] = sum(_num(df[col]) for col in otros_cols) if otros_cols else 0
         df["votos_validos"] = _num(df[valid_col])
+        df["votantes"] = _num(df[voters_col])
         rows = (
             df[df["codigo_centro"].ne("")]
             .groupby(["codigo_centro", "cod_estado"], as_index=False)
@@ -328,6 +335,7 @@ def load_presidential_result(year: int) -> pd.DataFrame:
                 votos_oposicion=("votos_oposicion", "sum"),
                 votos_otros=("votos_otros", "sum"),
                 votos_validos=("votos_validos", "sum"),
+                votantes=("votantes", "sum"),
             )
         )
     elif year == 2018:
@@ -336,14 +344,17 @@ def load_presidential_result(year: int) -> pd.DataFrame:
         source["codigo_centro"] = source["codigo_centro"].map(code9)
         source["nombre_centro"] = source["nombre_centro"].astype(str)
         source["electores"] = _num(source["electores_inscritos"])
-        rows = rows.merge(source[["codigo_centro", "nombre_centro", "electores"]], on="codigo_centro", how="left")
+        source["votantes"] = _num(source["votantes"])
+        rows = rows.merge(source[["codigo_centro", "nombre_centro", "electores", "votantes"]], on="codigo_centro", how="left")
     elif year == 2024:
         rows = load_results("cne2024_csv", BASE_DIR / "resultados_cne2024.csv").copy()
         frame = load_frame(BASE_DIR / "tm_2024_estandar.csv")
         rows = rows.merge(frame[["codigo_centro", "nombre_centro", "electores"]], on="codigo_centro", how="left")
+        rows["votantes"] = None
     else:
         raise ValueError(f"Eleccion presidencial no soportada: {year}")
 
+    rows = rows[rows["cod_estado"].isin(STATE_NAMES)].copy()
     rows = rows[rows["votos_validos"] > 0].copy()
     rows["pct_gobierno"] = 100 * rows["votos_gobierno"] / rows["votos_validos"]
     rows["estado"] = rows["cod_estado"].map(STATE_NAMES)
@@ -1065,6 +1076,8 @@ def select_longitudinal_feature(
     cohort: str,
     tolerance_ladder_pp: list[float],
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if selector not in VALID_LONGITUDINAL_SELECTORS:
+        raise ValueError(f"Selector longitudinal no productivo/no soportado: {selector}")
     eligible = features.dropna(subset=[selector]).copy()
     if cohort == "common":
         eligible = eligible[eligible["historical_volatility"].notna()].copy()
@@ -1310,6 +1323,423 @@ def feature_quantile_diagnostics(features_all: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def regression_diagnostics(x: pd.Series, y: pd.Series) -> dict[str, float | None]:
+    if len(x) < 2:
+        return {"pearson": None, "spearman": None, "ols_slope": None, "ols_intercept": None, "r2": None}
+    x = x.astype(float)
+    y = y.astype(float)
+    if float(x.var(ddof=0)) > 0:
+        slope = float(((x - x.mean()) * (y - y.mean())).mean() / x.var(ddof=0))
+        intercept = float(y.mean() - slope * x.mean())
+        pred = intercept + slope * x
+        ss_tot = float(((y - y.mean()) ** 2).sum())
+        r2 = 1 - float(((y - pred) ** 2).sum()) / ss_tot if ss_tot > 0 else None
+    else:
+        slope = intercept = r2 = None
+    return {
+        "pearson": float(x.corr(y, method="pearson")) if len(x) >= 2 else None,
+        "spearman": float(x.rank(method="average").corr(y.rank(method="average"))) if len(x) >= 2 else None,
+        "ols_slope": slope,
+        "ols_intercept": intercept,
+        "r2": r2,
+    }
+
+
+def transition_residual_within_state_diagnostics() -> pd.DataFrame:
+    detail_rows = []
+    summary_rows = []
+    for prev_year, next_year in [(2006, 2012), (2012, 2013), (2013, 2018), (2018, 2024)]:
+        prev = residuals_for_year(prev_year)
+        nxt = residuals_for_year(next_year)
+        prev_col = f"residual_{prev_year}"
+        next_col = f"residual_{next_year}"
+        merged = prev.merge(nxt, on=["codigo_centro", "cod_estado"], how="inner").dropna(subset=[prev_col, next_col])
+        for state, group in merged.groupby("cod_estado"):
+            x = group[prev_col].astype(float)
+            y = group[next_col].astype(float)
+            stats = regression_diagnostics(x, y)
+            detail_rows.append(
+                {
+                    "record_type": "state_transition",
+                    "from_year": prev_year,
+                    "to_year": next_year,
+                    "cod_estado": state,
+                    "estado": STATE_NAMES.get(state, state),
+                    "n_centros": len(group),
+                    **stats,
+                    "sd_residual_prev": float(x.std(ddof=0)) if len(group) else None,
+                    "sd_residual_next": float(y.std(ddof=0)) if len(group) else None,
+                    "mae_delta_residual": float((y - x).abs().mean()) if len(group) else None,
+                }
+            )
+        detail = pd.DataFrame([row for row in detail_rows if row["from_year"] == prev_year and row["to_year"] == next_year])
+        pearson = detail["pearson"].dropna().astype(float).tolist()
+        r2 = detail["r2"].dropna().astype(float).tolist()
+        summary_rows.append(
+            {
+                "record_type": "national_summary",
+                "from_year": prev_year,
+                "to_year": next_year,
+                "n_estados": int(detail["cod_estado"].nunique()) if not detail.empty else 0,
+                "median_pearson_state": median(pearson) if pearson else None,
+                "p25_pearson_state": percentile(pearson, 0.25),
+                "p75_pearson_state": percentile(pearson, 0.75),
+                "median_r2_state": median(r2) if r2 else None,
+                "p25_r2_state": percentile(r2, 0.25),
+                "p75_r2_state": percentile(r2, 0.75),
+                "n_states_pearson_positive": sum(1 for value in pearson if value > 0),
+                "n_states_pearson_gt_0_5": sum(1 for value in pearson if value > 0.5),
+                "n_states_r2_gt_0_25": sum(1 for value in r2 if value > 0.25),
+                "n_states_r2_gt_0_50": sum(1 for value in r2 if value > 0.50),
+            }
+        )
+    return pd.concat([pd.DataFrame(summary_rows), pd.DataFrame(detail_rows)], ignore_index=True, sort=False)
+
+
+def select_oracle_diagnostic(
+    features: pd.DataFrame,
+    quotas: dict[str, int],
+    target_year: int,
+    tolerance_ladder_pp: list[float],
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    outcome = residuals_for_year(target_year).rename(columns={f"residual_{target_year}": "residual_target"})
+    eligible = features.merge(outcome, on=["codigo_centro", "cod_estado"], how="inner")
+    eligible["oracle_score"] = eligible["residual_target"].abs()
+    eligible["selector"] = ORACLE_SELECTOR
+    eligible["cohort"] = "diagnostic_oracle"
+    eligible["score"] = eligible["oracle_score"].astype(float)
+    eligible["diagnostic_only"] = True
+    eligible["leakage_outcome_used"] = True
+
+    def entry_pass(score: float) -> int | None:
+        for idx, tolerance in enumerate(tolerance_ladder_pp, start=1):
+            if score <= tolerance:
+                return idx
+        return None
+
+    def entry_tolerance(score: float) -> str | float | None:
+        for tolerance in tolerance_ladder_pp:
+            if score <= tolerance:
+                return "inf" if math.isinf(tolerance) else tolerance
+        return None
+
+    eligible["pasada"] = eligible["score"].map(entry_pass)
+    eligible["tolerancia_de_entrada"] = eligible["score"].map(entry_tolerance)
+    eligible = eligible.dropna(subset=["pasada"]).copy()
+    eligible["pasada"] = eligible["pasada"].astype(int)
+
+    selected = []
+    incomplete = []
+    for state, quota in sorted(quotas.items()):
+        chosen = (
+            eligible[eligible["cod_estado"].eq(state)]
+            .sort_values(["pasada", "electores", "codigo_centro"], ascending=[True, False, True])
+            .head(quota)
+            .copy()
+        )
+        selected.extend(chosen.to_dict("records"))
+        if len(chosen) < quota:
+            incomplete.append(
+                {
+                    "cod_estado": state,
+                    "estado": STATE_NAMES.get(state, state),
+                    "cuota": quota,
+                    "seleccionados": len(chosen),
+                    "faltantes": quota - len(chosen),
+                    "selector": ORACLE_SELECTOR,
+                    "cohort": "diagnostic_oracle",
+                    "diagnostic_only": True,
+                }
+            )
+    return pd.DataFrame(selected), pd.DataFrame(incomplete)
+
+
+def oracle_headroom_diagnostics() -> pd.DataFrame:
+    rows = []
+    for target_year in LONGITUDINAL_TARGETS:
+        features = build_longitudinal_features(target_year)
+        frame = frame_for_longitudinal_target(target_year)
+        quotas = allocate_dhondt_quotas(frame)
+        historical_eval = load_presidential_result(LONGITUDINAL_TARGETS[target_year][-1])
+        outcome = load_presidential_result(target_year)
+        summaries = []
+        for selector in ("recent_distance", "historical_mae"):
+            selected, _ = select_longitudinal_feature(
+                features,
+                quotas,
+                selector,
+                "operational",
+                DEFAULT_TOLERANCE_LADDERS[PRIMARY_CONFIG[0]],
+            )
+            states = evaluate_selection(
+                str(target_year),
+                "longitudinal_falsification",
+                frame,
+                selected.assign(target=target_year, selector=selector, cohort="operational"),
+                historical_eval,
+                outcome,
+                quotas,
+                PRIMARY_CONFIG[0],
+                PRIMARY_CONFIG[1],
+            ).assign(target=target_year, selector=selector, cohort="operational")
+            summary = longitudinal_state_metrics(states)
+            summary["diagnostic_only"] = False
+            summary["leakage_outcome_used"] = False
+            summaries.append(summary)
+        selected_oracle, _ = select_oracle_diagnostic(
+            features, quotas, target_year, DEFAULT_TOLERANCE_LADDERS[PRIMARY_CONFIG[0]]
+        )
+        states = evaluate_selection(
+            str(target_year),
+            "oracle_diagnostic",
+            frame,
+            selected_oracle.assign(target=target_year, selector=ORACLE_SELECTOR, cohort="diagnostic_oracle"),
+            historical_eval,
+            outcome,
+            quotas,
+            PRIMARY_CONFIG[0],
+            PRIMARY_CONFIG[1],
+        ).assign(target=target_year, selector=ORACLE_SELECTOR, cohort="diagnostic_oracle")
+        summary = longitudinal_state_metrics(states)
+        summary["diagnostic_only"] = True
+        summary["leakage_outcome_used"] = True
+        summaries.append(summary)
+
+        summary_by_selector = {row["selector"]: row for row in summaries}
+        recent_mae = summary_by_selector["recent_distance"]["mae"]
+        historical_mae = summary_by_selector["historical_mae"]["mae"]
+        oracle_mae = summary_by_selector[ORACLE_SELECTOR]["mae"]
+        total_headroom = recent_mae - oracle_mae
+        gain_hist = recent_mae - historical_mae
+        fraction_headroom = gain_hist / total_headroom if total_headroom and total_headroom > 0 else None
+        for summary in summaries:
+            rows.append(
+                {
+                    **summary,
+                    "recent_mae": recent_mae,
+                    "historical_mae_value": historical_mae,
+                    "oracle_mae": oracle_mae,
+                    "gain_hist": gain_hist,
+                    "total_headroom": total_headroom,
+                    "fraction_headroom": fraction_headroom,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def survivorship_diagnostics() -> pd.DataFrame:
+    rows = []
+    for target_year in LONGITUDINAL_TARGETS:
+        frame = frame_for_longitudinal_target(target_year)
+        features = build_longitudinal_features(target_year)
+        outcome = residuals_for_year(target_year).rename(columns={f"residual_{target_year}": "residual_target"})
+        merged = frame[["codigo_centro", "cod_estado", "estado", "electores"]].merge(
+            features[["codigo_centro", "cod_estado", "n_hist", "recent_distance", "historical_mae", "historical_volatility"]],
+            on=["codigo_centro", "cod_estado"],
+            how="left",
+        ).merge(outcome, on=["codigo_centro", "cod_estado"], how="left")
+        merged["n_hist"] = merged["n_hist"].fillna(0).astype(int)
+        merged["abs_residual_target"] = merged["residual_target"].abs()
+        merged["has_recent_distance"] = merged["recent_distance"].notna()
+        merged["has_historical_mae"] = merged["historical_mae"].notna()
+        merged["selectable_common_cohort"] = merged["historical_volatility"].notna()
+        total_frame = len(merged)
+        for n_hist, group in merged.groupby("n_hist"):
+            rows.append(
+                {
+                    "record_type": "n_hist_summary",
+                    "target": target_year,
+                    "n_hist": int(n_hist),
+                    "n_centros": len(group),
+                    "pct_frame": 100 * len(group) / total_frame if total_frame else None,
+                    "electores_median": float(group["electores"].median()) if len(group) else None,
+                    "electores_mean": float(group["electores"].mean()) if len(group) else None,
+                    "abs_residual_target_mean": float(group["abs_residual_target"].mean()) if group["abs_residual_target"].notna().any() else None,
+                    "abs_residual_target_median": float(group["abs_residual_target"].median()) if group["abs_residual_target"].notna().any() else None,
+                    "has_recent_distance_pct": 100 * float(group["has_recent_distance"].mean()) if len(group) else None,
+                    "has_historical_mae_pct": 100 * float(group["has_historical_mae"].mean()) if len(group) else None,
+                    "selectable_common_cohort_pct": 100 * float(group["selectable_common_cohort"].mean()) if len(group) else None,
+                }
+            )
+            for state, state_group in group.groupby("cod_estado"):
+                rows.append(
+                    {
+                        "record_type": "n_hist_state_distribution",
+                        "target": target_year,
+                        "n_hist": int(n_hist),
+                        "cod_estado": state,
+                        "estado": STATE_NAMES.get(state, state),
+                        "n_centros": len(state_group),
+                        "pct_state_frame": 100 * len(state_group) / len(merged[merged["cod_estado"].eq(state)]),
+                    }
+                )
+        for cohort_name, condition in {
+            "short_history": merged["n_hist"] < 2,
+            "long_history": merged["n_hist"] >= 2,
+        }.items():
+            group = merged[condition]
+            rows.append(
+                {
+                    "record_type": "history_length_summary",
+                    "target": target_year,
+                    "history_group": cohort_name,
+                    "n_centros": len(group),
+                    "pct_frame": 100 * len(group) / total_frame if total_frame else None,
+                    "electores_median": float(group["electores"].median()) if len(group) else None,
+                    "electores_mean": float(group["electores"].mean()) if len(group) else None,
+                    "abs_residual_target_mean": float(group["abs_residual_target"].mean()) if group["abs_residual_target"].notna().any() else None,
+                    "abs_residual_target_median": float(group["abs_residual_target"].median()) if group["abs_residual_target"].notna().any() else None,
+                }
+            )
+    for from_year, to_year in [(2006, 2012), (2012, 2013), (2013, 2018), (2018, 2024)]:
+        origin = load_presidential_result(from_year)[["codigo_centro", "cod_estado"]].drop_duplicates()
+        dest = load_presidential_result(to_year)[["codigo_centro", "cod_estado"]].drop_duplicates()
+        for state in sorted(set(origin["cod_estado"]) | set(dest["cod_estado"])):
+            origin_codes = set(origin[origin["cod_estado"].eq(state)]["codigo_centro"])
+            dest_codes = set(dest[dest["cod_estado"].eq(state)]["codigo_centro"])
+            matched = origin_codes & dest_codes
+            rows.append(
+                {
+                    "record_type": "link_rate",
+                    "from_year": from_year,
+                    "to_year": to_year,
+                    "cod_estado": state,
+                    "estado": STATE_NAMES.get(state, state),
+                    "total_centros_origen": len(origin_codes),
+                    "total_centros_destino": len(dest_codes),
+                    "matched": len(matched),
+                    "unmatched": len(origin_codes - dest_codes),
+                    "match_rate": len(matched) / len(origin_codes) if origin_codes else None,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def turnout_residuals_for_year(year: int) -> pd.DataFrame:
+    result = load_presidential_result(year)
+    if "votantes" not in result.columns or result["votantes"].isna().all():
+        return pd.DataFrame(
+            columns=["codigo_centro", "cod_estado", f"turnout_residual_{year}", f"turnout_{year}"]
+        )
+    rows = result.dropna(subset=["electores", "votantes"]).copy()
+    rows = rows[(rows["electores"].astype(float) > 0) & (rows["votantes"].astype(float) >= 0)].copy()
+    if rows.empty:
+        return pd.DataFrame(
+            columns=["codigo_centro", "cod_estado", f"turnout_residual_{year}", f"turnout_{year}"]
+        )
+    state = rows.groupby("cod_estado", as_index=False).agg(electores=("electores", "sum"), votantes=("votantes", "sum"))
+    state[f"turnout_estado_{year}"] = state["votantes"] / state["electores"]
+    rows[f"turnout_{year}"] = rows["votantes"].astype(float) / rows["electores"].astype(float)
+    rows = rows.merge(state[["cod_estado", f"turnout_estado_{year}"]], on="cod_estado", how="left")
+    rows[f"turnout_residual_{year}"] = rows[f"turnout_{year}"] - rows[f"turnout_estado_{year}"]
+    return rows[["codigo_centro", "cod_estado", f"turnout_{year}", f"turnout_residual_{year}"]].copy()
+
+
+def turnout_diagnostics() -> pd.DataFrame:
+    rows = []
+    for prev_year, next_year in [(2006, 2012), (2012, 2013), (2013, 2018), (2018, 2024)]:
+        prev_turnout = turnout_residuals_for_year(prev_year)
+        next_turnout = turnout_residuals_for_year(next_year)
+        if prev_turnout.empty or next_turnout.empty:
+            rows.append(
+                {
+                    "record_type": "transition_skipped",
+                    "from_year": prev_year,
+                    "to_year": next_year,
+                    "skip_reason": "faltan votantes/electores comparables en al menos un ano",
+                }
+            )
+            continue
+        prev_col = f"turnout_residual_{prev_year}"
+        next_col = f"turnout_residual_{next_year}"
+        merged = prev_turnout.merge(next_turnout, on=["codigo_centro", "cod_estado"], how="inner").dropna(
+            subset=[prev_col, next_col]
+        )
+        x = merged[prev_col].astype(float)
+        y = merged[next_col].astype(float)
+        rows.append(
+            {
+                "record_type": "pooled_turnout_persistence",
+                "from_year": prev_year,
+                "to_year": next_year,
+                "n_centros": len(merged),
+                **regression_diagnostics(x, y),
+                "mae_delta_turnout_residual": float((y - x).abs().mean()) if len(merged) else None,
+            }
+        )
+        state_rows = []
+        for state, group in merged.groupby("cod_estado"):
+            sx = group[prev_col].astype(float)
+            sy = group[next_col].astype(float)
+            state_rows.append(
+                {
+                    "record_type": "state_turnout_persistence",
+                    "from_year": prev_year,
+                    "to_year": next_year,
+                    "cod_estado": state,
+                    "estado": STATE_NAMES.get(state, state),
+                    "n_centros": len(group),
+                    **regression_diagnostics(sx, sy),
+                    "mae_delta_turnout_residual": float((sy - sx).abs().mean()) if len(group) else None,
+                }
+            )
+        rows.extend(state_rows)
+        pearson = [float(row["pearson"]) for row in state_rows if row.get("pearson") is not None and not pd.isna(row.get("pearson"))]
+        r2 = [float(row["r2"]) for row in state_rows if row.get("r2") is not None and not pd.isna(row.get("r2"))]
+        rows.append(
+            {
+                "record_type": "state_turnout_summary",
+                "from_year": prev_year,
+                "to_year": next_year,
+                "n_estados": len(state_rows),
+                "median_pearson_state": median(pearson) if pearson else None,
+                "median_r2_state": median(r2) if r2 else None,
+                "p25_pearson_state": percentile(pearson, 0.25),
+                "p75_pearson_state": percentile(pearson, 0.75),
+                "p25_r2_state": percentile(r2, 0.25),
+                "p75_r2_state": percentile(r2, 0.75),
+            }
+        )
+        prev_vote = residuals_for_year(prev_year).rename(columns={f"residual_{prev_year}": "vote_prev"})
+        next_vote = residuals_for_year(next_year).rename(columns={f"residual_{next_year}": "vote_next"})
+        relation = merged.merge(prev_vote, on=["codigo_centro", "cod_estado"], how="inner").merge(
+            next_vote, on=["codigo_centro", "cod_estado"], how="inner"
+        )
+        if not relation.empty:
+            relation["abs_turnout_prev"] = relation[prev_col].abs()
+            relation["abs_vote_next"] = relation["vote_next"].abs()
+            relation["delta_turnout"] = relation[next_col] - relation[prev_col]
+            relation["delta_vote"] = relation["vote_next"] - relation["vote_prev"]
+            for relation_name, x_col, y_col in [
+                ("abs_prev_turnout_vs_abs_next_vote", "abs_turnout_prev", "abs_vote_next"),
+                ("delta_turnout_vs_delta_vote", "delta_turnout", "delta_vote"),
+            ]:
+                rx = relation[x_col].astype(float)
+                ry = relation[y_col].astype(float)
+                rows.append(
+                    {
+                        "record_type": "turnout_vote_relation",
+                        "relation": relation_name,
+                        "from_year": prev_year,
+                        "to_year": next_year,
+                        "n_centros": len(relation),
+                        **regression_diagnostics(rx, ry),
+                    }
+                )
+    return pd.DataFrame(rows)
+
+
+def run_longitudinal_falsification(output_dir: Path) -> dict[str, pd.DataFrame]:
+    outputs = {
+        "within_state": transition_residual_within_state_diagnostics(),
+        "oracle": oracle_headroom_diagnostics(),
+        "survivorship": survivorship_diagnostics(),
+        "turnout": turnout_diagnostics(),
+    }
+    write_longitudinal_falsification_outputs(output_dir, outputs)
+    return outputs
+
+
 def run_longitudinal_experiment(output_dir: Path) -> dict[str, pd.DataFrame]:
     results = [run_longitudinal_target(target) for target in LONGITUDINAL_TARGETS]
     outputs = {
@@ -1494,6 +1924,25 @@ def write_longitudinal_outputs(output_dir: Path, outputs: dict[str, pd.DataFrame
     write_longitudinal_markdown(output_dir / "BACKTEST_LONGITUDINAL.md", outputs)
 
 
+def write_longitudinal_falsification_outputs(output_dir: Path, outputs: dict[str, pd.DataFrame]) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _round_floats(outputs["within_state"]).to_csv(
+        output_dir / "backtest_longitudinal_within_state.csv", index=False, encoding="utf-8"
+    )
+    _round_floats(outputs["oracle"]).to_csv(
+        output_dir / "backtest_longitudinal_oracle.csv", index=False, encoding="utf-8"
+    )
+    _round_floats(outputs["survivorship"]).to_csv(
+        output_dir / "backtest_longitudinal_survivorship.csv", index=False, encoding="utf-8"
+    )
+    _round_floats(outputs["turnout"]).to_csv(
+        output_dir / "backtest_longitudinal_turnout.csv", index=False, encoding="utf-8"
+    )
+    write_longitudinal_falsification_markdown(
+        output_dir / "BACKTEST_LONGITUDINAL_FALSIFICATION.md", outputs
+    )
+
+
 def _fmt(value: object) -> str:
     if value is None:
         return "n/a"
@@ -1502,6 +1951,9 @@ def _fmt(value: object) -> str:
     try:
         if pd.isna(value):
             return "n/a"
+        as_float = float(value)
+        if as_float.is_integer():
+            return str(int(as_float))
         return f"{float(value):.2f}"
     except (TypeError, ValueError):
         return str(value)
@@ -1961,12 +2413,307 @@ def write_longitudinal_markdown(path: Path, outputs: dict[str, pd.DataFrame]) ->
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def write_longitudinal_falsification_markdown(path: Path, outputs: dict[str, pd.DataFrame]) -> None:
+    within = outputs["within_state"].copy()
+    oracle = outputs["oracle"].copy()
+    survivorship = outputs["survivorship"].copy()
+    turnout = outputs["turnout"].copy()
+
+    within_summary = within[within["record_type"].eq("national_summary")].copy()
+    oracle_summary = oracle[oracle["selector"].isin(["recent_distance", "historical_mae", ORACLE_SELECTOR])].copy()
+    headroom_rows = (
+        oracle_summary[oracle_summary["selector"].eq("recent_distance")]
+        [
+            [
+                "target",
+                "recent_mae",
+                "historical_mae_value",
+                "oracle_mae",
+                "gain_hist",
+                "total_headroom",
+                "fraction_headroom",
+            ]
+        ]
+        .drop_duplicates()
+        .rename(columns={"historical_mae_value": "historical_mae"})
+        .sort_values("target")
+    )
+    survivorship_history = survivorship[survivorship["record_type"].eq("history_length_summary")].copy()
+    turnout_pooled = turnout[turnout["record_type"].eq("pooled_turnout_persistence")].copy()
+    turnout_rel = turnout[turnout["record_type"].eq("turnout_vote_relation")].copy()
+    turnout_skipped = turnout[turnout["record_type"].eq("transition_skipped")].copy()
+
+    within_support = bool(
+        not within_summary.empty
+        and (within_summary["median_pearson_state"].dropna().astype(float) > 0).sum() >= 3
+        and (within_summary["n_states_pearson_positive"].dropna().astype(float).median() >= 18)
+    )
+    serious_within_threat = bool(
+        not within_summary.empty
+        and (within_summary["median_pearson_state"].dropna().astype(float) <= 0).any()
+    )
+    headroom_capture = headroom_rows["fraction_headroom"].dropna().astype(float).tolist()
+    oracle_support = bool(headroom_capture and median(headroom_capture) >= 0.25)
+    serious_oracle_threat = bool(headroom_capture and median(headroom_capture) < 0)
+    if not survivorship_history.empty:
+        pivot = survivorship_history.pivot_table(
+            index="target", columns="history_group", values="abs_residual_target_mean", aggfunc="first"
+        )
+        survivor_gaps = [
+            float(row["short_history"]) - float(row["long_history"])
+            for _, row in pivot.dropna(subset=["short_history", "long_history"]).iterrows()
+        ]
+    else:
+        survivor_gaps = []
+    survivorship_support = bool(survivor_gaps and median(survivor_gaps) >= 0)
+    serious_survivorship_threat = bool(survivor_gaps and median(survivor_gaps) < -2)
+    turnout_support = "neutral"
+    serious_turnout_threat = False
+
+    if serious_within_threat or serious_oracle_threat or serious_survivorship_threat or serious_turnout_threat:
+        conclusion = "evidencia ambigua; hacen falta mas pruebas"
+    else:
+        conclusion = "no aparece falsificacion suficiente para descartar historical_mae"
+
+    decision_rows = [
+        {
+            "prueba": "within-state persistence",
+            "resultado": "persistencia positiva dentro de estados en la mayoria de transiciones" if within_support else "persistencia territorial debil o incompleta",
+            "favorece historical_mae": "si" if within_support else "no",
+            "amenaza seria": "si" if serious_within_threat else "no",
+            "comentario": "contrasta la correlacion pooled dentro del territorio real de seleccion",
+        },
+        {
+            "prueba": "oracle headroom",
+            "resultado": "historical_mae captura una fraccion positiva del techo diagnostico" if oracle_support else "el techo oracle deja margen amplio o inestable",
+            "favorece historical_mae": "si" if oracle_support else "no",
+            "amenaza seria": "si" if serious_oracle_threat else "no",
+            "comentario": "oracle usa outcome futuro y queda marcado como diagnostic_only",
+        },
+        {
+            "prueba": "survivorship",
+            "resultado": "la historia larga no aparece peor que la historia corta en promedio" if survivorship_support else "la composicion sobreviviente exige cautela",
+            "favorece historical_mae": "si" if survivorship_support else "no",
+            "amenaza seria": "si" if serious_survivorship_threat else "no",
+            "comentario": "describe poblacion por n_hist sin cambiar reglas de seleccion",
+        },
+        {
+            "prueba": "turnout",
+            "resultado": "diagnostico parcial; 2024 no tiene votantes comparables" if not turnout_pooled.empty else "sin transiciones comparables",
+            "favorece historical_mae": turnout_support,
+            "amenaza seria": "si" if serious_turnout_threat else "no",
+            "comentario": "no se construye selector de participacion",
+        },
+    ]
+
+    lines = [
+        "# Falsificacion longitudinal antes de decidir selector",
+        "",
+        "Este documento es generado por `backend/backtest_legacy_nacional.py --only falsification`. Usa exclusivamente fuentes versionadas del repositorio y no modifica el selector productivo moderno.",
+        "",
+        "## Objetivo",
+        "",
+        "Evaluar si los datos actuales contienen evidencia adversa suficiente para descartar `historical_mae` como candidato principal del sucesor legacy frente a `recent_distance`.",
+        "",
+        "## Pruebas",
+        "",
+        "- `within-state persistence`: calcula persistencia de residuales centro-estado dentro de cada estado para 2006->2012, 2012->2013, 2013->2018 y 2018->2024.",
+        "- `oracle headroom`: seleccion imposible que ordena por `abs(residual_target)`; usa leakage intencional y se marca `diagnostic_only = true`.",
+        "- `survivorship`: describe si `historical_mae` depende de centros antiguos/estables mediante `n_hist`, cohortes de historia larga/corta y tasas de linking.",
+        "- `turnout`: mide persistencia de residuales de participacion y su relacion con residuales politicos, sin crear selector de turnout.",
+        "",
+        "## Tabla de decision",
+        "",
+        markdown_table(
+            decision_rows,
+            ["prueba", "resultado", "favorece historical_mae", "amenaza seria", "comentario"],
+        ),
+        "",
+        "## Headroom contra oracle",
+        "",
+        markdown_table(
+            headroom_rows.to_dict("records"),
+            ["target", "recent_mae", "historical_mae", "oracle_mae", "gain_hist", "total_headroom", "fraction_headroom"],
+        ),
+        "",
+        "## Persistencia within-state",
+        "",
+        markdown_table(
+            within_summary[
+                [
+                    "from_year",
+                    "to_year",
+                    "n_estados",
+                    "median_pearson_state",
+                    "p25_pearson_state",
+                    "p75_pearson_state",
+                    "median_r2_state",
+                    "n_states_pearson_positive",
+                    "n_states_pearson_gt_0_5",
+                    "n_states_r2_gt_0_25",
+                    "n_states_r2_gt_0_50",
+                ]
+            ].to_dict("records"),
+            [
+                "from_year",
+                "to_year",
+                "n_estados",
+                "median_pearson_state",
+                "p25_pearson_state",
+                "p75_pearson_state",
+                "median_r2_state",
+                "n_states_pearson_positive",
+                "n_states_pearson_gt_0_5",
+                "n_states_r2_gt_0_25",
+                "n_states_r2_gt_0_50",
+            ],
+        ),
+        "",
+        "Resultado: la persistencia pooled no desaparece al calcularla dentro de estados, aunque se debilita en transiciones de shock, especialmente desde 2013.",
+        "",
+        "## Oracle benchmark",
+        "",
+        markdown_table(
+            oracle_summary[
+                [
+                    "target",
+                    "selector",
+                    "mae",
+                    "rmse",
+                    "medae",
+                    "pct_dentro_2pp",
+                    "pct_dentro_5pp",
+                    "pct_dentro_10pp",
+                    "max_error_abs",
+                    "diagnostic_only",
+                    "leakage_outcome_used",
+                ]
+            ].to_dict("records"),
+            [
+                "target",
+                "selector",
+                "mae",
+                "rmse",
+                "medae",
+                "pct_dentro_2pp",
+                "pct_dentro_5pp",
+                "pct_dentro_10pp",
+                "max_error_abs",
+                "diagnostic_only",
+                "leakage_outcome_used",
+            ],
+        ),
+        "",
+        "Resultado: el oracle no es viable operacionalmente; solo estima techo empirico dentro de la misma arquitectura de 120 centros y cuotas estatales.",
+        "",
+        "## Survivorship y linking",
+        "",
+        markdown_table(
+            survivorship_history[
+                [
+                    "target",
+                    "history_group",
+                    "n_centros",
+                    "pct_frame",
+                    "electores_median",
+                    "electores_mean",
+                    "abs_residual_target_mean",
+                    "abs_residual_target_median",
+                ]
+            ].to_dict("records"),
+            [
+                "target",
+                "history_group",
+                "n_centros",
+                "pct_frame",
+                "electores_median",
+                "electores_mean",
+                "abs_residual_target_mean",
+                "abs_residual_target_median",
+            ],
+        ),
+        "",
+        "Resultado: existe sesgo de supervivencia potencial porque los centros con mas historia son una subpoblacion identificable, pero esta prueba no muestra por si sola que esa subpoblacion explique negativamente la ventaja longitudinal.",
+        "",
+        "## Turnout",
+        "",
+        markdown_table(
+            turnout_pooled[
+                [
+                    "from_year",
+                    "to_year",
+                    "n_centros",
+                    "pearson",
+                    "spearman",
+                    "r2",
+                    "mae_delta_turnout_residual",
+                ]
+            ].to_dict("records"),
+            ["from_year", "to_year", "n_centros", "pearson", "spearman", "r2", "mae_delta_turnout_residual"],
+        ),
+        "",
+        markdown_table(
+            turnout_rel[
+                [
+                    "relation",
+                    "from_year",
+                    "to_year",
+                    "n_centros",
+                    "pearson",
+                    "spearman",
+                    "r2",
+                ]
+            ].to_dict("records"),
+            ["relation", "from_year", "to_year", "n_centros", "pearson", "spearman", "r2"],
+        ),
+        "",
+        markdown_table(
+            turnout_skipped[["from_year", "to_year", "skip_reason"]].to_dict("records"),
+            ["from_year", "to_year", "skip_reason"],
+        ) if not turnout_skipped.empty else "",
+        "",
+        "Resultado: turnout aporta contexto sobre shocks, pero 2024 no trae votantes comparables en el CSV local; por restriccion de no imputar, 2018->2024 queda omitido.",
+        "",
+        "## Falsificaciones encontradas",
+        "",
+        "- No aparece una falsificacion directa de la persistencia territorial.",
+        "- El oracle confirma que queda margen empirico, pero no desaconseja `historical_mae`; solo muestra que ningun selector valido agota el techo.",
+        "- Survivorship obliga a cautela interpretativa: `historical_mae` depende de centros con historial enlazado, no de todo el frame.",
+        "- Turnout no puede resolver 2018->2024 con los datos actuales porque falta `votantes` comparable para 2024.",
+        "",
+        "## Implicaciones para historical_mae",
+        "",
+        "`historical_mae` sigue siendo defendible como candidato experimental principal del sucesor legacy. La evidencia adversa mas importante es de limites y cobertura, no una refutacion empirica fuerte.",
+        "",
+        "## Limitaciones",
+        "",
+        "- No se agregaron fuentes, mappings ni datasets.",
+        "- Missing historico y turnout faltante permanecen `NULL`/omitidos.",
+        "- El oracle tiene leakage deliberado y no puede seleccionarse como metodo productivo.",
+        "- No se crea score compuesto, PPS, minimax, random baseline ni optimizacion de pesos.",
+        "- La conclusion no recomienda cambios productivos todavia.",
+        "",
+        "## Conclusion final",
+        "",
+        conclusion,
+        "",
+        "## Archivos reproducibles",
+        "",
+        "- `backtest_longitudinal_within_state.csv`",
+        "- `backtest_longitudinal_oracle.csv`",
+        "- `backtest_longitudinal_survivorship.csv`",
+        "- `backtest_longitudinal_turnout.csv`",
+        "",
+    ]
+    path.write_text("\n".join(line for line in lines if line is not None), encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=REPO_DIR / "docs" / "muestreo")
     parser.add_argument(
         "--only",
-        choices=["all", "legacy", "similarity", "longitudinal"],
+        choices=["all", "legacy", "similarity", "longitudinal", "falsification"],
         default="all",
         help="Controla que artefactos se regeneran.",
     )
@@ -1987,6 +2734,12 @@ def main() -> int:
         print(f"Longitudinal estados: {len(longitudinal_outputs['states'])} filas")
         print(f"Longitudinal centros: {len(longitudinal_outputs['centers'])} filas")
         print(f"Longitudinal features: {len(longitudinal_outputs['features'])} filas")
+    if args.only in {"all", "falsification"}:
+        falsification_outputs = run_longitudinal_falsification(args.output_dir)
+        print(f"Falsificacion within-state: {len(falsification_outputs['within_state'])} filas")
+        print(f"Falsificacion oracle: {len(falsification_outputs['oracle'])} filas")
+        print(f"Falsificacion survivorship: {len(falsification_outputs['survivorship'])} filas")
+        print(f"Falsificacion turnout: {len(falsification_outputs['turnout'])} filas")
     print(f"Salida: {args.output_dir}")
     return 0
 

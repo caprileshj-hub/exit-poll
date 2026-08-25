@@ -3,10 +3,12 @@ from inspect import signature
 
 import pandas as pd
 
+import backend.backtest_legacy_nacional as bln
 from backend.backtest_legacy_nacional import (
     BASE_PER_STATE,
     EXTRAS_DHONDT,
     N_BASE,
+    ORACLE_SELECTOR,
     aggregate_pct,
     allocate_dhondt_quotas,
     code9,
@@ -14,10 +16,12 @@ from backend.backtest_legacy_nacional import (
     longitudinal_feature_values,
     LONGITUDINAL_TARGETS,
     residual,
+    select_oracle_diagnostic,
     select_longitudinal_feature,
     select_legacy_similarity,
     select_legacy,
     similarity_distance,
+    turnout_residuals_for_year,
 )
 
 
@@ -244,3 +248,105 @@ def test_longitudinal_selector_changes_only_feature_column():
     assert list(recent["codigo_centro"]) == ["010000002", "010000003"]
     assert list(mae["codigo_centro"]) == ["010000001", "010000003"]
     assert set(kwargs) == {"features", "quotas", "cohort", "tolerance_ladder_pp"}
+
+
+def test_within_state_persistence_never_mixes_states(monkeypatch):
+    def fake_residuals_for_year(year):
+        values = {
+            2006: {"010000001": 1.0, "010000002": 2.0, "020000001": 50.0, "020000002": 60.0},
+            2012: {"010000001": 2.0, "010000002": 4.0, "020000001": 100.0, "020000002": 120.0},
+            2013: {"010000001": 3.0, "010000002": 6.0, "020000001": 150.0, "020000002": 180.0},
+            2018: {"010000001": 4.0, "010000002": 8.0, "020000001": 200.0, "020000002": 240.0},
+            2024: {"010000001": 5.0, "010000002": 10.0, "020000001": 250.0, "020000002": 300.0},
+        }[year]
+        return pd.DataFrame(
+            [
+                {"codigo_centro": code, "cod_estado": code[:2], f"residual_{year}": value}
+                for code, value in values.items()
+            ]
+        )
+
+    monkeypatch.setattr(bln, "residuals_for_year", fake_residuals_for_year)
+
+    diagnostics = bln.transition_residual_within_state_diagnostics()
+    states = diagnostics[diagnostics["record_type"].eq("state_transition")]
+
+    assert set(states["cod_estado"]) == {"01", "02"}
+    assert (states["n_centros"] == 2).all()
+
+
+def test_oracle_is_diagnostic_leakage_and_not_productive_selector():
+    features = pd.DataFrame(
+        [
+            {"codigo_centro": "010000001", "cod_estado": "01", "estado": "DC", "nombre_centro": "A", "electores": 3000, "rank_por_tamano": 1, "n_hist": 1, "recent_distance": 8.0, "historical_mae": 8.0},
+            {"codigo_centro": "010000002", "cod_estado": "01", "estado": "DC", "nombre_centro": "B", "electores": 2000, "rank_por_tamano": 2, "n_hist": 1, "recent_distance": 1.0, "historical_mae": 1.0},
+        ]
+    )
+
+    try:
+        select_longitudinal_feature(features, {"01": 1}, ORACLE_SELECTOR, "operational", [2, math.inf])
+    except ValueError as exc:
+        assert "no productivo" in str(exc)
+    else:
+        raise AssertionError("oracle no debe ser selector longitudinal valido")
+
+
+def test_oracle_uses_outcome_only_inside_diagnostic_function(monkeypatch):
+    features = pd.DataFrame(
+        [
+            {"codigo_centro": "010000001", "cod_estado": "01", "estado": "DC", "nombre_centro": "A", "electores": 3000, "rank_por_tamano": 1},
+            {"codigo_centro": "010000002", "cod_estado": "01", "estado": "DC", "nombre_centro": "B", "electores": 2000, "rank_por_tamano": 2},
+        ]
+    )
+    outcome = pd.DataFrame(
+        [
+            {"codigo_centro": "010000001", "cod_estado": "01", "residual_2099": 10.0},
+            {"codigo_centro": "010000002", "cod_estado": "01", "residual_2099": 0.5},
+        ]
+    )
+    monkeypatch.setattr(bln, "residuals_for_year", lambda year: outcome)
+
+    selected, incomplete = select_oracle_diagnostic(features, {"01": 1}, 2099, [2, math.inf])
+
+    assert incomplete.empty
+    assert list(selected["codigo_centro"]) == ["010000002"]
+    assert selected["diagnostic_only"].all()
+    assert selected["leakage_outcome_used"].all()
+
+
+def test_turnout_uses_voters_over_electors_and_center_minus_state(monkeypatch):
+    source = pd.DataFrame(
+        [
+            {"codigo_centro": "010000001", "cod_estado": "01", "electores": 100.0, "votantes": 50.0, "votos_validos": 50.0},
+            {"codigo_centro": "010000002", "cod_estado": "01", "electores": 300.0, "votantes": 210.0, "votos_validos": 210.0},
+        ]
+    )
+    monkeypatch.setattr(bln, "load_presidential_result", lambda year: source.copy())
+
+    turnout = turnout_residuals_for_year(2099).sort_values("codigo_centro")
+
+    assert list(turnout["turnout_2099"]) == [0.5, 0.7]
+    assert round(turnout.iloc[0]["turnout_residual_2099"], 6) == round(0.5 - (260 / 400), 6)
+    assert round(turnout.iloc[1]["turnout_residual_2099"], 6) == round(0.7 - (260 / 400), 6)
+
+
+def test_turnout_missing_voters_returns_null_like_empty_frame(monkeypatch):
+    source = pd.DataFrame(
+        [
+            {"codigo_centro": "010000001", "cod_estado": "01", "electores": 100.0, "votantes": None, "votos_validos": 50.0},
+        ]
+    )
+    monkeypatch.setattr(bln, "load_presidential_result", lambda year: source.copy())
+
+    turnout = turnout_residuals_for_year(2099)
+
+    assert turnout.empty
+    assert f"turnout_residual_2099" in turnout.columns
+
+
+def test_recent_and_historical_selectors_have_no_target_or_outcome_arguments():
+    params = set(signature(select_longitudinal_feature).parameters)
+
+    assert "target_year" not in params
+    assert "outcome" not in params
+    assert "residual_target" not in params

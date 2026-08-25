@@ -8,6 +8,12 @@
 
 ## [Unreleased]
 
+### feat - Falsificacion longitudinal de selector historico
+- `backend/backtest_legacy_nacional.py`: agrega ruta experimental `--only falsification` con cuatro pruebas aisladas antes de decidir el sucesor legacy: persistencia within-state, oracle con leakage diagnostico, survivorship/linking historico y turnout.
+- Genera `docs/muestreo/backtest_longitudinal_within_state.csv`, `backtest_longitudinal_oracle.csv`, `backtest_longitudinal_survivorship.csv`, `backtest_longitudinal_turnout.csv` y `BACKTEST_LONGITUDINAL_FALSIFICATION.md`.
+- Mantiene fijas las restricciones metodologicas: N=120, 2 centros por entidad, D'Hondt de 72 adicionales, sin score compuesto, sin PPS/random, sin nuevos mappings y sin tocar el selector productivo moderno.
+- `test_backtest_legacy_nacional.py`: agrega pruebas para no mezclar estados, marcar oracle como diagnostico con leakage, bloquear oracle como selector valido, preservar antileakage de recent/historical, calcular `n_hist` solo con pasado y validar turnout como votantes/electores con residual centro-estado.
+
 ### feat - Backtest longitudinal de representatividad historica
 - `backend/backtest_legacy_nacional.py`: agrega experimento walk-forward longitudinal para targets 2013, 2018 y 2024, con residuales centro-estado y selectores `recent_distance`, `historical_mae`, `historical_rmse` y `historical_volatility`.
 - Mantiene fijas las reglas legacy: N=120, minimo 2 por entidad, D'Hondt de 72 adicionales, prioridad por electores, bandas comunes y sin uso de outcomes target para construir features.

@@ -2,7 +2,7 @@
 
 > Estado actual del proyecto: qué funciona, qué está pendiente, qué bugs hay abiertos.
 > Actualizar al cierre de cada sesión de trabajo significativa.
-> Última actualización: 2026-08-24 (documentacion metodologia de muestra)
+> Última actualización: 2026-08-25 (falsificacion longitudinal)
 
 ---
 
@@ -98,6 +98,9 @@ Medido contra producción tras desplegar los arreglos de rendimiento:
 - [x] Backtest longitudinal de representatividad historica por centro con
   residuales centro-estado, cohortes common/operational y persistencia entre
   presidenciales 2006, 2012, 2013, 2018 y 2024
+- [x] Ronda final de falsificacion longitudinal documentada: persistencia
+  within-state, oracle diagnostico, survivorship/linking y turnout, sin cambiar
+  el selector productivo moderno
 - [x] Pesos: edición inline masiva
 - [x] TM: carga legacy + carga IA multi-formato con preview MATCHED/NEW/AMBIGUOUS/CONFLICT
 - [x] Ficha técnica estilo CIS (imprimible, error muestral calculado)
