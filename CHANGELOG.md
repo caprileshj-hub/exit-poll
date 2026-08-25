@@ -8,6 +8,12 @@
 
 ## [Unreleased]
 
+### feat - Selector longitudinal experimental V1
+- `backend/selector_longitudinal.py`: agrega `longitudinal_mae_v1` como selector experimental separado para presidencial nacional, con score `historical_mae`, fallback `recent_distance`, missing como `NULL` y salida auditable por centro.
+- Implementa cuotas propias de 120 centros: 2 minimos por cada una de 24 entidades y 72 adicionales por D'Hondt sobre electores, sin reutilizar el selector aleatorio productivo.
+- `docs/muestreo/METODO_LONGITUDINAL_V1.md` y `DECISIONES.md`: documentan formula, fallback, asignacion, evidencia retrospectiva, limites y estado no productivo.
+- `test_selector_longitudinal.py`: cubre score/fallback, antileakage temporal, D'Hondt, seleccion por electores con ladder legacy, determinismo, frame vigente y separacion de `METODO_PRODUCTIVO`.
+
 ### feat - Falsificacion longitudinal de selector historico
 - `backend/backtest_legacy_nacional.py`: agrega ruta experimental `--only falsification` con cuatro pruebas aisladas antes de decidir el sucesor legacy: persistencia within-state, oracle con leakage diagnostico, survivorship/linking historico y turnout.
 - Genera `docs/muestreo/backtest_longitudinal_within_state.csv`, `backtest_longitudinal_oracle.csv`, `backtest_longitudinal_survivorship.csv`, `backtest_longitudinal_turnout.csv` y `BACKTEST_LONGITUDINAL_FALSIFICATION.md`.

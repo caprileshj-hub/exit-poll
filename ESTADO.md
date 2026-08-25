@@ -2,7 +2,7 @@
 
 > Estado actual del proyecto: qué funciona, qué está pendiente, qué bugs hay abiertos.
 > Actualizar al cierre de cada sesión de trabajo significativa.
-> Última actualización: 2026-08-25 (falsificacion longitudinal)
+> Última actualización: 2026-08-25 (selector longitudinal experimental)
 
 ---
 
@@ -101,6 +101,9 @@ Medido contra producción tras desplegar los arreglos de rendimiento:
 - [x] Ronda final de falsificacion longitudinal documentada: persistencia
   within-state, oracle diagnostico, survivorship/linking y turnout, sin cambiar
   el selector productivo moderno
+- [x] Selector longitudinal experimental `longitudinal_mae_v1` implementado en
+  modulo separado para presidencial nacional futura, con N=120, 2 por entidad +
+  72 D'Hondt, sin modificar `METODO_PRODUCTIVO`
 - [x] Pesos: edición inline masiva
 - [x] TM: carga legacy + carga IA multi-formato con preview MATCHED/NEW/AMBIGUOUS/CONFLICT
 - [x] Ficha técnica estilo CIS (imprimible, error muestral calculado)

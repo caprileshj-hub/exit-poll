@@ -392,3 +392,46 @@ corriente.
 - `docs/muestreo/DECISIONES_MUESTREO.md`
 
 **Estado**: Fija para V1.
+
+---
+
+## ADR-017 - Selector longitudinal experimental sucesor del legacy
+
+**Decision**: Se implementa `longitudinal_mae_v1` como metodo experimental
+separado para muestras presidenciales nacionales futuras. Su score principal
+es `historical_mae` cuando el centro tiene al menos dos historicos
+presidenciales comparables, con fallback a `recent_distance` cuando tiene uno
+y `NULL` cuando no tiene historial.
+
+**Contexto**: La reconstruccion del legacy mostro que el criterio operativo era
+centros grandes dentro del estado, filtrados por semejanza con elecciones
+previas. Los backtests longitudinales 2013, 2018 y 2024 y la ronda de
+falsificacion no encontraron evidencia suficiente para descartar
+`historical_mae` como candidato principal, pero tambien mostraron cautelas de
+survivorship y margen frente al oracle. Por eso el metodo se implementa como
+sucesor experimental, no como selector productivo por defecto.
+
+**Reglas**:
+- El universo lo define el frame vigente de la eleccion objetivo.
+- V1 se limita a presidencial -> presidencial.
+- La asignacion nacional es 2 centros por cada una de 24 entidades mas 72
+  adicionales por D'Hondt sobre electores, para N=120.
+- La seleccion dentro del estado conserva la logica legacy: score historico
+  como aptitud, prioridad por electores y ladder `[2,4,6,8,10,15,20,inf]`.
+- No hay score compuesto, alfa, minimax, PPS, random baseline ni reglas
+  especiales derivadas de 2013/2018/2024.
+- `stratified_random_v1` sigue siendo `METODO_PRODUCTIVO`.
+
+**Consecuencias**:
+- `backend/selector_longitudinal.py` puede invocarse deliberadamente para
+  estudios futuros y comparaciones de laboratorio.
+- El legacy y sus backtests permanecen como reconstruccion/comparacion.
+- Los resultados retrospectivos son evidencia documental, no reglas
+  operacionales futuras.
+
+**Documentacion permanente**:
+- `docs/muestreo/METODO_LONGITUDINAL_V1.md`
+- `docs/muestreo/BACKTEST_LONGITUDINAL.md`
+- `docs/muestreo/BACKTEST_LONGITUDINAL_FALSIFICATION.md`
+
+**Estado**: Experimental. No productivo.
