@@ -1609,3 +1609,146 @@ Ahora el workflow escribe `deploy_root/VERSION` con el sha y la fecha de build, 
 ### Pendiente
 - `/muestra` responde 200 pero tarda 23-27 s en Azure (~4 s en SSD local). Perfilado con cProfile: de los ~4 s locales, 2.65 s son `statistics._ss` (29.646 llamadas). El modulo `statistics` de la stdlib usa `Fraction` para aritmetica exacta, asi que el perfil lo dominan `fractions.py` y 946.338 llamadas a `math.gcd`, recalculando sobre las 91.429 filas de `resultados_historicos` en cada peticion. No hace falta precision exacta para desviaciones tipicas de porcentajes electorales.
 - Quedan 9 rutas POST en `async def` (`/muestra/aplicar`, `/chat`, `/api/tm/*`, `/historicos/estudios/guardar`). Todas hacen `await request.form()` y despues trabajo bloqueante, asi que no se convierten con un cambio de firma: hay que mover el cuerpo a un hilo una por una. Siguen pudiendo congelar la app mientras corren, pero son rutas de operador (un click humano cada tanto), no el dashboard que auto-refresca.
+
+---
+
+## 2026-08-25 - Marco electoral 2024 completo, normalizacion de estados y limpieza de /tm
+
+### De donde salio el marco 2024
+El TM 2024 en uso venia del dump de actas de resultadosconvzla: 11.927 centros,
+22.197 mesas, 17.502.516 electores. Los centros sin acta digitalizada no
+existian para el selector.
+
+Se busco una TM oficial del CNE por mesa para 2024 y no existe. Igual que en
+2018, el CNE no publico ni el desagregado de resultados ni el directorio de
+centros y mesas del ciclo, y `cne.gob.ve` ya no resuelve DNS. En Wayback bajo
+`registro_electoral/centros/2024/` solo quedo `PUNTOS_RE_PRESIDENCIAL_2024.pdf`,
+que son puntos de inscripcion.
+
+Lo que si existe y estaba a mano es el REP 2024 por CENTRO, en la hoja
+`15.962 centros_cne` del spreadsheet de `ipince/vzlapi`. Copiado al repo como
+`backend/centros_cne_2024_rep.csv`. Cuadra exacto con tres cifras oficiales:
+21.392.464 electores venezolanos, 228.144 extranjeros, y 106 centros con 69.211
+electores en el exterior. Sin mojibake, a diferencia del TM anterior, que traia
+nombres truncados (`EDO. DELTA AMAC`, `MP. JUAN GERMAN ROSC`) y danados
+(`FERMIN TORO` como `FERM?N TORO`).
+
+Ver ADR-018 para la calibracion de `CAP_MESA = 1000` y el reparto de electores
+entre mesas. Genera `backend/generar_tm_2024.py`.
+
+### Carga
+Carga diferencial con `cargador_tm.py`: 813 centros nuevos, 11.916 actualizados,
+3.233 sin cambio, 906 desactivados. El marco activo queda en 15.962 centros /
+30.459 mesas / 21.392.464 electores.
+
+Efecto colateral que hay que tener presente: 16 de los 120 centros de la muestra
+de `Presidenciales 2025` (y 5 de la eleccion 2) quedaron `activo=0` porque no
+estan en el REP 2024. La muestra se regenero despues desde la app.
+
+### Renombre de estados y un bug que estaba vivo
+La BD arrastraba tres nombres del CNE viejo: `EDO. VARGAS` (el estado es La
+Guaira desde 2019), `EDO.NVA.ESPARTA` y `EDO. DELTA AMAC`. El cargador matchea
+estados por `codigo_cne` y no renombra los existentes, asi que la carga 2024 no
+los toco.
+
+Antes de renombrar se verifico que la seleccion no dependiera de esos nombres:
+- `selector_muestra.py` y `selector_longitudinal.py` agrupan por `id_estado`.
+- `_estado_display` en `muestra_lab.py` ya colapsaba VARGAS y GUAIRA en la misma
+  etiqueta.
+- `resultados_historicos` linkea por `codigo_centro`, nunca por nombre.
+
+Se capturo una huella del laboratorio (1.000 centros con `estado_display`,
+`estado_filtro`, `score` y `estatus`) antes y despues de cada renombre. Ambas
+salieron identicas.
+
+El renombre destapo un bug real en `_norm_estado`, que traduce nombres del CNE a
+los del GeoJSON para el heatmap:
+
+- `EDO.NVA.ESPARTA` daba `Edo.Nva.Esparta`. El `.replace("EDO. ", "")` no
+  matcheaba porque en BD no habia espacio tras `EDO.`, y `.replace("NVA. ESPARTA", ...)`
+  tampoco porque en BD era `NVA.ESPARTA`. **Nueva Esparta no estaba pintando en
+  el mapa.**
+- Renombrar Delta Amacuro lo habria roto: `.replace("DELTA AMAC", "Delta Amacuro")`
+  aplicado sobre `EDO. DELTA AMACURO` da `Delta Amacurouro`. Ese estado
+  funcionaba precisamente porque el nombre estaba truncado.
+
+Se endurecio `_norm_estado` (variantes largas antes que las cortas, y `EDO.` sin
+espacio) y despues se renombro. Las seis grafias convergen y los 24 estados
+domesticos matchean contra el GeoJSON ADM1.
+
+### Limpieza de /tm
+Las tarjetas "Estados" y "Mun. / Parr." mostraban `COUNT(*)` pelado sobre las
+tablas de geografia, sin filtrar por `activo` ni por centros vivos, mientras el
+resto de las tarjetas si filtra. De ahi salia `430 / 1278`. La descomposicion
+real: 335 municipios y 1.141 parroquias de Venezuela con centro activo, mas 86 y
+106 del exterior (el CNE modela paises como municipios y consulados como
+parroquias), mas 9 y 31 que solo tenian centros ya desactivados. Los 335 cuadran
+exacto con la cifra oficial.
+
+Se quitaron las dos tarjetas y sus consultas. El estudio es domestico y esos
+numeros solo hacian ruido. Las cuatro que quedan pasaron a `col-md-3`.
+
+Tambien se corrigio que La Guaira apareciera sin prefijo en la tabla por estado:
+el override de `app.py` forzaba `"LA GUAIRA"` para fusionar filas VARGAS y
+LA GUAIRA, y de paso comia el prefijo. Ahora fuerza `"EDO. LA GUAIRA"`.
+
+### Comparacion Azure vs local
+Azure corre `ceaa6830` con el marco viejo. Diferencias medidas:
+
+| | Azure | Local |
+|---|---|---|
+| Centros activos | 14.910 | 15.962 |
+| Electores | 18.740.203 | 21.392.464 |
+
+Los 25 estados ganaron electores. Seis perdieron centros (Tachira -48, Aragua
+-18, Merida -12, Exterior -12, Barinas -9, Sucre -2): es consolidacion, no
+perdida de votantes, Tachira pierde 48 centros y suma 60.828 electores.
+
+Muestra de 120 contra muestra de 120: 89 se mantienen, 31 rotan. De los 31 que
+salen, 16 ya no existen en el marco 2024 y 15 los desplazo la cuota. Cambios de
+cuota: Miranda +1, Bolivar +1, Portuguesa +1, Distrito Capital -1, Aragua -1,
+Zulia -1.
+
+Lo menos evidente: **de los 89 centros que se mantienen, 81 cambiaron su numero
+de electores**, algunos mas de 2.000 en ambas direcciones. Sus pesos de
+expansion cambiaron aunque el centro sea el mismo.
+
+### El frame de 8.314
+La generacion 3 registro `frame_count=8314` / `frame_electores=18435500`. No
+tiene que ver con disponibilidad de historico: es el piso
+`MIN_ELECTORES_CENTRO = 800` de `selector_longitudinal.py` sobre los estados
+1-24. Verificado, los dos numeros dan exacto.
+
+El piso descarta el 47,6% de los centros pero solo el 13,5% del electorado; los
+7.542 excluidos promedian 383 electores.
+
+El REP 2024 ensancho ese frame mas que el universo. Universo +7,2%, frame
++16,4% (7.142 -> 8.314):
+
+```
+cruzaron el piso hacia arriba (<800 -> >=800)   +1,316
+cayeron por debajo del piso  (>=800 -> <800)       -94
+centros nuevos que ya entran elegibles            +396
+centros que desaparecieron del marco              -446
+```
+
+1.316 centros que antes eran invisibles para el selector ahora compiten. Eso
+reencuadra las rotaciones de la muestra: muchos de los 15 desplazamientos "por
+cuota" son centros que perdieron su puesto contra competidores que antes ni
+participaban del sorteo.
+
+### Pendiente
+- La BD no se versiona, asi que el marco 2024 y los tres renombres de estado no
+  viajan con este commit. Hay que repetir la carga en Azure. El codigo si es
+  seguro de desplegar tal cual: `_norm_estado` acepta las grafias viejas y
+  nuevas, y el override de La Guaira funciona con `EDO. VARGAS` en BD.
+- Los renombres de estado se aplicaron a mano:
+  `UPDATE estados SET nombre='EDO. LA GUAIRA' WHERE codigo_cne='24'` y
+  equivalentes para `15 -> EDO. NUEVA ESPARTA` y `23 -> EDO. DELTA AMACURO`.
+  Si se repiten a menudo conviene un script idempotente.
+- `app.py` tiene dos bloques (lineas ~2247 y ~2279) que repiten la
+  normalizacion de `_norm_estado` a mano, con los mismos errores que se
+  arreglaron. Es codigo muerto: calculan una variable `nombre` que nunca se usa
+  porque la linea siguiente llama a `_norm_estado`. Borrarlos.
+- `centros_2024_hoja0/1/2.csv` en `backend/` son HTML de error de Google Docs,
+  no CSVs. Quedaron de una descarga fallida.

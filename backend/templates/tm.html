@@ -14,7 +14,7 @@
 
 <!-- Resumen actual -->
 <div class="row g-3 mb-4">
-    <div class="col-md-2">
+    <div class="col-md-3">
         <div class="card card-stat shadow-sm">
             <div class="card-body text-center">
                 <div class="number">{{ "{:,}".format(stats.centros_activos) }}</div>
@@ -22,7 +22,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-3">
         <div class="card card-stat shadow-sm">
             <div class="card-body text-center">
                 <div class="number">{{ stats.centros_inactivos }}</div>
@@ -30,7 +30,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-3">
         <div class="card card-stat shadow-sm">
             <div class="card-body text-center">
                 <div class="number">{{ "{:,}".format(stats.con_gps) }}</div>
@@ -38,27 +38,11 @@
             </div>
         </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-3">
         <div class="card card-stat shadow-sm">
             <div class="card-body text-center">
                 <div class="number">{{ "{:,}".format(stats.electores) }}</div>
                 <div class="text-muted small">Electores</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2">
-        <div class="card card-stat shadow-sm">
-            <div class="card-body text-center">
-                <div class="number">{{ stats.estados }}</div>
-                <div class="text-muted small">Estados</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2">
-        <div class="card card-stat shadow-sm">
-            <div class="card-body text-center">
-                <div class="number">{{ stats.municipios }} / {{ stats.parroquias }}</div>
-                <div class="text-muted small">Mun. / Parr.</div>
             </div>
         </div>
     </div>

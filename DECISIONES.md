@@ -435,3 +435,68 @@ sucesor experimental, no como selector productivo por defecto.
 - `docs/muestreo/BACKTEST_LONGITUDINAL_FALSIFICATION.md`
 
 **Estado**: Experimental. No productivo.
+
+---
+
+## ADR-018 - Marco muestral 2024 desde el REP del CNE y derivacion de mesas
+
+**Decision**: El marco muestral 2024 se construye desde el Registro Electoral
+2024 publicado por el CNE a nivel de CENTRO (15.962 centros), no desde el dump
+de actas de resultadosconvzla. El numero de mesas por centro, que el CNE nunca
+publico para 2024, se deriva por formula y queda marcado en el CSV con la
+columna `origen_mesas`.
+
+**Contexto**: El marco 2024 en uso venia del dump de actas y cubria 11.927
+centros con 17.502.516 electores, es decir el 75% de los centros y el 82% del
+padron. Los centros sin acta digitalizada simplemente no existian para el
+selector. No hay ninguna TM oficial del CNE por mesa para 2024: igual que en
+2018, el organismo no publico ni el desagregado de resultados ni el directorio
+de centros y mesas de ese ciclo, y `cne.gob.ve` ya no resuelve DNS.
+
+**Fuente**: hoja `15.962 centros_cne` del spreadsheet de `ipince/vzlapi`
+(https://docs.google.com/spreadsheets/d/1l6ThiQQZXog_8fBw3z5RwqThG7QAy0AqF4wPYpvGUWA/),
+datos del CNE. Copiada al repo como `backend/centros_cne_2024_rep.csv`.
+
+**Validaciones que dieron exacto contra cifras oficiales**:
+- 21.392.464 electores venezolanos, la cifra oficial del REP presidencial 2024.
+- 228.144 electores extranjeros.
+- Estado `99 EXTERIOR`: 106 centros y 69.211 electores, la cifra oficial del
+  voto en el exterior.
+- Cero mojibake en el fichero, a diferencia del TM anterior.
+
+**Reglas**:
+- `electores` de la TM usa `electores_venezolanos`. Los extranjeros estan en el
+  REP pero no votan presidenciales; asi el total cuadra con la cifra oficial.
+- El numero de mesas usa `electores_total` (venezolanos + extranjeros), porque
+  el cuaderno del centro con el que se arman las mesas si los incluye.
+- `CAP_MESA = 1000`. Calibrado por barrido contra las 22.197 mesas conocidas
+  por acta: 11.177 centros con coincidencia exacta (94%), 23 centros donde el
+  acta muestra mas mesas que la formula (0,19%), y 30.459 mesas nacionales
+  contra las ~30.027 oficiales (24.532 mesas transmitidas = 81,7% segun
+  resultadosconvzla). Capacidades entre 550 y 950 no producen ninguna
+  violacion pero se alejan del total nacional; por encima de 1010 las
+  violaciones se disparan.
+- `origen_mesas` distingue las dos vias: `acta` para los 11.200 centros donde
+  manda la mesa de mayor numero vista en las actas, `derivado` para los 4.762
+  restantes.
+
+**Consecuencias**:
+- `centros.num_mesas` en BD queda poblado con valores derivados para el 30% de
+  los centros. No es dato duro. La distincion vive solo en
+  `backend/tm_2024_estandar_v2.csv`; recuperarla en BD requiere agregar la
+  columna a `centros`, que no se hizo por no ser necesario hoy.
+- El marco activo pasa de 14.910 a 15.962 centros y de 18.740.203 a 21.392.464
+  electores. 906 centros que existian en marcos viejos y no estan en el REP
+  2024 quedan `activo=0`.
+- El frame elegible del selector longitudinal (piso de 800 electores, estados
+  1-24) pasa de 7.142 a 8.314 centros. 1.316 de esos centros ya existian pero
+  estaban bajo el piso con el padron desactualizado.
+
+**Reproducible con**:
+```
+python backend/generar_tm_2024.py
+python backend/cargador_tm.py backend/tm_2024_estandar_v2.csv --dry-run
+python backend/cargador_tm.py backend/tm_2024_estandar_v2.csv
+```
+
+**Estado**: Productivo.

@@ -942,9 +942,6 @@ def tm_index(request: Request, msg: str = "", cat: str = "success"):
         stats["electores"] = db.execute(
             "SELECT COALESCE(SUM(num_electores),0) s FROM centros WHERE activo=1"
         ).fetchone()["s"]
-        stats["estados"] = db.execute("SELECT COUNT(*) c FROM estados").fetchone()["c"]
-        stats["municipios"] = db.execute("SELECT COUNT(*) c FROM municipios").fetchone()["c"]
-        stats["parroquias"] = db.execute("SELECT COUNT(*) c FROM parroquias").fetchone()["c"]
         elecciones = db.execute("SELECT id, nombre, tipo, fecha, activa FROM elecciones ORDER BY activa DESC, fecha DESC").fetchall()
 
         # Resumen por estado
@@ -960,7 +957,7 @@ def tm_index(request: Request, msg: str = "", cat: str = "success"):
         por_estado_map = {}
         for row in por_estado_raw:
             key = _canonical_estado_name(row["nombre"])
-            nombre = "LA GUAIRA" if key == "LA GUAIRA" else row["nombre"]
+            nombre = "EDO. LA GUAIRA" if key == "LA GUAIRA" else row["nombre"]
             agg = por_estado_map.setdefault(nombre, {"nombre": nombre, "centros": 0, "electores": 0, "mesas": 0, "con_gps": 0})
             agg["centros"] += int(row["centros"] or 0)
             agg["electores"] += int(row["electores"] or 0)
@@ -2597,10 +2594,16 @@ def _norm_estado(nombre: str) -> str:
     """Normaliza nombres de estado del CNE para que coincidan con el GeoJSON."""
     nombre = (nombre
               .replace("EDO. ", "")
+              .replace("EDO.", "")
               .replace("DTTO. ", "Distrito ")
+              # Las variantes largas van primero: si "DELTA AMAC" se aplicara
+              # antes, "DELTA AMACURO" quedaria como "Delta Amacurouro".
+              .replace("DELTA AMACURO", "Delta Amacuro")
               .replace("DELTA AMAC", "Delta Amacuro")
               .replace("LA GUAIRA", "La Guaira")
-              .replace("NVA. ESPARTA", "Nueva Esparta"))
+              .replace("NUEVA ESPARTA", "Nueva Esparta")
+              .replace("NVA. ESPARTA", "Nueva Esparta")
+              .replace("NVA.ESPARTA", "Nueva Esparta"))
     if nombre not in ("Distrito Capital", "La Guaira", "Delta Amacuro", "Nueva Esparta"):
         nombre = nombre.title()
     return nombre
