@@ -131,6 +131,34 @@
 
 ---
 
+## ADR-017 - Historial inmutable de cargas Tabla Mesa
+
+**Decision**: Cada Tabla Mesa cargada genera un registro historico inmutable que
+documenta el archivo recibido, periodo del dato, transformaciones aplicadas,
+evolucion del frame y posible impacto operacional. Las anomalias estadisticas
+se reportan pero no bloquean la carga.
+
+**Contexto**: La Tabla Mesa puede cambiar por corte REP, proceso electoral,
+formato de archivo o fuente. Usar solo el estado actual de `centros` impide
+auditar que archivo se cargo, de cuando eran los datos y que cambio respecto al
+marco anterior. Tambien es metodologicamente peligroso confundir la fecha real
+del dato con la hora tecnica de carga.
+
+**Consecuencias**:
+- `fecha_tm` y `periodo_tm` son datos del archivo/proceso; `loaded_at` es solo
+  la fecha tecnica en que el sistema aplico la carga.
+- Si el periodo no puede determinarse claramente, el sistema debe solicitarlo al
+  usuario antes de completar la carga.
+- Exterior se procesa con la estructura territorial tecnica existente, pero se
+  excluye de la presentacion territorial nacional y del selector presidencial de
+  120 centros.
+- Los reportes anteriores no se sobrescriben aunque dos archivos correspondan
+  al mismo proceso electoral.
+
+**Estado**: Activa.
+
+---
+
 ## ADR-009 — APK Android nativa (no PWA)
 
 **Decisión**: La aplicación móvil del encuestador es una APK Android nativa, no una Progressive Web App.

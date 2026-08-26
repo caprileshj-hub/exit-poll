@@ -230,6 +230,8 @@ def ensure_config_table(db: sqlite3.Connection) -> None:
 
 
 def ensure_tm_ai_tables(db: sqlite3.Connection) -> None:
+    import tm_auditoria
+
     db.execute("""
         CREATE TABLE IF NOT EXISTS election_centers (
             eleccion_id     INTEGER NOT NULL REFERENCES elecciones(id),
@@ -257,6 +259,7 @@ def ensure_tm_ai_tables(db: sqlite3.Connection) -> None:
             created_at           TEXT DEFAULT (datetime('now'))
         )
     """)
+    tm_auditoria.ensure_tm_audit_schema(db)
     db.commit()
 
 
@@ -929,24 +932,28 @@ def tm_index(request: Request, msg: str = "", cat: str = "success"):
     db = get_db()
     try:
         ensure_tm_ai_tables(db)
+        import tm_auditoria
+
+        snapshot = tm_auditoria.snapshot_frame(db)
         stats = {}
-        stats["centros_activos"] = db.execute(
-            "SELECT COUNT(*) c FROM centros WHERE activo=1"
-        ).fetchone()["c"]
+        stats["centros_activos"] = snapshot["nacional"]["centros"]
         stats["centros_inactivos"] = db.execute(
             "SELECT COUNT(*) c FROM centros WHERE activo=0"
         ).fetchone()["c"]
         stats["con_gps"] = db.execute(
             "SELECT COUNT(*) c FROM centros WHERE lat IS NOT NULL AND lon IS NOT NULL"
         ).fetchone()["c"]
-        stats["electores"] = db.execute(
-            "SELECT COALESCE(SUM(num_electores),0) s FROM centros WHERE activo=1"
-        ).fetchone()["s"]
+        stats["electores"] = snapshot["nacional"]["electores"]
+        stats["mesas"] = snapshot["nacional"]["mesas"]
+        stats["entidades"] = snapshot["nacional"]["entidades"]
+        stats["municipios"] = snapshot["nacional"]["municipios"]
+        stats["parroquias"] = snapshot["nacional"]["parroquias"]
+        stats["exterior"] = snapshot["exterior"]
         elecciones = db.execute("SELECT id, nombre, tipo, fecha, activa FROM elecciones ORDER BY activa DESC, fecha DESC").fetchall()
 
         # Resumen por estado
         por_estado_raw = db.execute(
-            """SELECT e.nombre, COUNT(c.codigo_cne) as centros,
+            """SELECT e.id AS id_estado, e.nombre, COUNT(c.codigo_cne) as centros,
                       SUM(c.num_electores) as electores, SUM(c.num_mesas) as mesas,
                       SUM(CASE WHEN c.lat IS NOT NULL THEN 1 ELSE 0 END) as con_gps
                FROM centros c
@@ -956,6 +963,8 @@ def tm_index(request: Request, msg: str = "", cat: str = "success"):
         ).fetchall()
         por_estado_map = {}
         for row in por_estado_raw:
+            if int(row["id_estado"] if "id_estado" in row.keys() else 0) not in range(1, 25):
+                continue
             key = _canonical_estado_name(row["nombre"])
             nombre = "EDO. LA GUAIRA" if key == "LA GUAIRA" else row["nombre"]
             agg = por_estado_map.setdefault(nombre, {"nombre": nombre, "centros": 0, "electores": 0, "mesas": 0, "con_gps": 0})
@@ -964,9 +973,31 @@ def tm_index(request: Request, msg: str = "", cat: str = "success"):
             agg["mesas"] += int(row["mesas"] or 0)
             agg["con_gps"] += int(row["con_gps"] or 0)
         por_estado = sorted(por_estado_map.values(), key=lambda r: r["nombre"])
+        ultima_carga = db.execute(
+            """
+            SELECT *
+            FROM tm_cargas
+            WHERE status='completed'
+            ORDER BY loaded_at DESC, id DESC
+            LIMIT 1
+            """
+        ).fetchone()
+        cargas = db.execute(
+            """
+            SELECT id, periodo_tm, fecha_tm, loaded_at, filename, centros_after,
+                   electores_after, centros_after - centros_before AS delta_centros,
+                   electores_after - electores_before AS delta_electores, status
+            FROM tm_cargas
+            ORDER BY loaded_at DESC, id DESC
+            LIMIT 12
+            """
+        ).fetchall()
         return templates.TemplateResponse(request=request, name="tm.html", context={
             "stats": stats, "por_estado": por_estado,
             "elecciones": elecciones,
+            "ultima_carga": ultima_carga,
+            "cargas": cargas,
+            "piso_operacional": tm_auditoria.MIN_ELECTORES_CENTRO,
             "msg": msg, "cat": cat
         })
     finally:
@@ -977,6 +1008,9 @@ def tm_index(request: Request, msg: str = "", cat: str = "success"):
 def tm_upload(
     request: Request,
     archivo: UploadFile = File(...),
+    eleccion_id: int = Form(0),
+    periodo_tm: str = Form(""),
+    fecha_tm: str = Form(""),
     formato: str = Form("auto"),
     hoja: str = Form(""),
     dry_run: int = Form(0),
@@ -989,17 +1023,32 @@ def tm_upload(
             "/tm?msg=Formato+no+soportado.+Use+Excel+o+CSV&cat=danger",
             status_code=303,
         )
+    if not periodo_tm.strip() or not fecha_tm.strip():
+        return RedirectResponse(
+            "/tm?msg=Indique+periodo+y+fecha/corte+del+Tabla+Mesa&cat=warning",
+            status_code=303,
+        )
 
     tmp_path = UPLOAD_DIR / f"tm_upload_{uuid.uuid4().hex}{ext}"
     with open(tmp_path, "wb") as f:
         shutil.copyfileobj(archivo.file, f)
 
     output_lines = []
+    csv_path = tmp_path
     try:
         # Importar convertidor y cargador
         _ensure_backend_path()
         import convertidor_tm
         import cargador_tm
+        import tm_auditoria
+
+        db_before = get_db()
+        try:
+            tm_auditoria.ensure_tm_audit_schema(db_before)
+            before = tm_auditoria.snapshot_frame(db_before)
+        finally:
+            db_before.close()
+        file_meta = tm_auditoria.file_metadata(tmp_path, archivo.filename, detected_format=ext.lstrip("."))
 
         # Paso 1: si es Excel, convertir a CSV estándar
         if ext in (".xlsx", ".xls", ".xlsm"):
@@ -1035,7 +1084,35 @@ def tm_upload(
         if csv_path != tmp_path:
             csv_path.unlink(missing_ok=True)
 
+        carga_id = None
+        if not dry_run:
+            db_after = get_db()
+            try:
+                tm_auditoria.ensure_tm_audit_schema(db_after)
+                after = tm_auditoria.snapshot_frame(db_after)
+                carga_id = tm_auditoria.persist_report(
+                    db_after,
+                    eleccion_id=eleccion_id or None,
+                    periodo_tm=periodo_tm.strip(),
+                    fecha_tm=fecha_tm.strip(),
+                    file_meta=file_meta,
+                    parser_mode="legacy_deterministico",
+                    before=before,
+                    after=after,
+                    processing={
+                        "lineas": output_lines,
+                        "formato_solicitado": formato,
+                        "hoja": hoja or None,
+                        "normalizaciones": ["convertidor_tm", "cargador_tm", "COALESCE campos operativos"],
+                    },
+                )
+                db_after.commit()
+            finally:
+                db_after.close()
+
         result_msg = " | ".join(output_lines)
+        if carga_id:
+            result_msg += f" | Reporte de carga #{carga_id}"
         return RedirectResponse(
             f"/tm?msg={result_msg[:500]}&cat=success",
             status_code=303,
@@ -1043,11 +1120,64 @@ def tm_upload(
 
     except Exception as e:
         tmp_path.unlink(missing_ok=True)
+        if csv_path != tmp_path:
+            csv_path.unlink(missing_ok=True)
         error_msg = str(e)[:300]
         return RedirectResponse(
             f"/tm?msg=Error:+{error_msg}&cat=danger",
             status_code=303,
         )
+
+
+@app.get("/tm/cargas/{carga_id}", response_class=HTMLResponse)
+def tm_carga_reporte(request: Request, carga_id: int):
+    db = get_db()
+    try:
+        ensure_tm_ai_tables(db)
+        import tm_auditoria
+
+        carga = db.execute("SELECT * FROM tm_cargas WHERE id=?", (carga_id,)).fetchone()
+        if not carga:
+            raise HTTPException(404)
+        report = json.loads(carga["report_json"] or "{}")
+        resumen_cambios = db.execute(
+            """
+            SELECT tipo_cambio, COUNT(*) AS n
+            FROM tm_carga_cambios
+            WHERE carga_id=?
+            GROUP BY tipo_cambio
+            ORDER BY n DESC, tipo_cambio
+            """,
+            (carga_id,),
+        ).fetchall()
+        cambios = db.execute(
+            """
+            SELECT codigo_centro, tipo_cambio, before_json, after_json
+            FROM tm_carga_cambios
+            WHERE carga_id=?
+            ORDER BY
+              CASE tipo_cambio
+                WHEN 'nuevo' THEN 1
+                WHEN 'desaparecido' THEN 2
+                WHEN 'modificado' THEN 3
+                WHEN 'cruza_umbral_arriba' THEN 4
+                WHEN 'cruza_umbral_abajo' THEN 5
+                ELSE 9
+              END,
+              codigo_centro
+            LIMIT 300
+            """,
+            (carga_id,),
+        ).fetchall()
+        return templates.TemplateResponse(request=request, name="tm_reporte.html", context={
+            "carga": carga,
+            "report": report,
+            "resumen_cambios": resumen_cambios,
+            "cambios": cambios,
+            "piso_operacional": report.get("comparison", {}).get("elegibilidad", {}).get("piso", {}).get("after", tm_auditoria.MIN_ELECTORES_CENTRO),
+        })
+    finally:
+        db.close()
 
 
 TM_AI_SYSTEM_PROMPT = """
@@ -1739,8 +1869,12 @@ async def tm_confirm(request: Request):
     rows = payload.get("rows") or []
     source_files = payload.get("source_files") or []
     dry_run = bool(payload.get("dry_run"))
+    periodo_tm = str(payload.get("periodo_tm") or "").strip()
+    fecha_tm = str(payload.get("fecha_tm") or "").strip()
     if not eleccion_id:
         raise HTTPException(400, "eleccion_id requerido")
+    if not dry_run and (not periodo_tm or not fecha_tm):
+        raise HTTPException(400, "periodo_tm y fecha_tm son requeridos para completar la carga")
 
     blockers = [r for r in rows if r.get("match_status") in ("AMBIGUOUS", "CONFLICT") and not r.get("resolved_codigo_centro")]
     if blockers:
@@ -1748,11 +1882,15 @@ async def tm_confirm(request: Request):
 
     db = get_db()
     try:
+        _ensure_backend_path()
+        import tm_auditoria
+
         stats = {"MATCHED": 0, "NEW": 0, "AMBIGUOUS": 0, "CONFLICT": 0, "EXTRACTION_ERROR": 0, "written": 0}
         detected_columns = payload.get("detected_columns") or []
         field_notes = payload.get("field_notes") or {}
         try:
             ensure_tm_ai_tables(db)
+            before = tm_auditoria.snapshot_frame(db)
             affected_estado_ids = _confirmed_estado_ids(db, rows)
             if not dry_run:
                 db.execute("BEGIN IMMEDIATE")
@@ -1780,11 +1918,46 @@ async def tm_confirm(request: Request):
                     json.dumps(stats, ensure_ascii=False),
                     payload.get("user") or "local",
                 ))
+                after = tm_auditoria.snapshot_frame(db)
+                filename = ", ".join(str(f) for f in source_files) or "ai_import"
+                file_meta = {
+                    "filename": filename,
+                    "file_hash": hashlib.sha256(filename.encode("utf-8")).hexdigest(),
+                    "file_size": int(payload.get("file_size") or 0),
+                    "mime_type": "multiple/unknown" if len(source_files) != 1 else None,
+                    "detected_format": "ai_assisted",
+                }
+                carga_id = tm_auditoria.persist_report(
+                    db,
+                    eleccion_id=eleccion_id,
+                    periodo_tm=periodo_tm,
+                    fecha_tm=fecha_tm,
+                    file_meta=file_meta,
+                    parser_mode="ai_assisted",
+                    before=before,
+                    after=after,
+                    processing={
+                        "filas_leidas": len(rows),
+                        "detected_columns": detected_columns,
+                        "field_notes": field_notes,
+                        "match_stats": stats,
+                        "source_files": source_files,
+                        "normalizaciones": [
+                            "columnas mapeadas por IA",
+                            "codigos normalizados",
+                            "VARGAS/LA GUAIRA canonico",
+                            "COALESCE campos operativos",
+                        ],
+                    },
+                )
                 db.commit()
+            else:
+                carga_id = None
             return JSONResponse({
                 "ok": True,
                 "dry_run": dry_run,
                 "stats": stats,
+                "carga_id": carga_id,
                 "replacement_scope": {"estado_ids": affected_estado_ids},
             })
         except Exception:

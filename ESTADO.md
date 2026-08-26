@@ -106,6 +106,9 @@ Medido contra producción tras desplegar los arreglos de rendimiento:
   72 D'Hondt, sin modificar `METODO_PRODUCTIVO`
 - [x] Pesos: edición inline masiva
 - [x] TM: carga legacy + carga IA multi-formato con preview MATCHED/NEW/AMBIGUOUS/CONFLICT
+- [x] TM: carga asistida como flujo principal, historial inmutable `tm_cargas`,
+  reporte automatico de archivo/normalizaciones/before-after, Exterior
+  separado de KPIs nacionales y simulacion read-only de impacto sobre muestra
 - [x] Ficha técnica estilo CIS (imprimible, error muestral calculado)
 - [x] Configuración proveedor IA con test de conexión
 

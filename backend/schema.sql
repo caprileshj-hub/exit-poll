@@ -104,6 +104,45 @@ CREATE TABLE IF NOT EXISTS tm_ingestion_logs (
     created_at           TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS tm_cargas (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    eleccion_id          INTEGER REFERENCES elecciones(id),
+    periodo_tm           TEXT NOT NULL,
+    fecha_tm             TEXT NOT NULL,
+    filename             TEXT NOT NULL,
+    file_hash            TEXT,
+    file_size            INTEGER,
+    mime_type            TEXT,
+    detected_format      TEXT,
+    parser_mode          TEXT,
+    loaded_at            TEXT DEFAULT (datetime('now')),
+    frame_before_hash    TEXT,
+    frame_after_hash     TEXT,
+    centros_before       INTEGER NOT NULL DEFAULT 0,
+    centros_after        INTEGER NOT NULL DEFAULT 0,
+    electores_before     INTEGER NOT NULL DEFAULT 0,
+    electores_after      INTEGER NOT NULL DEFAULT 0,
+    mesas_before         INTEGER NOT NULL DEFAULT 0,
+    mesas_after          INTEGER NOT NULL DEFAULT 0,
+    report_json          TEXT NOT NULL,
+    status               TEXT NOT NULL DEFAULT 'completed'
+);
+
+CREATE INDEX IF NOT EXISTS idx_tm_cargas_eleccion ON tm_cargas(eleccion_id);
+CREATE INDEX IF NOT EXISTS idx_tm_cargas_loaded ON tm_cargas(loaded_at);
+
+CREATE TABLE IF NOT EXISTS tm_carga_cambios (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    carga_id         INTEGER NOT NULL REFERENCES tm_cargas(id),
+    codigo_centro    TEXT NOT NULL,
+    tipo_cambio      TEXT NOT NULL,
+    before_json      TEXT,
+    after_json       TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_tm_cambios_carga ON tm_carga_cambios(carga_id);
+CREATE INDEX IF NOT EXISTS idx_tm_cambios_tipo ON tm_carga_cambios(tipo_cambio);
+
 
 -- =============================================================
 -- BLOQUE 3: ELECCIONES Y CANDIDATOS

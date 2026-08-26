@@ -8,6 +8,12 @@
 
 ## [Unreleased]
 
+### feat - Tabla Mesa asistida con historial auditable
+- `/tm`: reorganiza la experiencia alrededor de carga asistida por IA, con Tabla Mesa activa, KPIs nacionales de 24 entidades, Exterior separado, historial de cargas y legacy 2015/2018 colapsado.
+- `backend/tm_auditoria.py`, `tm_cargas` y `tm_carga_cambios`: agregan historial inmutable con `periodo_tm`, `fecha_tm`, `loaded_at`, hashes, snapshot before/after, deltas nacionales, cambios por estado, cruces del piso operacional y reporte JSON.
+- `/api/tm/confirm` y `/tm/cargar`: generan reporte persistente despues de cargas reales; las simulaciones no escriben historial.
+- `/tm/cargas/{id}`: nueva pantalla de reporte con identificacion, archivo, normalizaciones, comparacion before/after, elegibilidad >=800, impacto read-only sobre muestra, Exterior y detalle de cambios.
+
 ### feat - Selector longitudinal experimental V1
 - `backend/selector_longitudinal.py`: agrega `longitudinal_mae_v1` como selector experimental separado para presidencial nacional, con score `historical_mae`, fallback `recent_distance`, missing como `NULL` y salida auditable por centro.
 - Implementa cuotas propias de 120 centros: 2 minimos por cada una de 24 entidades y 72 adicionales por D'Hondt sobre electores, sin reutilizar el selector aleatorio productivo.

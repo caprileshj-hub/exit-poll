@@ -1,9 +1,19 @@
 {% extends "base.html" %}
 {% set active_page = "tm" %}
-{% block title %}Tabla de Mesa{% endblock %}
+{% block title %}Tabla Mesa{% endblock %}
 
 {% block content %}
-<h2 class="mb-4"><i class="bi bi-table me-2"></i>Tabla de Mesa (TM)</h2>
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-table me-2"></i>Tabla Mesa</h2>
+        <div class="text-muted small">Archivo -> analisis -> normalizacion -> carga -> reporte -> historial</div>
+    </div>
+    {% if ultima_carga %}
+    <a class="btn btn-sm btn-outline-primary" href="/tm/cargas/{{ ultima_carga.id }}">
+        <i class="bi bi-file-earmark-text me-1"></i>Ultimo reporte
+    </a>
+    {% endif %}
+</div>
 
 {% if msg %}
 <div class="alert alert-{{ cat }} alert-dismissible fade show">
@@ -12,266 +22,283 @@
 </div>
 {% endif %}
 
-<!-- Resumen actual -->
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card card-stat shadow-sm">
-            <div class="card-body text-center">
-                <div class="number">{{ "{:,}".format(stats.centros_activos) }}</div>
-                <div class="text-muted small">Centros activos</div>
+<section class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Tabla Mesa activa</h5>
+        {% if ultima_carga %}
+        <span class="small text-muted">Carga #{{ ultima_carga.id }} · {{ ultima_carga.loaded_at }}</span>
+        {% endif %}
+    </div>
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="border bg-white p-3 h-100">
+                <div class="small text-muted">TM / proceso</div>
+                <div class="fs-5 fw-semibold">{{ ultima_carga.periodo_tm if ultima_carga else "Sin historial de carga" }}</div>
+                <div class="mt-2 small text-muted">Fecha/corte TM</div>
+                <div class="fw-semibold">{{ ultima_carga.fecha_tm if ultima_carga else "No registrado" }}</div>
+                <div class="mt-2 small text-muted">Archivo de origen</div>
+                <div class="text-truncate">{{ ultima_carga.filename if ultima_carga else "-" }}</div>
+                <div class="mt-2 small text-muted">Fecha de carga al sistema</div>
+                <div>{{ ultima_carga.loaded_at if ultima_carga else "-" }}</div>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card card-stat shadow-sm">
-            <div class="card-body text-center">
-                <div class="number">{{ stats.centros_inactivos }}</div>
-                <div class="text-muted small">Inactivos</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card card-stat shadow-sm">
-            <div class="card-body text-center">
-                <div class="number">{{ "{:,}".format(stats.con_gps) }}</div>
-                <div class="text-muted small">Con GPS</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card card-stat shadow-sm">
-            <div class="card-body text-center">
-                <div class="number">{{ "{:,}".format(stats.electores) }}</div>
-                <div class="text-muted small">Electores</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Formulario de carga -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header bg-white">
-        <h5 class="mb-0"><i class="bi bi-upload me-2"></i>Cargar nueva Tabla de Mesa</h5>
-    </div>
-    <div class="card-body">
-        <form method="post" action="/tm/cargar" enctype="multipart/form-data">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label for="tmArchivo" class="form-label fw-semibold">Archivo TM</label>
-                    <input id="tmArchivo" type="file" name="archivo" class="form-control"
-                           accept=".xlsx,.xls,.xlsm,.csv" required>
-                    <small class="text-muted">Excel (.xlsx) o CSV estándar</small>
-                </div>
-                <div class="col-md-2">
-                    <label for="tmFormato" class="form-label fw-semibold">Formato</label>
-                    <select id="tmFormato" name="formato" class="form-select">
-                        <option value="auto">Auto-detectar</option>
-                        <option value="2015">TM 2015 (AN)</option>
-                        <option value="2018">TM 2018 (Pres)</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="tmHoja" class="form-label fw-semibold">Hoja Excel</label>
-                    <input id="tmHoja" type="text" name="hoja" class="form-control" placeholder="(auto)">
-                    <small class="text-muted">Dejar vacío = auto</small>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-check mt-4">
-                        <input class="form-check-input" type="checkbox" name="dry_run" value="1" id="chk_dry">
-                        <label class="form-check-label" for="chk_dry">
-                            <strong>Simulación</strong>
-                            <small class="text-muted d-block">No escribe en BD</small>
-                        </label>
+        <div class="col-lg-8">
+            <div class="row g-3">
+                <div class="col-md-3"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ "{:,}".format(stats.centros_activos) }}</div><div class="small text-muted">Centros nacionales</div></div></div>
+                <div class="col-md-3"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ "{:,}".format(stats.electores) }}</div><div class="small text-muted">Electores nacionales</div></div></div>
+                <div class="col-md-2"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ "{:,}".format(stats.mesas) }}</div><div class="small text-muted">Mesas</div></div></div>
+                <div class="col-md-2"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ stats.entidades }}</div><div class="small text-muted">Entidades nacionales</div></div></div>
+                <div class="col-md-2"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ "{:,}".format(stats.municipios) }}</div><div class="small text-muted">Municipios</div></div></div>
+                <div class="col-md-3"><div class="border bg-white p-3"><div class="fs-5 fw-semibold">{{ "{:,}".format(stats.parroquias) }}</div><div class="small text-muted">Parroquias</div></div></div>
+                <div class="col-md-3"><div class="border bg-white p-3"><div class="fs-5 fw-semibold">{{ "{:,}".format(stats.con_gps) }}</div><div class="small text-muted">Centros con GPS</div></div></div>
+                <div class="col-md-6">
+                    <div class="border bg-light p-3">
+                        <div class="small text-muted">Exterior conservado aparte</div>
+                        <span class="fw-semibold">{{ "{:,}".format(stats.exterior.centros) }}</span> centros /
+                        <span class="fw-semibold">{{ "{:,}".format(stats.exterior.electores) }}</span> electores
                     </div>
                 </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-cloud-upload me-1"></i>Cargar
-                    </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="border bg-white p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="mb-1"><i class="bi bi-stars me-2"></i>Cargar nueva Tabla Mesa</h5>
+            <div class="text-muted small">El sistema analizara el archivo, identificara estructura, normalizara campos y generara un reporte auditable de cambios.</div>
+        </div>
+        <span class="badge bg-primary">Excel / CSV / PDF</span>
+    </div>
+
+    <div class="row g-3 align-items-end">
+        <div class="col-lg-3 col-md-6">
+            <label for="aiEleccion" class="form-label fw-semibold">Eleccion destino</label>
+            <select id="aiEleccion" class="form-select" required>
+                <option value="">Seleccione...</option>
+                {% for e in elecciones %}
+                <option value="{{ e['id'] }}" data-nombre="{{ e['nombre'] }}" data-fecha="{{ e['fecha'] }}" {% if e['activa'] %}selected{% endif %}>
+                    {{ e['nombre'] }} ({{ e['tipo'] }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <label for="aiPeriodo" class="form-label fw-semibold">Periodo TM</label>
+            <input id="aiPeriodo" type="text" class="form-control" placeholder="Presidencial 2024">
+        </div>
+        <div class="col-lg-2 col-md-6">
+            <label for="aiFechaTm" class="form-label fw-semibold">Fecha/corte TM</label>
+            <input id="aiFechaTm" type="text" class="form-control" placeholder="28/07/2024">
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <label for="aiFiles" class="form-label fw-semibold">Seleccionar archivo</label>
+            <input id="aiFiles" type="file" class="form-control" multiple accept=".pdf,.xlsx,.xls,.xlsm,.csv">
+        </div>
+        <div class="col-lg-1 col-md-12 d-grid">
+            <button id="aiProcesar" type="button" class="btn btn-primary">
+                <i class="bi bi-cpu me-1"></i>Analizar
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <div class="progress d-none" id="aiProgressBar" style="height: 6px;"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div></div>
+        <div id="aiProgress" class="small text-muted mt-2"></div>
+    </div>
+
+    <div id="aiSummary" class="row g-2 mt-3 d-none">
+        <div class="col-md-2"><div class="alert alert-success py-2 mb-0">MATCHED: <strong id="sumMatched">0</strong></div></div>
+        <div class="col-md-2"><div class="alert alert-primary py-2 mb-0">NEW: <strong id="sumNew">0</strong></div></div>
+        <div class="col-md-2"><div class="alert alert-warning py-2 mb-0">AMBIG.: <strong id="sumAmbiguous">0</strong></div></div>
+        <div class="col-md-2"><div class="alert alert-danger py-2 mb-0">CONFLICT: <strong id="sumConflict">0</strong></div></div>
+        <div class="col-md-2"><div class="alert alert-secondary py-2 mb-0">ERROR: <strong id="sumError">0</strong></div></div>
+        <div class="col-md-2"><div class="alert alert-light border py-2 mb-0">Fuera frame: <strong id="sumIneligible">0</strong></div></div>
+    </div>
+
+    <div id="aiPreviewWrap" class="table-responsive mt-3 d-none">
+        <table class="table table-sm table-hover align-middle" id="aiPreviewTable">
+            <thead class="table-light">
+                <tr>
+                    <th>Centro</th>
+                    <th>Municipio</th>
+                    <th>Status</th>
+                    <th class="text-end">Score</th>
+                    <th>Accion / resolucion</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div class="d-flex gap-2 justify-content-end">
+            <button id="aiConfirmar" type="button" class="btn btn-success">
+                <i class="bi bi-check-lg me-1"></i>Aplicar carga asistida
+            </button>
+        </div>
+    </div>
+</section>
+
+<section class="mb-4">
+    <h5 class="mb-2">Historial de cargas</h5>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover bg-white border align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>TM / proceso</th>
+                    <th>Fecha/corte</th>
+                    <th>Cargado</th>
+                    <th>Archivo</th>
+                    <th class="text-end">Centros nacionales</th>
+                    <th class="text-end">Electores nacionales</th>
+                    <th class="text-end">Delta centros</th>
+                    <th class="text-end">Delta electores</th>
+                    <th>Reporte</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for c in cargas %}
+                <tr>
+                    <td>{{ c.periodo_tm }}</td>
+                    <td>{{ c.fecha_tm }}</td>
+                    <td class="small">{{ c.loaded_at }}</td>
+                    <td class="small text-truncate" style="max-width: 220px;">{{ c.filename }}</td>
+                    <td class="text-end">{{ "{:,}".format(c.centros_after or 0) }}</td>
+                    <td class="text-end">{{ "{:,}".format(c.electores_after or 0) }}</td>
+                    <td class="text-end">{{ "{:+,}".format(c.delta_centros or 0) }}</td>
+                    <td class="text-end">{{ "{:+,}".format(c.delta_electores or 0) }}</td>
+                    <td><a class="btn btn-sm btn-outline-primary" href="/tm/cargas/{{ c.id }}">Ver</a></td>
+                </tr>
+            {% else %}
+                <tr><td colspan="9" class="text-muted">Sin cargas auditadas todavia.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="accordion mb-4" id="tmAccordions">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#legacyTools">
+                Herramientas legacy
+            </button>
+        </h2>
+        <div id="legacyTools" class="accordion-collapse collapse" data-bs-parent="#tmAccordions">
+            <div class="accordion-body">
+                <p class="small text-muted mb-3">Importadores deterministas para formatos historicos conocidos. Se conservan para reproducibilidad, recuperacion de datos y compatibilidad legacy.</p>
+                <form method="post" action="/tm/cargar" enctype="multipart/form-data" class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Archivo</label>
+                        <input type="file" name="archivo" class="form-control" accept=".xlsx,.xls,.xlsm,.csv" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Eleccion</label>
+                        <select name="eleccion_id" class="form-select">
+                            <option value="0">Sin asociar</option>
+                            {% for e in elecciones %}
+                            <option value="{{ e['id'] }}" {% if e['activa'] %}selected{% endif %}>{{ e['nombre'] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Periodo TM</label>
+                        <input type="text" name="periodo_tm" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Fecha/corte TM</label>
+                        <input type="text" name="fecha_tm" class="form-control" required>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label fw-semibold">Formato</label>
+                        <select name="formato" class="form-select">
+                            <option value="auto">Auto</option>
+                            <option value="2015">2015</option>
+                            <option value="2018">2018</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label fw-semibold">Hoja</label>
+                        <input type="text" name="hoja" class="form-control" placeholder="auto">
+                    </div>
+                    <div class="col-md-1">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="dry_run" value="1" id="legacyDry">
+                            <label class="form-check-label small" for="legacyDry">Simular</label>
+                        </div>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm mt-1">Cargar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#stateBreakdown">
+                Cambios territoriales nacionales actuales
+            </button>
+        </h2>
+        <div id="stateBreakdown" class="accordion-collapse collapse" data-bs-parent="#tmAccordions">
+            <div class="accordion-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover bg-white">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Entidad nacional</th>
+                                <th class="text-end">Centros</th>
+                                <th class="text-end">Electores</th>
+                                <th class="text-end">Mesas</th>
+                                <th class="text-end">Con GPS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for e in por_estado %}
+                            <tr>
+                                <td>{{ e.nombre }}</td>
+                                <td class="text-end">{{ "{:,}".format(e.centros) }}</td>
+                                <td class="text-end">{{ "{:,}".format(e.electores or 0) }}</td>
+                                <td class="text-end">{{ "{:,}".format(e.mesas or 0) }}</td>
+                                <td class="text-end">{{ "{:,}".format(e.con_gps or 0) }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </form>
-
-        <div class="mt-3 p-3 bg-light rounded small">
-            <strong>Carga diferencial:</strong>
-            <ul class="mb-0 mt-1">
-                <li>Centros nuevos se agregan</li>
-                <li>Centros existentes se actualizan (mesas, electores)</li>
-                <li>Centros ausentes se marcan inactivos solo dentro de los estados incluidos en el archivo</li>
-                <li>Coordenadas GPS y riesgo nunca se sobreescriben</li>
-            </ul>
         </div>
     </div>
-</div>
-
-<!-- Carga AI multi-formato -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-stars me-2"></i>Carga AI multi-formato</h5>
-        <span class="badge bg-secondary">PDF / Excel / CSV / Word / TXT</span>
-    </div>
-    <div class="card-body">
-        <div class="row g-3 align-items-end">
-            <div class="col-md-4">
-                <label for="aiEleccion" class="form-label fw-semibold">Eleccion destino</label>
-                <select id="aiEleccion" class="form-select" required>
-                    <option value="">Seleccione...</option>
-                    {% for e in elecciones %}
-                    <option value="{{ e['id'] }}" {% if e['activa'] %}selected{% endif %}>
-                        {{ e['nombre'] }} ({{ e['tipo'] }})
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-5">
-                <label for="aiFiles" class="form-label fw-semibold">Archivos TM</label>
-                <input id="aiFiles" type="file" class="form-control" multiple
-                       accept=".pdf,.xlsx,.xls,.xlsm,.csv,.docx,.txt">
-                <small class="text-muted">Preferencia: extraer texto en el navegador y enviar texto, no binarios.</small>
-            </div>
-            <div class="col-md-2">
-                <div class="form-check mt-4">
-                    <input class="form-check-input" type="checkbox" id="aiDryRun" checked>
-                    <label class="form-check-label" for="aiDryRun">
-                        <strong>Simulacion</strong>
-                        <small class="text-muted d-block">No escribe en BD</small>
-                    </label>
-                </div>
-            </div>
-            <div class="col-md-1">
-                <button id="aiProcesar" type="button" class="btn btn-outline-primary w-100">
-                    <i class="bi bi-cpu"></i>
-                </button>
-            </div>
-        </div>
-
-        <div id="aiProgress" class="mt-3 small text-muted"></div>
-
-        <div id="aiSummary" class="row g-2 mt-3 d-none">
-            <div class="col-md-2"><div class="alert alert-success py-2 mb-0">MATCHED: <strong id="sumMatched">0</strong></div></div>
-            <div class="col-md-2"><div class="alert alert-primary py-2 mb-0">NEW: <strong id="sumNew">0</strong></div></div>
-            <div class="col-md-2"><div class="alert alert-warning py-2 mb-0">AMBIG.: <strong id="sumAmbiguous">0</strong></div></div>
-            <div class="col-md-2"><div class="alert alert-danger py-2 mb-0">CONFLICT: <strong id="sumConflict">0</strong></div></div>
-            <div class="col-md-2"><div class="alert alert-secondary py-2 mb-0">ERROR: <strong id="sumError">0</strong></div></div>
-            <div class="col-md-2"><div class="alert alert-light border py-2 mb-0">Ineligibles: <strong id="sumIneligible">0</strong></div></div>
-        </div>
-
-        <div id="aiPreviewWrap" class="table-responsive mt-3 d-none">
-            <table class="table table-sm table-hover align-middle" id="aiPreviewTable">
-                <thead class="table-light">
-                    <tr>
-                        <th>Centro</th>
-                        <th>Municipio</th>
-                        <th>Status</th>
-                        <th class="text-end">Score</th>
-                        <th>Accion / resolucion</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-            <div class="d-flex gap-2 justify-content-end">
-                <button id="aiConfirmar" type="button" class="btn btn-success">
-                    <i class="bi bi-check-lg me-1"></i>Confirmar carga
-                </button>
-            </div>
-        </div>
-
-        <div class="mt-3 p-3 bg-light rounded small">
-            <strong>Reglas AI:</strong>
-            <ul class="mb-0 mt-1">
-                <li>El AI descubre columnas por contenido y conserva campos no estandar en <code>campos_extra</code>.</li>
-                <li><code>num_mesas</code> y <code>num_electores</code> se actualizan si vienen en el archivo.</li>
-                <li><code>direccion</code> solo se completa si el centro no la tenia.</li>
-                <li>GPS, riesgo y radio operativo no se sobreescriben desde tabla de mesa.</li>
-                <li>La confirmacion es acumulativa por estado: cargar La Guaira no desactiva otros estados ya cargados.</li>
-                <li>Filas AMBIGUOUS y CONFLICT bloquean la confirmacion hasta resolverse.</li>
-            </ul>
-        </div>
-    </div>
-</div>
-
-<!-- Desglose por estado -->
-{% if por_estado %}
-<h4 class="mb-3">Centros por Estado</h4>
-<div class="table-responsive">
-    <table class="table table-sm table-hover bg-white shadow-sm rounded">
-        <thead class="table-light">
-            <tr>
-                <th>Estado</th>
-                <th class="text-end">Centros</th>
-                <th class="text-end">Electores</th>
-                <th class="text-end">Mesas</th>
-                <th class="text-end">Con GPS</th>
-                <th class="text-end">% GPS</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for e in por_estado %}
-            <tr>
-                <td class="fw-semibold">{{ e["nombre"] }}</td>
-                <td class="text-end">{{ "{:,}".format(e["centros"]) }}</td>
-                <td class="text-end">{{ "{:,}".format(e["electores"] or 0) }}</td>
-                <td class="text-end">{{ "{:,}".format(e["mesas"] or 0) }}</td>
-                <td class="text-end">{{ e["con_gps"] }}</td>
-                <td class="text-end">
-                    {% if e["centros"] %}
-                    {{ "%.0f"|format(e["con_gps"] / e["centros"] * 100) }}%
-                    {% else %}—{% endif %}
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-        <tfoot class="table-light fw-bold">
-            <tr>
-                <td>TOTAL</td>
-                <td class="text-end">{{ "{:,}".format(stats.centros_activos) }}</td>
-                <td class="text-end">{{ "{:,}".format(stats.electores) }}</td>
-                <td class="text-end">—</td>
-                <td class="text-end">{{ "{:,}".format(stats.con_gps) }}</td>
-                <td class="text-end">
-                    {% if stats.centros_activos %}
-                    {{ "%.0f"|format(stats.con_gps / stats.centros_activos * 100) }}%
-                    {% endif %}
-                </td>
-            </tr>
-        </tfoot>
-    </table>
-</div>
-{% endif %}
+</section>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>
-let aiState = {
-  sourceFiles: [],
-  detectedColumns: [],
-  fieldNotes: {},
-  centros: [],
-  matchHints: [],
-  rows: []
-};
+let aiState = {sourceFiles: [], detectedColumns: [], fieldNotes: {}, centros: [], matchHints: [], rows: []};
 if (window.pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 }
-
-const statusClass = {
-  MATCHED: 'success',
-  NEW: 'primary',
-  AMBIGUOUS: 'warning',
-  CONFLICT: 'danger',
-  EXTRACTION_ERROR: 'secondary'
-};
+const statusClass = {MATCHED: 'success', NEW: 'primary', AMBIGUOUS: 'warning', CONFLICT: 'danger', EXTRACTION_ERROR: 'secondary'};
 const AI_CLIENT_CHUNK_SIZE = 8000;
 
-function setProgress(msg) {
+function setProgress(msg, active = false) {
   document.getElementById('aiProgress').textContent = msg;
+  document.getElementById('aiProgressBar').classList.toggle('d-none', !active);
 }
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+function inferPeriodFromFile(file) {
+  const period = document.getElementById('aiPeriodo');
+  const date = document.getElementById('aiFechaTm');
+  const sel = document.getElementById('aiEleccion');
+  const opt = sel.options[sel.selectedIndex];
+  if (!period.value && opt && opt.dataset.nombre) period.value = opt.dataset.nombre;
+  if (!date.value) {
+    const m = file.name.match(/(20\d{2}|19\d{2})/);
+    if (m) date.value = m[1];
+    else if (opt && opt.dataset.fecha) date.value = opt.dataset.fecha;
+  }
 }
 
 function chunkTextForAI(text, chunkSize = AI_CLIENT_CHUNK_SIZE) {
@@ -292,22 +319,16 @@ function chunkTextForAI(text, chunkSize = AI_CLIENT_CHUNK_SIZE) {
 function emptyAiResult(sourceFile) {
   return {ok: true, source_file: sourceFile, detected_columns: [], field_notes: {}, centros: [], match_hints: []};
 }
-
 function mergeAiResult(target, result) {
   target.detected_columns.push(...(result.detected_columns || []));
   Object.assign(target.field_notes, result.field_notes || {});
   target.centros.push(...(result.centros || []));
   target.match_hints.push(...(result.match_hints || []));
 }
-
 async function postAiExtract(payload, attempts = 2) {
   let lastError = '';
   for (let attempt = 0; attempt < attempts; attempt++) {
-    const r = await fetch('/api/tm/ai-extract', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
-    });
+    const r = await fetch('/api/tm/ai-extract', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
     if (r.ok) return await r.json();
     lastError = await r.text();
     if (attempt < attempts - 1) await sleep(1200 * (attempt + 1));
@@ -317,20 +338,20 @@ async function postAiExtract(payload, attempts = 2) {
 
 async function extractTextClient(file) {
   const ext = file.name.split('.').pop().toLowerCase();
-  if (['txt', 'csv'].includes(ext)) return await file.text();
+  if (['txt', 'csv'].includes(ext)) {
+    aiState.fieldNotes[file.name + ':csv'] = {encoding: 'browser-default', delimiter: 'auto', bom: file.name.toLowerCase().endsWith('.csv') ? 'unknown' : null};
+    return await file.text();
+  }
   if (['xlsx', 'xls', 'xlsm'].includes(ext) && window.XLSX) {
     const data = await file.arrayBuffer();
     const wb = XLSX.read(data, {type: 'array'});
+    aiState.fieldNotes[file.name + ':excel'] = {sheets_found: wb.SheetNames, sheets_used: wb.SheetNames};
     const lines = [];
     wb.SheetNames.forEach(name => {
       lines.push('### SHEET: ' + name);
       lines.push(XLSX.utils.sheet_to_csv(wb.Sheets[name], {FS: '\t'}));
     });
     return lines.join('\n');
-  }
-  if (ext === 'docx' && window.mammoth) {
-    const result = await mammoth.extractRawText({arrayBuffer: await file.arrayBuffer()});
-    return result.value || '';
   }
   if (ext === 'pdf' && window.pdfjsLib) {
     const pdf = await pdfjsLib.getDocument({data: await file.arrayBuffer()}).promise;
@@ -341,6 +362,7 @@ async function extractTextClient(file) {
       pages.push('### PAGE ' + i);
       pages.push(content.items.map(item => item.str).join(' '));
     }
+    aiState.fieldNotes[file.name + ':pdf'] = {pages: pdf.numPages, pages_used: pdf.numPages, extraction_method: 'pdfjs textContent', limitations: 'sin OCR; PDF escaneado puede no ser interpretable'};
     return pages.join('\n');
   }
   return '';
@@ -348,21 +370,13 @@ async function extractTextClient(file) {
 
 async function aiExtractFile(file, eleccionId) {
   let text = '';
-  try {
-    text = await extractTextClient(file);
-  } catch (err) {
-    console.warn('client extraction failed', err);
-  }
+  try { text = await extractTextClient(file); } catch (err) { console.warn('client extraction failed', err); }
   if (text.trim()) {
     const chunks = chunkTextForAI(text);
     const merged = emptyAiResult(file.name);
     for (let i = 0; i < chunks.length; i++) {
-      setProgress('Procesando ' + file.name + ': AI lote ' + (i + 1) + '/' + chunks.length + '...');
-      const data = await postAiExtract({
-        eleccion_id: eleccionId,
-        source_file: file.name + ' lote ' + (i + 1) + '/' + chunks.length,
-        text: chunks[i]
-      });
+      setProgress('Interpretando estructura: ' + file.name + ' lote ' + (i + 1) + '/' + chunks.length, true);
+      const data = await postAiExtract({eleccion_id: eleccionId, source_file: file.name + ' lote ' + (i + 1) + '/' + chunks.length, text: chunks[i]});
       if (!data.ok) {
         merged.field_notes['chunk_' + (i + 1) + '_error'] = data.raw_text_sample || JSON.stringify(data.field_notes || data);
         continue;
@@ -395,23 +409,16 @@ function renderPreview(result) {
 
   const tbody = document.querySelector('#aiPreviewTable tbody');
   tbody.innerHTML = '';
-  aiState.rows.forEach((row, idx) => {
+  aiState.rows.slice(0, 300).forEach((row, idx) => {
     const centro = row.centro || {};
     const tr = document.createElement('tr');
     const badge = '<span class="badge bg-' + (statusClass[row.match_status] || 'secondary') + '">' + row.match_status + '</span>';
     let action = row.matched_codigo_centro ? row.matched_codigo_centro + ' - ' + (row.matched_nombre || '') : 'Crear nuevo centro';
     if (['AMBIGUOUS', 'CONFLICT'].includes(row.match_status)) {
-      const options = (row.candidates || []).map(c => (
-        '<option value="' + c.codigo_centro + '">' + c.codigo_centro + ' - ' + c.nombre + ' (' + c.confidence_score + ')</option>'
-      )).join('');
-      action = '<select class="form-select form-select-sm ai-resolve" data-idx="' + idx + '">' +
-        '<option value="">Resolver manualmente...</option>' + options + '</select>';
+      const options = (row.candidates || []).map(c => '<option value="' + c.codigo_centro + '">' + c.codigo_centro + ' - ' + escapeHtml(c.nombre) + ' (' + c.confidence_score + ')</option>').join('');
+      action = '<select class="form-select form-select-sm ai-resolve" data-idx="' + idx + '"><option value="">Resolver manualmente...</option>' + options + '</select>';
     }
-    tr.innerHTML = '<td>' + escapeHtml(centro.nombre_centro || centro.codigo_centro || '') + '</td>' +
-      '<td>' + escapeHtml(centro.municipio || '') + '</td>' +
-      '<td>' + badge + '</td>' +
-      '<td class="text-end">' + (row.confidence_score || 0) + '</td>' +
-      '<td>' + action + '</td>';
+    tr.innerHTML = '<td>' + escapeHtml(centro.nombre_centro || centro.codigo_centro || '') + '</td><td>' + escapeHtml(centro.municipio || '') + '</td><td>' + badge + '</td><td class="text-end">' + (row.confidence_score || 0) + '</td><td>' + action + '</td>';
     tbody.appendChild(tr);
   });
   document.querySelectorAll('.ai-resolve').forEach(sel => {
@@ -422,28 +429,24 @@ function renderPreview(result) {
   });
 }
 
-function escapeHtml(s) {
-  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-}
-
 document.getElementById('aiProcesar').addEventListener('click', async function() {
   const eleccionId = document.getElementById('aiEleccion').value;
   const files = Array.from(document.getElementById('aiFiles').files || []);
   if (!eleccionId) return alert('Seleccione una eleccion destino.');
   if (!files.length) return alert('Seleccione uno o mas archivos.');
   if (files.some(f => f.size > 50 * 1024 * 1024)) return alert('Hay archivos mayores a 50MB.');
+  inferPeriodFromFile(files[0]);
 
-  aiState = {sourceFiles: files.map(f => f.name), detectedColumns: [], fieldNotes: {}, centros: [], matchHints: [], rows: []};
+  aiState = {sourceFiles: files.map(f => f.name), detectedColumns: [], fieldNotes: {}, centros: [], matchHints: [], rows: [], fileSize: files.reduce((n, f) => n + f.size, 0)};
   document.getElementById('aiPreviewWrap').classList.add('d-none');
   document.getElementById('aiSummary').classList.add('d-none');
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    setProgress('Procesando ' + file.name + ' (' + (i + 1) + '/' + files.length + '): extraccion + AI...');
+    setProgress('Analizando archivo: ' + file.name + ' (' + (i + 1) + '/' + files.length + ')', true);
     const data = await aiExtractFile(file, eleccionId);
     if (!data.ok) {
-      console.warn('AI extraction issue', data);
-      aiState.fieldNotes[file.name] = data.raw_text_sample || 'Sin filas extraidas';
+      aiState.fieldNotes[file.name + ':error'] = data.raw_text_sample || 'Sin filas extraidas';
       continue;
     }
     aiState.detectedColumns.push(...(data.detected_columns || []));
@@ -454,41 +457,50 @@ document.getElementById('aiProcesar').addEventListener('click', async function()
   }
   aiState.detectedColumns = [...new Set(aiState.detectedColumns)];
   if (!aiState.centros.length) {
-    setProgress('No se extrajeron filas. Revise la muestra de texto en consola o intente fallback servidor.');
+    setProgress('No se pudo normalizar el archivo. Si es PDF escaneado, esta iteracion no aplica OCR.', false);
     return;
   }
-  setProgress('Ejecutando match contra registro historico...');
+  setProgress('Normalizando y ejecutando match contra registro historico...', true);
   const match = await fetch('/api/tm/fuzzy-match', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({eleccion_id: eleccionId, centros: aiState.centros, match_hints: aiState.matchHints})
   }).then(r => r.json());
   renderPreview(match);
-  setProgress('Preview listo. Revise AMBIGUOUS/CONFLICT antes de confirmar.');
+  setProgress('Preview listo. Resuelva AMBIGUOUS/CONFLICT antes de aplicar.', false);
 });
 
 document.getElementById('aiConfirmar').addEventListener('click', async function() {
   const unresolved = aiState.rows.filter(r => ['AMBIGUOUS', 'CONFLICT'].includes(r.match_status) && !r.resolved_codigo_centro);
   if (unresolved.length) return alert('Debe resolver AMBIGUOUS/CONFLICT antes de confirmar.');
   const eleccionId = document.getElementById('aiEleccion').value;
-  aiState.rows.forEach(r => {
-    if (r.centro && r.centro._source_file) r.source_file = r.centro._source_file;
-  });
-  const dryRun = document.getElementById('aiDryRun').checked;
-  const res = await fetch('/api/tm/confirm', {
+  const periodo = document.getElementById('aiPeriodo').value.trim();
+  const fechaTm = document.getElementById('aiFechaTm').value.trim();
+  if (!periodo || !fechaTm) return alert('Indique periodo y fecha/corte del Tabla Mesa antes de aplicar.');
+  aiState.rows.forEach(r => { if (r.centro && r.centro._source_file) r.source_file = r.centro._source_file; });
+  setProgress('Aplicando Tabla Mesa y generando reporte...', true);
+  const response = await fetch('/api/tm/confirm', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
       eleccion_id: eleccionId,
+      periodo_tm: periodo,
+      fecha_tm: fechaTm,
       rows: aiState.rows,
       source_files: aiState.sourceFiles,
+      file_size: aiState.fileSize || 0,
       detected_columns: aiState.detectedColumns,
       field_notes: aiState.fieldNotes,
-      dry_run: dryRun
+      dry_run: false
     })
-  }).then(r => r.json());
-  setProgress((dryRun ? 'Simulacion completa: ' : 'Carga confirmada: ') + JSON.stringify(res.stats || res));
-  if (!dryRun && res.ok) setTimeout(() => location.reload(), 1200);
+  });
+  const res = await response.json();
+  if (!response.ok || !res.ok) {
+    setProgress('No se completo la carga: ' + JSON.stringify(res), false);
+    return;
+  }
+  setProgress('Tabla Mesa cargada correctamente. Reporte #' + res.carga_id, false);
+  if (res.carga_id) setTimeout(() => { window.location.href = '/tm/cargas/' + res.carga_id; }, 900);
 });
 </script>
 {% endblock %}
