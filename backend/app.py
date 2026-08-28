@@ -301,8 +301,9 @@ def index(request: Request):
                    JOIN muestra m ON p.id_muestra=m.id
                    WHERE m.id_eleccion=?""", (eid,)
             ).fetchone()["c"]
+        test_refs = _refs_test_disponibles(db, eleccion["tipo"] if eleccion else None)
         return templates.TemplateResponse(request=request, name="index.html", context={
-            "eleccion": eleccion, "stats": stats
+            "eleccion": eleccion, "stats": stats, "test_refs": test_refs
         })
     finally:
         db.close()
@@ -963,8 +964,6 @@ def tm_index(request: Request, msg: str = "", cat: str = "success"):
         ).fetchall()
         por_estado_map = {}
         for row in por_estado_raw:
-            if int(row["id_estado"] if "id_estado" in row.keys() else 0) not in range(1, 25):
-                continue
             key = _canonical_estado_name(row["nombre"])
             nombre = "EDO. LA GUAIRA" if key == "LA GUAIRA" else row["nombre"]
             agg = por_estado_map.setdefault(nombre, {"nombre": nombre, "centros": 0, "electores": 0, "mesas": 0, "con_gps": 0})
@@ -2645,37 +2644,14 @@ def _nombres_candidatos(db, id_eleccion: int = None) -> dict:
 
 
 @app.get("/visualizacion", response_class=HTMLResponse)
-def visualizacion_index(request: Request, msg: str = "", cat: str = "success"):
+def visualizacion_index(request: Request):
     db = get_db()
     try:
         eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
-
-        tiene_resultados = db.execute(
-            "SELECT COUNT(*) c FROM resultados_historicos"
-        ).fetchone()["c"] > 0
-
-        tiene_muestra = False
-        if eleccion:
-            tiene_muestra = db.execute(
-                "SELECT COUNT(*) c FROM muestra WHERE id_eleccion=?", (eleccion["id"],)
-            ).fetchone()["c"] > 0
-
-        # Verificar si ya hay archivos generados
-        heatmap_existe = (VIZ_DIR / "heatmap.html").exists()
-        dashboard_existe = (VIZ_DIR / "dashboard.html").exists()
-
-        refs = db.execute(
-            "SELECT DISTINCT eleccion_ref FROM resultados_historicos"
-        ).fetchall()
-
+        contexto = _dashboard_operativo_context(db, eleccion)
         return templates.TemplateResponse(request=request, name="visualizacion.html", context={
             "eleccion": eleccion,
-            "tiene_resultados": tiene_resultados,
-            "tiene_muestra": tiene_muestra,
-            "heatmap_existe": heatmap_existe,
-            "dashboard_existe": dashboard_existe,
-            "refs": refs,
-            "msg": msg, "cat": cat,
+            **contexto,
         })
     finally:
         db.close()
@@ -2688,75 +2664,7 @@ def visualizacion_generar(
     nivel: str = Form("estado"),
     fuente: str = Form("todos"),
 ):
-    db = get_db()
-    try:
-        eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
-        eid = eleccion["id"] if eleccion else None
-
-        candidatos_dict = _nombres_candidatos(db, eid)
-
-        # Obtener datos de ventaja (siempre de una sola eleccion_ref)
-        eleccion_ref = _eleccion_ref_referencia(db)
-        if not eleccion_ref:
-            datos_ventaja = {}
-        elif nivel == "municipio":
-            if fuente == "muestra" and eid:
-                datos_ventaja = _datos_ventaja_muestra_municipio(db, eid, eleccion_ref)
-            else:
-                datos_ventaja = _datos_ventaja_por_municipio(db, eleccion_ref)
-        elif fuente == "muestra" and eid:
-            datos_ventaja = _datos_ventaja_muestra(db, eid, eleccion_ref)
-        else:
-            datos_ventaja = _datos_ventaja_por_estado(db, eleccion_ref)
-
-
-        if not datos_ventaja:
-            return RedirectResponse(
-                "/visualizacion?msg=No+hay+datos+de+resultados+hist%C3%B3ricos&cat=warning",
-                status_code=303
-            )
-
-        _ensure_backend_path()
-
-        titulo = eleccion["nombre"] if eleccion else "Exit Poll Venezuela"
-
-        try:
-            if tipo == "dashboard":
-                import generador_dashboard
-
-                tendencias = _tendencia_simulada(datos_ventaja)
-                ruta = str(VIZ_DIR / "dashboard.html")
-                generador_dashboard.generar_dashboard(
-                    datos_ventaja, tendencias,
-                    nivel=nivel, ruta_salida=ruta,
-                    titulo=titulo, candidatos=candidatos_dict
-                )
-                return RedirectResponse(
-                    "/visualizacion?msg=Dashboard+generado+exitosamente&cat=success",
-                    status_code=303
-                )
-            else:
-                import generador_heatmap
-
-                ruta = str(VIZ_DIR / "heatmap.html")
-                generador_heatmap.generar_heatmap(
-                    datos_ventaja, nivel=nivel, ruta_salida=ruta,
-                    titulo=titulo, candidatos=candidatos_dict
-                )
-                return RedirectResponse(
-                    "/visualizacion?msg=Heatmap+generado+exitosamente&cat=success",
-                    status_code=303
-                )
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            error_msg = str(e)[:200]
-            return RedirectResponse(
-                f"/visualizacion?msg=Error:+{error_msg}&cat=danger",
-                status_code=303
-            )
-    finally:
-        db.close()
+    return RedirectResponse("/visualizacion", status_code=303)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -2787,13 +2695,16 @@ def _datos_vivos(db, id_eleccion: int) -> tuple:
     Lee opiniones reales de la BD y devuelve
     (datos_ventaja, datos_tendencia, total_votos).
 
-    datos_ventaja  : {nombre_estado: ventaja_float}   — gobierno - oposición en %
-    datos_tendencia: {NOMBRE_UPPER: [{"hora","gob","opo"}, ...]}  — acumulados por turno
+    datos_ventaja  : {nombre_estado: ventaja_float}   — gobierno - oposicion ponderado en %
+    datos_tendencia: {NOMBRE_UPPER: [{"hora","gob","opo"}, ...]}  — acumulados ponderados por turno
     """
     total = db.execute("""
         SELECT COUNT(*) c FROM votos v
         JOIN muestra m ON m.codigo_centro = v.codigo_centro
-        WHERE m.id_eleccion = ? AND v.valido = 1
+        WHERE m.id_eleccion = ?
+          AND m.activo = 1
+          AND COALESCE(m.rol_muestra, 'titular') = 'titular'
+          AND v.valido = 1
     """, (id_eleccion,)).fetchone()["c"]
 
     if total == 0:
@@ -2803,22 +2714,27 @@ def _datos_vivos(db, id_eleccion: int) -> tuple:
     rows_est = db.execute("""
         SELECT
             est.nombre                                              AS estado,
-            SUM(CASE WHEN ca.bando = 'gobierno'  THEN 1 ELSE 0 END) AS gob,
-            SUM(CASE WHEN ca.bando = 'oposicion' THEN 1 ELSE 0 END) AS opo,
+            SUM(CASE WHEN ca.bando = 'gobierno'  THEN CASE WHEN COALESCE(p.peso_estado, 0) > 0 THEN p.peso_estado ELSE 1.0 END ELSE 0 END) AS gob,
+            SUM(CASE WHEN ca.bando = 'oposicion' THEN CASE WHEN COALESCE(p.peso_estado, 0) > 0 THEN p.peso_estado ELSE 1.0 END ELSE 0 END) AS opo,
             COUNT(*)                                                AS total
         FROM votos v
         JOIN muestra    m   ON m.codigo_centro = v.codigo_centro
         JOIN centros    c   ON c.codigo_cne    = v.codigo_centro
         JOIN estados    est ON est.id          = c.id_estado
         JOIN candidatos ca  ON ca.id           = v.id_candidato
-        WHERE v.valido = 1 AND m.id_eleccion = ?
+        LEFT JOIN pesos p   ON p.id_muestra    = m.id
+        WHERE v.valido = 1
+          AND m.id_eleccion = ?
+          AND m.activo = 1
+          AND COALESCE(m.rol_muestra, 'titular') = 'titular'
         GROUP BY est.id
     """, (id_eleccion,)).fetchall()
 
     datos_ventaja = {}
     for r in rows_est:
-        if r["total"] > 0:
-            ventaja = round(100 * r["gob"] / r["total"] - 100 * r["opo"] / r["total"], 1)
+        total_pond = float(r["gob"] or 0) + float(r["opo"] or 0)
+        if total_pond > 0:
+            ventaja = round(100 * float(r["gob"] or 0) / total_pond - 100 * float(r["opo"] or 0) / total_pond, 1)
             datos_ventaja[_norm_estado(r["estado"])] = ventaja
 
     # ── Tendencias acumuladas — nacional ─────────────────────────
@@ -2826,12 +2742,16 @@ def _datos_vivos(db, id_eleccion: int) -> tuple:
         SELECT
             v.turno,
             MIN(v.hora)                                             AS hora_min,
-            SUM(CASE WHEN ca.bando = 'gobierno'  THEN 1 ELSE 0 END) AS gob,
-            SUM(CASE WHEN ca.bando = 'oposicion' THEN 1 ELSE 0 END) AS opo
+            SUM(CASE WHEN ca.bando = 'gobierno'  THEN CASE WHEN COALESCE(p.peso_nacion, 0) > 0 THEN p.peso_nacion ELSE 1.0 END ELSE 0 END) AS gob,
+            SUM(CASE WHEN ca.bando = 'oposicion' THEN CASE WHEN COALESCE(p.peso_nacion, 0) > 0 THEN p.peso_nacion ELSE 1.0 END ELSE 0 END) AS opo
         FROM votos v
         JOIN muestra    m  ON m.codigo_centro = v.codigo_centro
         JOIN candidatos ca ON ca.id           = v.id_candidato
-        WHERE v.valido = 1 AND m.id_eleccion = ?
+        LEFT JOIN pesos p  ON p.id_muestra    = m.id
+        WHERE v.valido = 1
+          AND m.id_eleccion = ?
+          AND m.activo = 1
+          AND COALESCE(m.rol_muestra, 'titular') = 'titular'
         GROUP BY v.turno
         ORDER BY v.turno
     """, (id_eleccion,)).fetchall()
@@ -2858,14 +2778,18 @@ def _datos_vivos(db, id_eleccion: int) -> tuple:
             est.nombre                                              AS estado,
             v.turno,
             MIN(v.hora)                                             AS hora_min,
-            SUM(CASE WHEN ca.bando = 'gobierno'  THEN 1 ELSE 0 END) AS gob,
-            SUM(CASE WHEN ca.bando = 'oposicion' THEN 1 ELSE 0 END) AS opo
+            SUM(CASE WHEN ca.bando = 'gobierno'  THEN CASE WHEN COALESCE(p.peso_estado, 0) > 0 THEN p.peso_estado ELSE 1.0 END ELSE 0 END) AS gob,
+            SUM(CASE WHEN ca.bando = 'oposicion' THEN CASE WHEN COALESCE(p.peso_estado, 0) > 0 THEN p.peso_estado ELSE 1.0 END ELSE 0 END) AS opo
         FROM votos v
         JOIN muestra    m   ON m.codigo_centro = v.codigo_centro
         JOIN centros    c   ON c.codigo_cne    = v.codigo_centro
         JOIN estados    est ON est.id          = c.id_estado
         JOIN candidatos ca  ON ca.id           = v.id_candidato
-        WHERE v.valido = 1 AND m.id_eleccion = ?
+        LEFT JOIN pesos p   ON p.id_muestra    = m.id
+        WHERE v.valido = 1
+          AND m.id_eleccion = ?
+          AND m.activo = 1
+          AND COALESCE(m.rol_muestra, 'titular') = 'titular'
         GROUP BY est.id, v.turno
         ORDER BY est.nombre, v.turno
     """, (id_eleccion,)).fetchall()
@@ -2925,6 +2849,333 @@ def _dashboard_stream_payload(db: sqlite3.Connection) -> dict:
         "total_votos": total_votos,
         "total_opiniones": total_votos,
     }
+
+
+def _porcentajes_por_bando(rows) -> dict:
+    valores = {"gobierno": 0.0, "oposicion": 0.0, "otro": 0.0}
+    for row in rows:
+        bando = row["bando"] or "otro"
+        valores[bando] = valores.get(bando, 0.0) + float(row["valor"] or 0)
+    total = sum(valores.values())
+    if total <= 0:
+        return {"gobierno": 0.0, "oposicion": 0.0, "otro": 0.0}
+    return {k: round(100 * v / total, 1) for k, v in valores.items()}
+
+
+def _dashboard_operativo_context(db: sqlite3.Connection, eleccion) -> dict:
+    if not eleccion:
+        return {
+            "ok": False,
+            "motivo": "No hay eleccion activa",
+            "fuente_datos": "sin_datos",
+            "metricas": {},
+            "muestra": {},
+            "pesos": {},
+            "estados": [],
+            "chart_data": json.dumps({}, ensure_ascii=False),
+        }
+
+    eid = eleccion["id"]
+    payload = _dashboard_stream_payload(db)
+    datos_ventaja = payload.get("geo") or {}
+    datos_tendencia = payload.get("series") or {}
+    puntos_nac = datos_tendencia.get("VENEZUELA") or []
+    punto_actual = puntos_nac[-1] if puntos_nac else {"hora": "", "gob": 0.0, "opo": 0.0}
+    ventaja_actual = round(float(punto_actual.get("gob") or 0) - float(punto_actual.get("opo") or 0), 1)
+
+    rows_crudo = db.execute("""
+        SELECT COALESCE(ca.bando, 'otro') AS bando, COUNT(*) AS valor
+        FROM votos v
+        JOIN muestra m ON m.codigo_centro = v.codigo_centro
+        JOIN candidatos ca ON ca.id = v.id_candidato
+        WHERE v.valido = 1
+          AND m.id_eleccion = ?
+          AND m.activo = 1
+          AND COALESCE(m.rol_muestra, 'titular') = 'titular'
+        GROUP BY COALESCE(ca.bando, 'otro')
+    """, (eid,)).fetchall()
+    rows_pond = db.execute("""
+        SELECT COALESCE(ca.bando, 'otro') AS bando,
+               SUM(CASE WHEN COALESCE(p.peso_nacion, 0) > 0 THEN p.peso_nacion ELSE 1.0 END) AS valor
+        FROM votos v
+        JOIN muestra m ON m.codigo_centro = v.codigo_centro
+        JOIN candidatos ca ON ca.id = v.id_candidato
+        LEFT JOIN pesos p ON p.id_muestra = m.id
+        WHERE v.valido = 1
+          AND m.id_eleccion = ?
+          AND m.activo = 1
+          AND COALESCE(m.rol_muestra, 'titular') = 'titular'
+        GROUP BY COALESCE(ca.bando, 'otro')
+    """, (eid,)).fetchall()
+    pct_crudo = _porcentajes_por_bando(rows_crudo)
+    pct_pond = _porcentajes_por_bando(rows_pond)
+    ventaja_actual = round(pct_pond["gobierno"] - pct_pond["oposicion"], 1)
+    rows_cand = db.execute("""
+        SELECT ca.id,
+               ca.nombre,
+               ca.partido,
+               COALESCE(ca.bando, 'otro') AS bando,
+               SUM(CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END) AS votos,
+               SUM(CASE WHEN m.id IS NOT NULL THEN CASE WHEN COALESCE(p.peso_nacion, 0) > 0 THEN p.peso_nacion ELSE 1.0 END ELSE 0 END) AS ponderado
+        FROM candidatos ca
+        LEFT JOIN votos v ON v.id_candidato = ca.id AND v.valido = 1
+        LEFT JOIN muestra m ON m.codigo_centro = v.codigo_centro
+             AND m.id_eleccion = ca.id_eleccion
+             AND m.activo = 1
+             AND COALESCE(m.rol_muestra, 'titular') = 'titular'
+        LEFT JOIN pesos p ON p.id_muestra = m.id
+        WHERE ca.id_eleccion = ?
+        GROUP BY ca.id
+        ORDER BY ca.orden, ca.id
+    """, (eid,)).fetchall()
+    total_cand_crudo = sum(int(r["votos"] or 0) for r in rows_cand)
+    total_cand_pond = sum(float(r["ponderado"] or 0) for r in rows_cand)
+    candidatos = []
+    for row in rows_cand:
+        votos = int(row["votos"] or 0)
+        ponderado = float(row["ponderado"] or 0)
+        candidatos.append({
+            "nombre": row["nombre"],
+            "partido": row["partido"] or "",
+            "bando": row["bando"],
+            "votos": votos,
+            "pct_crudo": round(100 * votos / total_cand_crudo, 1) if total_cand_crudo else 0.0,
+            "pct_ponderado": round(100 * ponderado / total_cand_pond, 1) if total_cand_pond else 0.0,
+        })
+    if not any(c["bando"] == "otro" for c in candidatos):
+        candidatos.append({
+            "nombre": "Otros",
+            "partido": "",
+            "bando": "otro",
+            "votos": 0,
+            "pct_crudo": 0.0,
+            "pct_ponderado": 0.0,
+        })
+
+    muestra = db.execute("""
+        SELECT COUNT(*) AS centros,
+               COALESCE(SUM(c.num_electores), 0) AS electores,
+               COUNT(DISTINCT c.id_estado) AS estados
+        FROM muestra m
+        JOIN centros c ON c.codigo_cne = m.codigo_centro
+        WHERE m.id_eleccion = ?
+          AND m.activo = 1
+          AND COALESCE(m.rol_muestra, 'titular') = 'titular'
+    """, (eid,)).fetchone()
+    frame = db.execute("""
+        SELECT COUNT(*) AS centros,
+               COALESCE(SUM(num_electores), 0) AS electores
+        FROM centros
+        WHERE activo = 1 AND id_estado BETWEEN 1 AND 24
+    """).fetchone()
+    reportes = db.execute("""
+        SELECT COUNT(DISTINCT v.codigo_centro) AS centros,
+               COUNT(DISTINCT v.turno) AS turnos
+        FROM votos v
+        JOIN muestra m ON m.codigo_centro = v.codigo_centro
+        WHERE v.valido = 1
+          AND m.id_eleccion = ?
+          AND m.activo = 1
+          AND COALESCE(m.rol_muestra, 'titular') = 'titular'
+    """, (eid,)).fetchone()
+    pesos = db.execute("""
+        SELECT COUNT(m.id) AS centros_muestra,
+               COUNT(p.id_muestra) AS centros_con_peso,
+               MIN(p.peso_nacion) AS min_nacion,
+               MAX(p.peso_nacion) AS max_nacion,
+               SUM(p.peso_nacion) AS suma_nacion
+        FROM muestra m
+        LEFT JOIN pesos p ON p.id_muestra = m.id
+        WHERE m.id_eleccion = ?
+          AND m.activo = 1
+          AND COALESCE(m.rol_muestra, 'titular') = 'titular'
+    """, (eid,)).fetchone()
+
+    rows_estado = db.execute("""
+        WITH sample AS (
+            SELECT m.id AS id_muestra,
+                   m.codigo_centro,
+                   c.id_estado,
+                   e.nombre AS estado,
+                   c.num_electores,
+                   CASE WHEN COALESCE(p.peso_estado, 0) > 0 THEN p.peso_estado ELSE 1.0 END AS peso_estado
+            FROM muestra m
+            JOIN centros c ON c.codigo_cne = m.codigo_centro
+            JOIN estados e ON e.id = c.id_estado
+            LEFT JOIN pesos p ON p.id_muestra = m.id
+            WHERE m.id_eleccion = ?
+              AND m.activo = 1
+              AND COALESCE(m.rol_muestra, 'titular') = 'titular'
+        ),
+        frame AS (
+            SELECT id_estado, COUNT(*) AS frame_centros, COALESCE(SUM(num_electores), 0) AS frame_electores
+            FROM centros
+            WHERE activo = 1 AND id_estado BETWEEN 1 AND 24
+            GROUP BY id_estado
+        ),
+        votos_estado AS (
+            SELECT s.id_estado,
+                   COUNT(v.id) AS opiniones,
+                   COUNT(DISTINCT v.codigo_centro) AS centros_reportando,
+                   SUM(CASE WHEN ca.bando = 'gobierno' THEN s.peso_estado ELSE 0 END) AS gob,
+                   SUM(CASE WHEN ca.bando = 'oposicion' THEN s.peso_estado ELSE 0 END) AS opo,
+                   SUM(CASE WHEN COALESCE(ca.bando, 'otro') NOT IN ('gobierno', 'oposicion') THEN s.peso_estado ELSE 0 END) AS otros
+            FROM sample s
+            LEFT JOIN votos v ON v.codigo_centro = s.codigo_centro AND v.valido = 1
+            LEFT JOIN candidatos ca ON ca.id = v.id_candidato
+            GROUP BY s.id_estado
+        )
+        SELECT s.id_estado,
+               s.estado,
+               COUNT(*) AS centros_muestra,
+               COALESCE(SUM(s.num_electores), 0) AS electores_muestra,
+               COALESCE(f.frame_centros, 0) AS frame_centros,
+               COALESCE(f.frame_electores, 0) AS frame_electores,
+               COALESCE(v.opiniones, 0) AS opiniones,
+               COALESCE(v.centros_reportando, 0) AS centros_reportando,
+               COALESCE(v.gob, 0) AS gob,
+               COALESCE(v.opo, 0) AS opo,
+               COALESCE(v.otros, 0) AS otros
+        FROM sample s
+        LEFT JOIN frame f ON f.id_estado = s.id_estado
+        LEFT JOIN votos_estado v ON v.id_estado = s.id_estado
+        GROUP BY s.id_estado, s.estado
+        ORDER BY s.id_estado
+    """, (eid,)).fetchall()
+
+    estados = []
+    for row in rows_estado:
+        gob = float(row["gob"] or 0)
+        opo = float(row["opo"] or 0)
+        otros = float(row["otros"] or 0)
+        total_pond = gob + opo + otros
+        pct_gob = round(100 * gob / total_pond, 1) if total_pond else 0.0
+        pct_opo = round(100 * opo / total_pond, 1) if total_pond else 0.0
+        pct_otros = round(100 * otros / total_pond, 1) if total_pond else 0.0
+        ventaja = round(pct_gob - pct_opo, 1) if total_pond else None
+        centros_muestra = int(row["centros_muestra"] or 0)
+        frame_electores = int(row["frame_electores"] or 0)
+        electores_muestra = int(row["electores_muestra"] or 0)
+        estados.append({
+            "estado": _norm_estado(row["estado"]),
+            "centros_muestra": centros_muestra,
+            "centros_reportando": int(row["centros_reportando"] or 0),
+            "opiniones": int(row["opiniones"] or 0),
+            "electores_muestra": electores_muestra,
+            "frame_electores": frame_electores,
+            "pct_electores_muestra": round(100 * electores_muestra / frame_electores, 2) if frame_electores else 0.0,
+            "cobertura": round(100 * int(row["centros_reportando"] or 0) / centros_muestra, 1) if centros_muestra else 0.0,
+            "gobierno": pct_gob,
+            "oposicion": pct_opo,
+            "otros": pct_otros,
+            "ventaja": ventaja,
+            "desvio": round(ventaja - ventaja_actual, 1) if ventaja is not None else None,
+        })
+
+    desviaciones = sorted(
+        [e for e in estados if e["desvio"] is not None],
+        key=lambda item: abs(item["desvio"]),
+        reverse=True,
+    )[:12]
+
+    centros_muestra = int(muestra["centros"] or 0)
+    centros_reportando = int(reportes["centros"] or 0)
+    electores_frame = int(frame["electores"] or 0)
+    electores_muestra = int(muestra["electores"] or 0)
+    chart_data = {
+        "barras": {
+            "labels": ["Gobierno", "Oposicion", "Otros"],
+            "crudo": [pct_crudo["gobierno"], pct_crudo["oposicion"], pct_crudo["otro"]],
+            "ponderado": [pct_pond["gobierno"], pct_pond["oposicion"], pct_pond["otro"]],
+        },
+        "gauge": {
+            "ventaja": round(pct_pond["gobierno"] - pct_pond["oposicion"], 1),
+        },
+        "candidatos": {
+            "labels": [c["nombre"] for c in candidatos],
+            "ponderado": [c["pct_ponderado"] for c in candidatos],
+            "colores": [
+                "#b73a3a" if c["bando"] == "gobierno" else "#2f64b3" if c["bando"] == "oposicion" else "#7a6f2b"
+                for c in candidatos
+            ],
+        },
+        "tendencia": puntos_nac,
+        "series_estado": {
+            key: value
+            for key, value in datos_tendencia.items()
+            if key != "VENEZUELA"
+        },
+        "desviaciones": desviaciones,
+        "estados": sorted(estados, key=lambda item: item["estado"]),
+    }
+    return {
+        "ok": True,
+        "fuente_datos": payload.get("fuente_datos", "sin_datos"),
+        "metricas": {
+            "total_opiniones": int(payload.get("total_opiniones") or 0),
+            "hora": punto_actual.get("hora") or "",
+            "gobierno": pct_pond["gobierno"],
+            "oposicion": pct_pond["oposicion"],
+            "otros": pct_pond["otro"],
+            "ventaja": round(pct_pond["gobierno"] - pct_pond["oposicion"], 1),
+            "actualizado": datetime.now().strftime("%H:%M:%S"),
+        },
+        "muestra": {
+            "centros": centros_muestra,
+            "centros_reportando": centros_reportando,
+            "cobertura": round(100 * centros_reportando / centros_muestra, 1) if centros_muestra else 0.0,
+            "estados": int(muestra["estados"] or 0),
+            "electores": electores_muestra,
+            "electores_frame": electores_frame,
+            "pct_electores": round(100 * electores_muestra / electores_frame, 2) if electores_frame else 0.0,
+            "turnos": int(reportes["turnos"] or 0),
+        },
+        "pesos": {
+            "centros_con_peso": int(pesos["centros_con_peso"] or 0),
+            "centros_muestra": int(pesos["centros_muestra"] or 0),
+            "min_nacion": round(float(pesos["min_nacion"] or 0), 6),
+            "max_nacion": round(float(pesos["max_nacion"] or 0), 6),
+            "suma_nacion": round(float(pesos["suma_nacion"] or 0), 6),
+        },
+        "candidatos": candidatos,
+        "estados": sorted(estados, key=lambda item: item["estado"]),
+        "chart_data": json.dumps(chart_data, ensure_ascii=False),
+    }
+
+
+@app.get("/visualizacion/mapa", response_class=HTMLResponse)
+def visualizacion_mapa():
+    db = get_db()
+    try:
+        eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1 LIMIT 1").fetchone()
+        if not eleccion:
+            return HTMLResponse("<html><body>No hay eleccion activa</body></html>", status_code=200)
+        payload = _dashboard_stream_payload(db)
+        datos_ventaja = payload.get("geo") or {}
+        datos_tendencia = payload.get("series") or {}
+        if not datos_ventaja:
+            return HTMLResponse(_mapa_base_vacio(), status_code=200)
+
+        _ensure_backend_path()
+        import generador_dashboard
+
+        tmp = tempfile.mktemp(suffix=".html")
+        try:
+            generador_dashboard.generar_dashboard(
+                datos_ventaja,
+                datos_tendencia,
+                nivel="estado",
+                ruta_salida=tmp,
+                titulo=eleccion["nombre"],
+                candidatos=_nombres_candidatos(db, eleccion["id"]),
+            )
+            with open(tmp, encoding="utf-8") as f:
+                return HTMLResponse(f.read(), status_code=200)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+    finally:
+        db.close()
 
 
 @app.get("/stream/dashboard")
@@ -3026,7 +3277,13 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
         usando_referencia = total_votos > 0
 
     muestra_total = db.execute(
-        "SELECT COUNT(*) c FROM muestra WHERE id_eleccion=? AND activo=1",
+        """
+        SELECT COUNT(*) c
+        FROM muestra
+        WHERE id_eleccion=?
+          AND activo=1
+          AND COALESCE(rol_muestra, 'titular')='titular'
+        """,
         (eid,),
     ).fetchone()["c"]
     if usando_referencia:
@@ -3036,7 +3293,10 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
             SELECT COUNT(DISTINCT v.codigo_centro) c
             FROM votos v
             JOIN muestra m ON m.codigo_centro = v.codigo_centro
-            WHERE m.id_eleccion = ? AND v.valido = 1
+            WHERE m.id_eleccion = ?
+              AND m.activo = 1
+              AND COALESCE(m.rol_muestra, 'titular')='titular'
+              AND v.valido = 1
         """, (eid,)).fetchone()["c"]
 
     puntos_nac = datos_tendencia.get("VENEZUELA") or []
@@ -3091,7 +3351,9 @@ def _contexto_analista(db, eleccion, candidatos_dict: dict) -> dict:
             LEFT JOIN votos v
               ON v.codigo_centro = m.codigo_centro
              AND v.valido = 1
-            WHERE m.id_eleccion = ? AND m.activo = 1
+            WHERE m.id_eleccion = ?
+              AND m.activo = 1
+              AND COALESCE(m.rol_muestra, 'titular')='titular'
             GROUP BY est.id
         """, (eid,)).fetchall()
         for r in rows_estado_suf:
@@ -3635,33 +3897,110 @@ _CANDIDATOS_DEMO = [
 ]
 
 
-def _pct_2024() -> dict[str, tuple[float, float]]:
-    pct: dict[str, tuple[float, float]] = {}
+def _pct_2024() -> dict[str, tuple[float, float, float]]:
+    pct: dict[str, tuple[float, float, float]] = {}
     with open(CSV_2024, encoding="utf-8-sig") as f:
         for row in csv.DictReader(f):
+            p_g = float(row["pct_gobierno"]) / 100
+            p_o = float(row["pct_oposicion"]) / 100
             pct[row["centro_cne_id"]] = (
-                float(row["pct_gobierno"]) / 100,
-                float(row["pct_oposicion"]) / 100,
+                p_g,
+                p_o,
+                max(0.0, 1.0 - p_g - p_o),
             )
     return pct
 
 
-def _asegurar_candidatos(db: sqlite3.Connection, id_eleccion: int) -> dict[str, int]:
+def _refs_test_disponibles(db: sqlite3.Connection, tipo_eleccion: str | None = None) -> list[dict]:
+    rows = db.execute("""
+        SELECT eleccion_ref,
+               COUNT(*) AS centros,
+               COALESCE(SUM(votos_validos), 0) AS validos,
+               COALESCE(SUM(votos_otros), 0) AS otros
+        FROM resultados_historicos
+        GROUP BY eleccion_ref
+        HAVING validos > 0
+        ORDER BY eleccion_ref
+    """).fetchall()
+    tokens_por_tipo = {
+        "nacional": ("presidencial", "revocatorio", "referendum", "enmienda"),
+        "asamblea": ("asamblea", "parlamentaria"),
+        "regional": ("regional", "gobernador", "gobernadores"),
+        "municipal": ("municipal", "municipales"),
+    }
+    tokens = tokens_por_tipo.get(tipo_eleccion or "", ())
+    filtradas = [r for r in rows if not tokens or any(t in r["eleccion_ref"].lower() for t in tokens)]
+    if not filtradas:
+        filtradas = rows
+    return [
+        {
+            "ref": r["eleccion_ref"],
+            "label": r["eleccion_ref"].replace("-", " ").title(),
+            "centros": int(r["centros"] or 0),
+            "validos": int(r["validos"] or 0),
+            "tiene_otros": float(r["otros"] or 0) > 0,
+        }
+        for r in filtradas
+    ]
+
+
+def _pct_historico(db: sqlite3.Connection, eleccion_ref: str) -> dict[str, tuple[float, float, float]]:
+    rows = db.execute("""
+        SELECT codigo_centro, votos_validos, votos_gobierno, votos_oposicion, votos_otros
+        FROM resultados_historicos
+        WHERE eleccion_ref = ?
+    """, (eleccion_ref,)).fetchall()
+    pct: dict[str, tuple[float, float, float]] = {}
+    for row in rows:
+        validos = float(row["votos_validos"] or 0)
+        if validos <= 0:
+            continue
+        gob = max(0.0, float(row["votos_gobierno"] or 0))
+        opo = max(0.0, float(row["votos_oposicion"] or 0))
+        otros = max(0.0, float(row["votos_otros"] or 0))
+        if otros == 0 and gob + opo < validos:
+            otros = validos - gob - opo
+        pct[row["codigo_centro"]] = (gob / validos, opo / validos, otros / validos)
+    return pct
+
+
+def _pct_random(centros) -> dict[str, tuple[float, float, float]]:
+    pct: dict[str, tuple[float, float, float]] = {}
+    for c in centros:
+        otros = random.uniform(0.01, 0.08)
+        oposicion = random.uniform(0.42, 0.62)
+        gobierno = max(0.01, 1.0 - oposicion - otros)
+        total = gobierno + oposicion + otros
+        pct[c["codigo_centro"]] = (gobierno / total, oposicion / total, otros / total)
+    return pct
+
+
+def _asegurar_candidatos(db: sqlite3.Connection, id_eleccion: int, incluir_otros: bool = False) -> dict[str, int]:
     rows = db.execute(
-        "SELECT id, bando FROM candidatos WHERE id_eleccion=?", (id_eleccion,)
+        "SELECT id, bando FROM candidatos WHERE id_eleccion=? ORDER BY orden, id", (id_eleccion,)
     ).fetchall()
-    if rows:
-        return {r["bando"]: r["id"] for r in rows}
-    for c in _CANDIDATOS_DEMO:
+    presentes = {r["bando"]: r["id"] for r in rows if r["bando"] not in (None, "")}
+    requeridos = {"gobierno", "oposicion"} | ({"otro"} if incluir_otros else set())
+    faltantes = [c for c in _CANDIDATOS_DEMO if c["bando"] in requeridos and c["bando"] not in presentes]
+    if "otro" in requeridos and "otro" not in presentes:
+        faltantes.append({
+            "nombre": "Otros candidatos",
+            "partido": "OTR",
+            "bando": "otro",
+            "tipo": "unico",
+            "orden": 99,
+        })
+    for c in faltantes:
         db.execute(
             "INSERT INTO candidatos (id_eleccion, nombre, partido, bando, tipo, orden) "
             "VALUES (?,?,?,?,?,?)",
             (id_eleccion, c["nombre"], c["partido"], c["bando"], c["tipo"], c["orden"]),
         )
-    db.commit()
+    if faltantes:
+        db.commit()
     return {r["bando"]: r["id"] for r in db.execute(
-        "SELECT id, bando FROM candidatos WHERE id_eleccion=?", (id_eleccion,)
-    )}
+        "SELECT id, bando FROM candidatos WHERE id_eleccion=? ORDER BY orden, id", (id_eleccion,)
+    ) if r["bando"] not in (None, "")}
 
 
 def _insertar_votos(db: sqlite3.Connection, eleccion, centros, cands, pct, turnos_subset):
@@ -3670,15 +4009,30 @@ def _insertar_votos(db: sqlite3.Connection, eleccion, centros, cands, pct, turno
         hora_iso  = f'{eleccion["fecha"]}T{hora_str}:00'
         for c in centros:
             cod  = c["codigo_centro"]
-            p_g, p_o = pct.get(cod, (0.5, 0.5))
-            p_tot = p_g + p_o
+            valores = pct.get(cod, (0.48, 0.49, 0.03))
+            if len(valores) == 2:
+                p_g, p_o = valores
+                p_ot = max(0.0, 1.0 - p_g - p_o)
+            else:
+                p_g, p_o, p_ot = valores
+            opciones = []
+            if cands.get("gobierno"):
+                opciones.append((cands["gobierno"], p_g))
+            if cands.get("oposicion"):
+                opciones.append((cands["oposicion"], p_o))
+            if cands.get("otro"):
+                opciones.append((cands["otro"], p_ot))
+            if not opciones:
+                continue
+            ids_cand = [item[0] for item in opciones]
+            pesos_cand = [max(0.0, item[1]) for item in opciones]
+            if sum(pesos_cand) <= 0:
+                pesos_cand = [1.0] * len(ids_cand)
             tel  = f'+58414{c["id_muestra"]:07d}'
             lat  = c["lat"]  or (10.5  + random.uniform(-2, 2))
             lon  = c["lon"]  or (-66.9 + random.uniform(-3, 3))
             for _ in range(3):
-                id_cand = (cands["gobierno"]
-                           if random.random() < (p_g / p_tot)
-                           else cands["oposicion"])
+                id_cand = random.choices(ids_cand, weights=pesos_cand, k=1)[0]
                 cur = db.execute(
                     "INSERT INTO sms_raw (from_number, contenido, recibido_at, procesado) "
                     "VALUES (?,?,?,1)",
@@ -3713,6 +4067,57 @@ def _turnos(eleccion) -> list[str]:
 
 
 # ── Históricos ───────────────────────────────────────────────────────────────
+
+def _cargar_dataset_test(db: sqlite3.Connection, eleccion, fuente: str, parcial: bool) -> dict:
+    centros = db.execute(
+        "SELECT m.id AS id_muestra, m.codigo_centro, c.num_electores, c.lat, c.lon "
+        "FROM muestra m JOIN centros c ON c.codigo_cne=m.codigo_centro "
+        "WHERE m.id_eleccion=? AND m.activo=1 AND COALESCE(m.rol_muestra, 'titular')='titular' AND c.activo=1",
+        (eleccion["id"],),
+    ).fetchall()
+    if not centros:
+        raise ValueError("No hay centros titulares activos en la muestra.")
+
+    fuente = (fuente or "random").strip()
+    if fuente == "random":
+        pct = _pct_random(centros)
+        etiqueta = "dataset aleatorio"
+    else:
+        if not db.execute(
+            "SELECT 1 FROM resultados_historicos WHERE eleccion_ref=? LIMIT 1", (fuente,)
+        ).fetchone():
+            raise ValueError(f"Fuente historica no disponible: {fuente}")
+        pct = _pct_historico(db, fuente)
+        etiqueta = fuente
+        if not pct:
+            raise ValueError(f"La fuente historica no tiene porcentajes utilizables: {fuente}")
+
+    tiene_otros = any(valores[2] > 0 for valores in pct.values())
+    cands = _asegurar_candidatos(db, eleccion["id"], incluir_otros=tiene_otros or fuente == "random")
+    db.execute("DELETE FROM votos")
+    db.execute("DELETE FROM sms_raw")
+    db.commit()
+    _encuestadores_demo(db, centros, eleccion["id"])
+    centros_activos = centros[: len(centros) // 2] if parcial else centros
+    turnos = _turnos(eleccion)[:6] if parcial else _turnos(eleccion)
+    _insertar_votos(db, eleccion, centros_activos, cands, pct, turnos)
+    db.commit()
+    total = db.execute("SELECT COUNT(*) FROM votos").fetchone()[0]
+    otros = db.execute("""
+        SELECT COUNT(*) AS total
+        FROM votos v
+        JOIN candidatos c ON c.id = v.id_candidato
+        WHERE c.id_eleccion = ? AND c.bando = 'otro'
+    """, (eleccion["id"],)).fetchone()["total"]
+    return {
+        "total": int(total or 0),
+        "otros": int(otros or 0),
+        "centros_activos": len(centros_activos),
+        "centros_total": len(centros),
+        "turnos": len(turnos),
+        "fuente": etiqueta,
+    }
+
 
 def _datos_ventaja_historico_ref(conn, eleccion_ref: str) -> dict:
     rows = conn.execute("""
@@ -4997,27 +5402,22 @@ def historico_mapa(ref: str):
 # ── Tests / demo data ─────────────────────────────────────────────────────────
 
 @app.post("/test/demo")
-def test_demo():
-    """Carga el dataset completo (todos los turnos) con datos CNE 2024."""
+def test_demo(fuente: str = Form("random")):
+    """Carga el dataset completo con una fuente historica o aleatoria."""
     db = get_db()
     try:
         eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1").fetchone()
         if not eleccion:
             return JSONResponse({"ok": False, "mensaje": "No hay elección activa."}, status_code=400)
-        cands   = _asegurar_candidatos(db, eleccion["id"])
-        centros = db.execute(
-            "SELECT m.id AS id_muestra, m.codigo_centro, c.num_electores, c.lat, c.lon "
-            "FROM muestra m JOIN centros c ON c.codigo_cne=m.codigo_centro "
-            "WHERE m.id_eleccion=? AND m.activo=1 AND c.activo=1", (eleccion["id"],)
-        ).fetchall()
-        pct = _pct_2024()
-        db.execute("DELETE FROM votos"); db.execute("DELETE FROM sms_raw"); db.commit()
-        _encuestadores_demo(db, centros, eleccion["id"])
-        turnos = _turnos(eleccion)
-        _insertar_votos(db, eleccion, centros, cands, pct, turnos)
-        db.commit()
-        total = db.execute("SELECT COUNT(*) FROM votos").fetchone()[0]
-        return JSONResponse({"ok": True, "mensaje": f"Dataset completo cargado: {total:,} opiniones en {len(turnos)} turnos."})
+        info = _cargar_dataset_test(db, eleccion, fuente, parcial=False)
+        return JSONResponse({
+            "ok": True,
+            "mensaje": (
+                f"Dataset completo cargado desde {info['fuente']}: "
+                f"{info['total']:,} opiniones en {info['turnos']} turnos; "
+                f"otros={info['otros']:,}."
+            ),
+        })
     except Exception as e:
         db.rollback()
         return JSONResponse({"ok": False, "mensaje": str(e)}, status_code=500)
@@ -5026,29 +5426,22 @@ def test_demo():
 
 
 @app.post("/test/entrada")
-def test_entrada():
-    """Carga solo los primeros 6 turnos (~2 horas) para mostrar el estado de muestra parcial."""
+def test_entrada(fuente: str = Form("random")):
+    """Carga solo los primeros 6 turnos para mostrar entrada parcial."""
     db = get_db()
     try:
         eleccion = db.execute("SELECT * FROM elecciones WHERE activa=1").fetchone()
         if not eleccion:
             return JSONResponse({"ok": False, "mensaje": "No hay elección activa."}, status_code=400)
-        cands   = _asegurar_candidatos(db, eleccion["id"])
-        centros = db.execute(
-            "SELECT m.id AS id_muestra, m.codigo_centro, c.num_electores, c.lat, c.lon "
-            "FROM muestra m JOIN centros c ON c.codigo_cne=m.codigo_centro "
-            "WHERE m.id_eleccion=? AND m.activo=1 AND c.activo=1", (eleccion["id"],)
-        ).fetchall()
-        pct = _pct_2024()
-        db.execute("DELETE FROM votos"); db.execute("DELETE FROM sms_raw"); db.commit()
-        _encuestadores_demo(db, centros, eleccion["id"])
-        # Solo la mitad de centros reportan (simula entrada parcial de datos)
-        centros_activos = centros[: len(centros) // 2]
-        turnos = _turnos(eleccion)[:6]
-        _insertar_votos(db, eleccion, centros_activos, cands, pct, turnos)
-        db.commit()
-        total = db.execute("SELECT COUNT(*) FROM votos").fetchone()[0]
-        return JSONResponse({"ok": True, "mensaje": f"Entrada parcial cargada: {total:,} opiniones - {len(centros_activos)}/{len(centros)} centros, primeros 6 turnos."})
+        info = _cargar_dataset_test(db, eleccion, fuente, parcial=True)
+        return JSONResponse({
+            "ok": True,
+            "mensaje": (
+                f"Entrada parcial cargada desde {info['fuente']}: "
+                f"{info['total']:,} opiniones - {info['centros_activos']}/{info['centros_total']} centros, "
+                f"{info['turnos']} turnos; otros={info['otros']:,}."
+            ),
+        })
     except Exception as e:
         db.rollback()
         return JSONResponse({"ok": False, "mensaje": str(e)}, status_code=500)

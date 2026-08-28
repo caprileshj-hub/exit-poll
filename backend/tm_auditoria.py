@@ -128,7 +128,8 @@ def snapshot_frame(conn: sqlite3.Connection) -> dict[str, Any]:
         }
         items[item["codigo_cne"]] = item
 
-    nacionales = [row for row in items.values() if int(row["id_estado"]) in DOMESTIC_STATE_IDS]
+    all_rows = list(items.values())
+    domesticos = [row for row in all_rows if _is_domestic(row)]
     exterior = [row for row in items.values() if int(row["id_estado"]) not in DOMESTIC_STATE_IDS]
     frame_rows = [
         {
@@ -137,15 +138,16 @@ def snapshot_frame(conn: sqlite3.Connection) -> dict[str, Any]:
             "num_electores": row["num_electores"],
             "num_mesas": row["num_mesas"],
         }
-        for row in nacionales
+        for row in all_rows
     ]
     return {
         "items": items,
         "hash": frame_hash(frame_rows),
-        "nacional": _stats(nacionales),
+        "nacional": _stats(all_rows),
+        "domestico": _stats(domesticos),
         "exterior": _stats(exterior),
-        "por_estado": _stats_by_state(nacionales),
-        "elegibilidad": _eligibility_stats(nacionales),
+        "por_estado": _stats_by_state(all_rows),
+        "elegibilidad": _eligibility_stats(domesticos),
     }
 
 
@@ -226,6 +228,7 @@ def compare_snapshots(before: dict[str, Any], after: dict[str, Any]) -> dict[str
 
     return {
         "metricas": _metric_delta(before["nacional"], after["nacional"]),
+        "domestico": _metric_delta(before.get("domestico", before["nacional"]), after.get("domestico", after["nacional"])),
         "exterior": _metric_delta(before["exterior"], after["exterior"]),
         "por_estado": _state_delta(before["por_estado"], after["por_estado"]),
         "elegibilidad": _metric_delta(before["elegibilidad"], after["elegibilidad"]),

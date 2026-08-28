@@ -1,0 +1,22 @@
+{
+  "files": {
+    "backend/data/2025/tm_2025_macedonia_metadata.json": "37cbae237e9dc53b0072caedb7ba89e1b0bd6e2f9ca38727896d2209eb031f6d",
+    "backend/data/2025/tm_2025_macedonia_provenance.csv": "cc540f6b17caf74c08b9d66275e17caad2d956b453aae1cedc6653a225a82074",
+    "backend/tm_2025_macedonia_estandar.csv": "9f2ac8e0ed0d14aa73cb399b3f790d5a6ea57b88eaea77a98991114a57b72e30",
+    "backend/tm_2025_macedonia_estandar_candidate_completed.csv": "d26572a84ffece77b839a630d38b27c590513d7251abb422b15ad22bc383c852",
+    "docs/tm/TM_2024_2025_COMPARACION.md": "43a44cfdebcd72293f13bfa75184dde9cade294270044b153a2a9fc988739c8c",
+    "docs/tm/TM_2025_FRAME_ACCEPTANCE.md": "614c0120540f3b005e4560b594a93fd1bb33d968391ce8394a97cd92f8f38842",
+    "docs/tm/TM_2025_MISSING_CENTERS.md": "1b3e29337c4a424583d13a13957defd201625e7f9116b6679ffd0e5122499e75",
+    "docs/tm/TM_2025_MISSING_CENTERS_06_22_23.md": "66d5bcdb64feb80e0c0a7dcf841372597af23ad5f340dd7de7fa4779ce5f7c60",
+    "docs/tm/tm_2024_2025_estados.csv": "5f2d0fc2ccbee3d70aa1d0bd5e857f8f5f5a1cb7eed560cf27e822bc1aca4cab",
+    "tm_2025_missing_centers_06_22_23_audit.csv": "207efc872ce9f92079a7958c38ce467c58d174893ac564e7c1be988f8a38686f",
+    "tm_2025_missing_centers_candidates.csv": "fe5c060cab64eb9a9b41a7b0d1764cac0b3e11cb4cbaad8b757e0eba93d838f1"
+  },
+  "generated_at": "2026-08-26T23:30:00+00:00",
+  "hash_algorithm": "sha256",
+  "notes": {
+    "backend/data/2025/tm_2025_macedonia_metadata.json": "metadata contains a self-referential hash placeholder; this manifest is authoritative for file hashes",
+    "backend/tm_2025_macedonia_estandar.csv": "base TM hash preserved; file not modified by acceptance documentation task",
+    "backend/tm_2025_macedonia_estandar_candidate_completed.csv": "REJECTED AUDIT ARTIFACT - DO NOT IMPORT; retained for provenance only"
+  }
+}

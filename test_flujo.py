@@ -223,6 +223,53 @@ def test_live_usa_dashboard_referencia_si_no_hay_votos(tmp_path, monkeypatch):
     finally:
         conn.close()
 
+
+def test_live_pondera_votos_con_pesos_de_muestra(tmp_path, monkeypatch):
+    db_path = _init_db(tmp_path, monkeypatch)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        _seed_eleccion(conn)
+        conn.execute(
+            """INSERT INTO candidatos (id, id_eleccion, nombre, partido, bando, tipo, orden)
+               VALUES (3, 1, 'Candidato Otro', 'OTR', 'otro', 'unico', 3)"""
+        )
+        # Centro 1 pesa mucho y reporta gobierno; centros 2-4 reportan oposicion.
+        # El conteo crudo favorece oposicion 3 a 1, pero el ponderado debe favorecer gobierno.
+        pesos = {1: 10.0, 2: 1.0, 3: 1.0, 4: 1.0}
+        for id_muestra, peso in pesos.items():
+            conn.execute(
+                """INSERT INTO pesos
+                   (id_muestra, peso_parroquia, peso_municipio, peso_estado, peso_nacion)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (id_muestra, peso, peso, peso, peso),
+            )
+        for idx in range(1, 5):
+            codigo = f"010100{idx:03d}"
+            telefono = f"+58414000{idx:04d}"
+            id_candidato = 1 if idx == 1 else 2
+            conn.execute(
+                "INSERT INTO sms_raw (id, from_number, contenido, procesado) VALUES (?, ?, ?, 1)",
+                (idx, telefono, f"C{codigo};V{id_candidato};T1"),
+            )
+            conn.execute(
+                """INSERT INTO votos (
+                       id_sms, codigo_centro, id_candidato, telefono, hora, turno, valido
+                   ) VALUES (?, ?, ?, ?, '2026-05-01T07:00:00', 1, 1)""",
+                (idx, codigo, id_candidato, telefono),
+            )
+        conn.commit()
+
+        payload = app_backend._dashboard_stream_payload(conn)
+
+        assert payload["fuente_datos"] == "live"
+        assert payload["total_opiniones"] == 4
+        assert payload["series"]["VENEZUELA"][-1]["gob"] == 76.9
+        assert payload["series"]["VENEZUELA"][-1]["opo"] == 23.1
+        assert payload["geo"]["Distrito Capital"] == 53.8
+    finally:
+        conn.close()
+
     client = TestClient(app_backend.app)
     response = client.get("/live")
     assert response.status_code == 200
@@ -230,6 +277,68 @@ def test_live_usa_dashboard_referencia_si_no_hay_votos(tmp_path, monkeypatch):
     assert "AI Electoral Analyst" in response.text
     assert "ep-live-source" in response.text
     assert "Datos de referencia del dashboard" in response.text
+
+    response = client.get("/visualizacion")
+    assert response.status_code == 200
+    assert "Dashboard" in response.text
+    assert "Crudo vs ponderado" in response.text
+    assert "Candidata Gobierno" in response.text
+    assert "Candidato Oposicion" in response.text
+    assert "Candidato Otro" in response.text
+    assert "Otros" in response.text
+    assert "estadoSelect" in response.text
+    assert "Tendencia del estado" in response.text
+    assert "chartGauge" in response.text
+    assert "Actualizado" in response.text
+    assert "estadoSearch" in response.text
+    assert "estadoSort" in response.text
+    assert "AI Electoral Analyst" not in response.text
+
+
+def test_datos_prueba_pueden_usar_historico_con_otros(tmp_path, monkeypatch):
+    db_path = _init_db(tmp_path, monkeypatch)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        _seed_eleccion(conn)
+        for idx in range(1, 5):
+            codigo = f"010100{idx:03d}"
+            conn.execute(
+                """INSERT INTO resultados_historicos (
+                       codigo_centro, eleccion_ref, votos_validos,
+                       votos_gobierno, votos_oposicion, votos_otros,
+                       pct_gobierno, pct_oposicion, pct_otros
+                   ) VALUES (?, 'otros-test', 100, 0, 0, 100, 0.0, 0.0, 100.0)""",
+                (codigo,),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    client = TestClient(app_backend.app)
+    response = client.post("/test/demo", data={"fuente": "otros-test"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is True
+    assert "otros-test" in data["mensaje"]
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        otros = conn.execute("""
+            SELECT COUNT(*) AS n
+            FROM votos v
+            JOIN candidatos c ON c.id = v.id_candidato
+            WHERE c.bando = 'otro'
+        """).fetchone()["n"]
+        total = conn.execute("SELECT COUNT(*) AS n FROM votos").fetchone()["n"]
+        assert total > 0
+        assert otros == total
+        assert conn.execute(
+            "SELECT 1 FROM candidatos WHERE id_eleccion=1 AND bando='otro'"
+        ).fetchone()
+    finally:
+        conn.close()
 
 
 def test_aplicar_muestra_longitudinal_rechaza_centros_bajo_piso(tmp_path, monkeypatch):

@@ -1752,3 +1752,48 @@ participaban del sorteo.
   porque la linea siguiente llama a `_norm_estado`. Borrarlos.
 - `centros_2024_hoja0/1/2.csv` en `backend/` son HTML de error de Google Docs,
   no CSVs. Quedaron de una descarga fallida.
+
+## 2026-08-27 - Dashboard operativo, pruebas por fuente y cierre TM 2025
+
+### Dashboard vs Live
+`/live` queda como vitrina de seguimiento automatico: refresco por SSE, barra EN VIVO
+y panel de analista IA. `/visualizacion` pasa a ser el dashboard operativo para
+revision analitica sin auto-refresco ni analista.
+
+La nueva vista usa la misma data viva ponderada que alimenta el stream:
+- heatmap/tendencia territorial via `/visualizacion/mapa`;
+- gauge de margen nacional;
+- barras crudo vs ponderado con `Gobierno`, `Oposicion` y `Otros`;
+- tendencia nacional;
+- selector de estado con opiniones, cobertura, ventaja, desvio nacional y
+  porcentajes Gob/Opo/Otros;
+- tabla por estado con busqueda y ordenamiento;
+- resumen de muestra, cobertura y pesos.
+
+Se corrigio un problema previo de consistencia: `_datos_vivos` ya no cuenta todos
+los votos crudos como si fueran el resultado operativo, sino que filtra muestra
+activa titular y aplica `peso_nacion`/`peso_estado`. La ventaja por estado usa
+denominador ponderado y el dashboard conserva `Otros` aunque su peso sea cero.
+
+### Datos de prueba
+Los botones de Inicio dejan de estar fijos a 2024 y a dos bandos. Ahora aceptan
+una fuente:
+- `random`, con pequena fraccion de `otros`;
+- cualquier `eleccion_ref` historica disponible y compatible con el tipo de
+  eleccion activa.
+
+Cuando una referencia historica trae `votos_otros`, el test crea o reutiliza un
+candidato de bando `otro` para que el dashboard muestre ese bloque. Esto aplica
+igual a `Test Total` y `Test Data Entry`. `Reset` mantiene el comportamiento de
+borrar `votos` y `sms_raw`.
+
+### Tabla Mesa y Exterior
+Queda documentada y reflejada en auditoria la separacion conceptual: el Tabla
+Mesa debe comportarse como inventario completo del pais, incluyendo Exterior. Las
+restricciones de elegibilidad domestica pertenecen al proceso electoral/muestra,
+no a la carga de TM.
+
+### Publicacion excepcional de base local
+La politica normal sigue siendo no versionar `backend/exitpoll.db`. En este
+cierre se incluye excepcionalmente por instruccion explicita del usuario, para
+transportar la carga local actual junto con el codigo y los artefactos TM 2025.

@@ -8,6 +8,18 @@
 
 ## [Unreleased]
 
+### feat - Dashboard operativo enriquecido y datos de prueba por fuente
+- `/visualizacion` reemplaza el generador legacy por un dashboard operativo de la eleccion activa: heatmap/tendencia territorial, gauge de margen nacional, barras crudo vs ponderado, tendencia nacional, selector de estado, tabla filtrable/ordenable, resumen de muestra, pesos y desviaciones.
+- El dashboard muestra siempre el bloque `Otros`, aunque sea 0.0%, en tarjeta nacional, barras, candidatos y tabla por estado; el selector de estado expone opiniones, cobertura, ventaja, desvio nacional y porcentajes Gob/Opo/Otros.
+- `/visualizacion/mapa` sirve el mapa generado desde la data viva/ponderada sin depender de archivos estaticos creados manualmente; `/visualizacion/generar` queda como compatibilidad y redirige al dashboard.
+- Los botones de prueba de Inicio aceptan fuente `random` o una `eleccion_ref` disponible en `resultados_historicos`, filtrada por tipo de eleccion cuando aplica; las fuentes historicas con `votos_otros` crean/usan candidato `otro`.
+- `test_flujo.py` cubre ponderacion del live/dashboard, presencia de `Otros`, selector territorial, gauge, explorador de tabla y carga de datos de prueba desde historico con `otros`.
+
+### docs - Tabla Mesa 2025 y excepcion de BD versionada
+- Se incorporan documentos y artefactos de reconciliacion TM 2025 en `docs/tm/`, `tools/`, `backend/data/2025/`, `tm_2025_missing_centers_candidates.csv` y `tm_2025_missing_centers_06_22_23_audit.csv`.
+- `backend/tm_auditoria.py` y las pantallas de TM separan el marco completo de Tabla Mesa de las restricciones por tipo de eleccion: el Exterior pertenece al TM y la elegibilidad domestica se aplica aguas abajo.
+- Por instruccion explicita del usuario, este cierre versiona excepcionalmente `backend/exitpoll.db` con la carga local validada. La politica normal del repo sigue siendo tratar la BD como runtime generado/ignorado.
+
 ### feat - Tabla Mesa asistida con historial auditable
 - `/tm`: reorganiza la experiencia alrededor de carga asistida por IA, con Tabla Mesa activa, KPIs nacionales de 24 entidades, Exterior separado, historial de cargas y legacy 2015/2018 colapsado.
 - `backend/tm_auditoria.py`, `tm_cargas` y `tm_carga_cambios`: agregan historial inmutable con `periodo_tm`, `fecha_tm`, `loaded_at`, hashes, snapshot before/after, deltas nacionales, cambios por estado, cruces del piso operacional y reporte JSON.

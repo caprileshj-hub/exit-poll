@@ -1,0 +1,737 @@
+{
+  "cobertura": {
+    "candidate_completed_status": "REJECTED AUDIT ARTIFACT - DO NOT IMPORT",
+    "centros_descubiertos": 15728,
+    "centros_parseados": 15728,
+    "centros_sin_mesas": [],
+    "discrepancias_total_vs_mesas": [],
+    "entidades_api_sin_centros_extraidos": [
+      "GUAYANA"
+    ],
+    "estados_api": [
+      {
+        "cod_estado": "22",
+        "nombre": "AMAZONAS",
+        "slug": "amazonas"
+      },
+      {
+        "cod_estado": "02",
+        "nombre": "ANZOATEGUI",
+        "slug": "anzoategui"
+      },
+      {
+        "cod_estado": "03",
+        "nombre": "APURE",
+        "slug": "apure"
+      },
+      {
+        "cod_estado": "04",
+        "nombre": "ARAGUA",
+        "slug": "aragua"
+      },
+      {
+        "cod_estado": "05",
+        "nombre": "BARINAS",
+        "slug": "barinas"
+      },
+      {
+        "cod_estado": "06",
+        "nombre": "BOLIVAR",
+        "slug": "bolivar"
+      },
+      {
+        "cod_estado": "07",
+        "nombre": "CARABOBO",
+        "slug": "carabobo"
+      },
+      {
+        "cod_estado": "08",
+        "nombre": "COJEDES",
+        "slug": "cojedes"
+      },
+      {
+        "cod_estado": "23",
+        "nombre": "DELTA AMACURO",
+        "slug": "delta-amacuro"
+      },
+      {
+        "cod_estado": "01",
+        "nombre": "DTTO. CAPITAL",
+        "slug": "dtto-capital"
+      },
+      {
+        "cod_estado": "09",
+        "nombre": "FALCON",
+        "slug": "falcon"
+      },
+      {
+        "cod_estado": "10",
+        "nombre": "GUARICO",
+        "slug": "guarico"
+      },
+      {
+        "cod_estado": "26",
+        "nombre": "GUAYANA",
+        "slug": "guayana"
+      },
+      {
+        "cod_estado": "24",
+        "nombre": "LA GUAIRA",
+        "slug": "la-guaira"
+      },
+      {
+        "cod_estado": "11",
+        "nombre": "LARA",
+        "slug": "lara"
+      },
+      {
+        "cod_estado": "12",
+        "nombre": "MERIDA",
+        "slug": "merida"
+      },
+      {
+        "cod_estado": "13",
+        "nombre": "MIRANDA",
+        "slug": "miranda"
+      },
+      {
+        "cod_estado": "14",
+        "nombre": "MONAGAS",
+        "slug": "monagas"
+      },
+      {
+        "cod_estado": "15",
+        "nombre": "NUEVA ESPARTA",
+        "slug": "nueva-esparta"
+      },
+      {
+        "cod_estado": "16",
+        "nombre": "PORTUGUESA",
+        "slug": "portuguesa"
+      },
+      {
+        "cod_estado": "17",
+        "nombre": "SUCRE",
+        "slug": "sucre"
+      },
+      {
+        "cod_estado": "18",
+        "nombre": "TACHIRA",
+        "slug": "tachira"
+      },
+      {
+        "cod_estado": "19",
+        "nombre": "TRUJILLO",
+        "slug": "trujillo"
+      },
+      {
+        "cod_estado": "20",
+        "nombre": "YARACUY",
+        "slug": "yaracuy"
+      },
+      {
+        "cod_estado": "21",
+        "nombre": "ZULIA",
+        "slug": "zulia"
+      }
+    ],
+    "estructuras_especiales": [
+      "GUAYANA aparece en /api/estados con cod_estado=26; no se incorporo como entidad con centros unicos. La ruta /guayana/0607/060703/060703003 renderiza el mismo centro 060703003 con estado BOLIVAR.",
+      "Exterior no aplica al frame territorial 25-M; cualquier cero tecnico debe leerse como N/A."
+    ],
+    "exterior_status": "not_applicable",
+    "known_missing_units": {
+      "centros": 8,
+      "electores_comparables": 2126,
+      "mesas": 8,
+      "resolution": "preserved_not_imputed"
+    },
+    "mesas_duplicadas": []
+  },
+  "errores_omisiones": [],
+  "fecha_extraccion": "2026-08-26T03:40:32.173617+00:00",
+  "fecha_proceso": "2025-05-25",
+  "frame_acceptance": {
+    "all_missing_units_one_mesa": true,
+    "artifacts": [
+      "tm_2025_missing_centers_candidates.csv",
+      "docs/tm/TM_2025_MISSING_CENTERS.md",
+      "tm_2025_missing_centers_06_22_23_audit.csv",
+      "docs/tm/TM_2025_MISSING_CENTERS_06_22_23.md",
+      "docs/tm/TM_2025_FRAME_ACCEPTANCE.md"
+    ],
+    "benchmark_correction": {
+      "arithmetic": "21310028 + 197044 = 21507072",
+      "comparable_parliamentary_benchmark": 21288845,
+      "correct_total_including_guayana_esequiba": 21507072,
+      "incorrect_value": 21507162
+    },
+    "candidate_completed_reason": "Matched national aggregate but added centers outside real deficit states; worsened territorial reconciliation.",
+    "candidate_completed_status": "REJECTED AUDIT ARTIFACT - DO NOT IMPORT",
+    "dhondt_note": "Known discrepancy has not demonstrated impact on state D Hondt allocation; intra-state selection robustness not established.",
+    "expected_centers": 15736,
+    "expected_mesas": 27713,
+    "expected_venezuelan_electors": 21288845,
+    "exterior_note": "No aplicable al frame territorial parlamentario/regional 25-M; any technical zero means N/A, not observed zero or missing.",
+    "exterior_status": "not_applicable",
+    "guayana_esequiba_handling": "administrative_overlay_no_physical_duplication; 12 centers / 25 mesas already present under physical Bolivar geography",
+    "imputation": "none; missing units preserved",
+    "known_falsifier_all_missing_under_800": {
+      "cantidadMesas": 0,
+      "centro": "ESCUELA NACIONAL SAN MARTIN DE TURUNBAN",
+      "classification": "INDETERMINADO",
+      "codigo_centro": "060701010",
+      "estado": "BOLIVAR",
+      "municipio": "SIFONTES",
+      "parroquia": "CM. TUMEREMO",
+      "regionales_electors": 889
+    },
+    "known_missing_centers": 8,
+    "known_missing_electors": 2126,
+    "known_missing_mesas": 8,
+    "missing_states": {
+      "06": {
+        "estado": "BOLIVAR",
+        "missing_centers": 5,
+        "missing_electors_approx": 976,
+        "missing_mesas": 5,
+        "reference_centers": 817,
+        "reference_electors_approx": 1086202,
+        "reference_mesas": 1429,
+        "tm_centers": 812,
+        "tm_electors": 1085226,
+        "tm_mesas": 1424
+      },
+      "22": {
+        "estado": "AMAZONAS",
+        "missing_centers": 2,
+        "missing_electors_approx": 612,
+        "missing_mesas": 2,
+        "reference_centers": 150,
+        "reference_electors_approx": 121553,
+        "reference_mesas": 192,
+        "tm_centers": 148,
+        "tm_electors": 120941,
+        "tm_mesas": 190
+      },
+      "23": {
+        "estado": "DELTA AMACURO",
+        "missing_centers": 1,
+        "missing_electors_approx": 477,
+        "missing_mesas": 1,
+        "reference_centers": 195,
+        "reference_electors_approx": 133979,
+        "reference_mesas": 237,
+        "tm_centers": 194,
+        "tm_electors": 133502,
+        "tm_mesas": 236
+      }
+    },
+    "national_comparable_gap": 2126,
+    "observed_centers": 15728,
+    "observed_electors": 21286719,
+    "observed_mesas": 27705,
+    "official_cne_dump": false,
+    "operational_file": "backend/tm_2025_macedonia_estandar.csv",
+    "source": "https://asamblea.macedoniadelnorte.com",
+    "source_authority": "independent_mirror_not_official_cne",
+    "source_type": "third_party_mirror",
+    "state_elector_gap_sum_approx": 2065,
+    "state_vs_national_residual": 61,
+    "status": "ACCEPTED - BEST AVAILABLE OPERATIONAL FRAME"
+  },
+  "fuente": "https://asamblea.macedoniadelnorte.com",
+  "hashes": {
+    "backend/data/2025/tm_2025_macedonia_metadata.json": "self-referential; see backend/data/2025/tm_2025_macedonia_hashes.json",
+    "backend/data/2025/tm_2025_macedonia_provenance.csv": "cc540f6b17caf74c08b9d66275e17caad2d956b453aae1cedc6653a225a82074",
+    "backend/tm_2025_macedonia_estandar.csv": "9f2ac8e0ed0d14aa73cb399b3f790d5a6ea57b88eaea77a98991114a57b72e30"
+  },
+  "metodo_extraccion": "HTML/RSC cacheado; estados desde /api/estados; semillas territoriales desde TM 2024 vigente; centros desde enlaces de parroquia; mesas/electores desde paginas de centro",
+  "min_electores_centro": 800,
+  "participacion": {
+    "abstencion": 71.77,
+    "cne_active_voters": 13112676,
+    "cne_participation_claim": 43.18,
+    "participacion": 28.23,
+    "re_total_voters": 21485669,
+    "real_participation_re": 27.37,
+    "total_electores": 20832010,
+    "total_mesas": 27018,
+    "total_votantes": 5880668
+  },
+  "source_authority": "independent_mirror_not_official_cne",
+  "source_label": "TM 2025 - Macedonia Asamblea reconstructed frame - Best Available Operational Frame",
+  "source_type": "third_party_mirror",
+  "status": "ACCEPTED - BEST AVAILABLE OPERATIONAL FRAME",
+  "total_centros": 15728,
+  "total_electores": 21286719,
+  "total_estados": 24,
+  "total_exterior": {
+    "centros": 0,
+    "electores": 0,
+    "mesas": 0
+  },
+  "total_mesas": 27705,
+  "total_municipios": 335,
+  "total_paginas": 16869,
+  "total_parroquias": 1141,
+  "verificacion_resumen": {
+    "comparison": [
+      {
+        "cne_seats": 32,
+        "cne_vs_dhondt": -12,
+        "dhondt_seats": 44,
+        "difference": -1,
+        "name": "PSUV/GPP",
+        "sainte_lague_seats": 43,
+        "votes": 5024475
+      },
+      {
+        "cne_seats": 9,
+        "cne_vs_dhondt": 6,
+        "dhondt_seats": 3,
+        "difference": 0,
+        "name": "Alianza Democrática",
+        "sainte_lague_seats": 3,
+        "votes": 361769
+      },
+      {
+        "cne_seats": 6,
+        "cne_vs_dhondt": 4,
+        "dhondt_seats": 2,
+        "difference": 1,
+        "name": "UNT-Única",
+        "sainte_lague_seats": 3,
+        "votes": 304425
+      },
+      {
+        "cne_seats": 2,
+        "cne_vs_dhondt": 1,
+        "dhondt_seats": 1,
+        "difference": 0,
+        "name": "Fuerza Vecinal",
+        "sainte_lague_seats": 1,
+        "votes": 141588
+      },
+      {
+        "cne_seats": 1,
+        "cne_vs_dhondt": 1,
+        "dhondt_seats": 0,
+        "name": "Alianza del Lápiz",
+        "sainte_lague_seats": 0,
+        "votes": 0
+      }
+    ],
+    "dhondt": [
+      {
+        "name": "PSUV/GPP",
+        "seats": 44,
+        "votes": 5024475
+      },
+      {
+        "name": "Alianza Democrática",
+        "seats": 3,
+        "votes": 361769
+      },
+      {
+        "name": "UNT-Única",
+        "seats": 2,
+        "votes": 304425
+      },
+      {
+        "name": "Fuerza Vecinal",
+        "seats": 1,
+        "votes": 141588
+      }
+    ],
+    "escanos_lista_nacional": 50,
+    "resultados_partidos": [
+      {
+        "cod_partido": "269",
+        "color": "#CC0000",
+        "nombre": "PARTIDO SOCIALISTA UNIDO DE VENEZUELA",
+        "porcentaje": 70.25,
+        "siglas": "PSUV",
+        "votos": 4216349
+      },
+      {
+        "cod_partido": "460",
+        "color": "#0066CC",
+        "nombre": "UN NUEVO TIEMPO CONTIGO",
+        "porcentaje": 3.68,
+        "siglas": "UNTC",
+        "votos": 220648
+      },
+      {
+        "cod_partido": "9",
+        "color": "#8B0000",
+        "nombre": "PARTIDO COMUNISTA DE VENEZUELA ",
+        "porcentaje": 3.27,
+        "siglas": "PCV",
+        "votos": 196440
+      },
+      {
+        "cod_partido": "1093",
+        "color": "#673AB7",
+        "nombre": "PARTIDO FUTURO VENEZUELA",
+        "porcentaje": 2.4,
+        "siglas": "PFV",
+        "votos": 144270
+      },
+      {
+        "cod_partido": "1",
+        "color": "#FFFFFF",
+        "nombre": "ACCIÓN DEMOCRÁTICA",
+        "porcentaje": 1.85,
+        "siglas": "AD",
+        "votos": 110763
+      },
+      {
+        "cod_partido": "4417",
+        "color": "#FFC107",
+        "nombre": "UNIÓN Y CAMBIO",
+        "porcentaje": 1.57,
+        "siglas": "UNICA",
+        "votos": 94520
+      },
+      {
+        "cod_partido": "1017",
+        "color": "#E91E63",
+        "nombre": "MOVIMIENTO SOMOS VENEZUELA",
+        "porcentaje": 1.12,
+        "siglas": "MSV",
+        "votos": 67026
+      },
+      {
+        "cod_partido": "219",
+        "color": "#AB47BC",
+        "nombre": "ALIANZA PARA EL CAMBIO ",
+        "porcentaje": 1.05,
+        "siglas": "APC",
+        "votos": 63018
+      },
+      {
+        "cod_partido": "276",
+        "color": "#FF6347",
+        "nombre": "PATRIA PARA TODOS ",
+        "porcentaje": 1.04,
+        "siglas": "PPT",
+        "votos": 62402
+      },
+      {
+        "cod_partido": "1062",
+        "color": "#F4A300",
+        "nombre": "FUERZA VECINAL",
+        "porcentaje": 1.01,
+        "siglas": "FV",
+        "votos": 60365
+      },
+      {
+        "cod_partido": "1051",
+        "color": "#1E90FF",
+        "nombre": "ALIANZA DEL LÁPIZ PARTIDO POPULAR",
+        "porcentaje": 0.98,
+        "siglas": "ALIANZA DEL LAPIZ",
+        "votos": 58713
+      },
+      {
+        "cod_partido": "514",
+        "color": "#9C27B0",
+        "nombre": "POR LA DEMOCRACIA SOCIAL ",
+        "porcentaje": 0.92,
+        "siglas": "PODEMOS",
+        "votos": 54956
+      },
+      {
+        "cod_partido": "4888",
+        "color": "#9CA3AF",
+        "nombre": "VAMOS VAMOS COJEDES",
+        "porcentaje": 0.9,
+        "siglas": "VVC",
+        "votos": 54105
+      },
+      {
+        "cod_partido": "931",
+        "color": "#F44336",
+        "nombre": "TENDENCIAS UNIFICADAS PARA ALCANZAR EL MOVIMIENTO DE ACCIÓN REVOLUCIONARIA ORGANIZADA ",
+        "porcentaje": 0.88,
+        "siglas": "TUPAMARO",
+        "votos": 53060
+      },
+      {
+        "cod_partido": "458",
+        "color": "#FFD700",
+        "nombre": "MOVIMIENTO PRIMERO JUSTICIA",
+        "porcentaje": 0.88,
+        "siglas": "MPJ",
+        "votos": 53032
+      },
+      {
+        "cod_partido": "1068",
+        "color": "#2196F3",
+        "nombre": "MOVIMIENTO DE INTEGRIDAD NACIONAL-UNIDAD",
+        "porcentaje": 0.87,
+        "siglas": "MIN UNIDAD",
+        "votos": 52210
+      },
+      {
+        "cod_partido": "2",
+        "color": "#006B3F",
+        "nombre": "COMITÉ DE ORGANIZACIÓN POLÍTICA ELECTORAL  INDEPENDIENTE ",
+        "porcentaje": 0.83,
+        "siglas": "COPEI",
+        "votos": 49901
+      },
+      {
+        "cod_partido": "868",
+        "color": "#1565C0",
+        "nombre": "VENEZUELA UNIDAD",
+        "porcentaje": 0.8,
+        "siglas": "VU",
+        "votos": 48120
+      },
+      {
+        "cod_partido": "1090",
+        "color": "#388E3C",
+        "nombre": "PARTIDO VERDE DE VENEZUELA",
+        "porcentaje": 0.62,
+        "siglas": "PVV",
+        "votos": 37219
+      },
+      {
+        "cod_partido": "906",
+        "color": "#FF5722",
+        "nombre": "ORGANIZACIÓN RENOVADORA AUTENTICA ",
+        "porcentaje": 0.57,
+        "siglas": "ORA",
+        "votos": 34130
+      },
+      {
+        "cod_partido": "1089",
+        "color": "#E040FB",
+        "nombre": "ENAMÓRATE VENEZUELA",
+        "porcentaje": 0.53,
+        "siglas": "EV",
+        "votos": 31606
+      },
+      {
+        "cod_partido": "814",
+        "color": "#4CAF50",
+        "nombre": "AVANZADA PROGRESISTA ",
+        "porcentaje": 0.47,
+        "siglas": "AP",
+        "votos": 28082
+      },
+      {
+        "cod_partido": "513",
+        "color": "#3F51B5",
+        "nombre": "UNIDAD POPULAR VENEZOLANA ",
+        "porcentaje": 0.44,
+        "siglas": "UPV",
+        "votos": 26517
+      },
+      {
+        "cod_partido": "1048",
+        "color": "#00BCD4",
+        "nombre": "ESPERANZA POR EL CAMBIO",
+        "porcentaje": 0.38,
+        "siglas": "EL CAMBIO",
+        "votos": 22657
+      },
+      {
+        "cod_partido": "1053",
+        "color": "#009688",
+        "nombre": "PRIMERO VENEZUELA",
+        "porcentaje": 0.38,
+        "siglas": "PV",
+        "votos": 22617
+      },
+      {
+        "cod_partido": "6",
+        "color": "#8BC34A",
+        "nombre": "MOVIMIENTO ELECTORAL DEL PUEBLO ",
+        "porcentaje": 0.33,
+        "siglas": "MEP",
+        "votos": 19678
+      },
+      {
+        "cod_partido": "236",
+        "color": "#FF4500",
+        "nombre": "VOLUNTAD POPULAR ACTIVISTAS",
+        "porcentaje": 0.27,
+        "siglas": "VPA",
+        "votos": 16355
+      },
+      {
+        "cod_partido": "878",
+        "color": "#4CAF50",
+        "nombre": "MOVIMIENTO ECOLÓGICO DE VENEZUELA ",
+        "porcentaje": 0.26,
+        "siglas": "MOVEV",
+        "votos": 15577
+      },
+      {
+        "cod_partido": "1049",
+        "color": "#607D8B",
+        "nombre": "SOLUCIONES POR VENEZUELA",
+        "porcentaje": 0.18,
+        "siglas": "SPV",
+        "votos": 10649
+      },
+      {
+        "cod_partido": "1066",
+        "color": "#B71C1C",
+        "nombre": "BANDERA ROJA",
+        "porcentaje": 0.18,
+        "siglas": "BR",
+        "votos": 10519
+      },
+      {
+        "cod_partido": "4909",
+        "color": "#78716C",
+        "nombre": "FUERZA DEMOCRATICA BARINESA",
+        "porcentaje": 0.17,
+        "siglas": "FUDEBA",
+        "votos": 10398
+      },
+      {
+        "cod_partido": "1050",
+        "color": "#FF9800",
+        "nombre": "CAMBIEMOS MOVIMIENTO CIUDADANO",
+        "porcentaje": 0.17,
+        "siglas": "CMC",
+        "votos": 10184
+      },
+      {
+        "cod_partido": "1092",
+        "color": "#795548",
+        "nombre": "CONFEDERACIÓN NACIONAL DEMOCRÁTICA",
+        "porcentaje": 0.14,
+        "siglas": "CONDE",
+        "votos": 8536
+      },
+      {
+        "cod_partido": "1087",
+        "color": "#A8A29E",
+        "nombre": "AMEMOS AL TÁCHIRA",
+        "porcentaje": 0.13,
+        "siglas": "AT",
+        "votos": 7711
+      },
+      {
+        "cod_partido": "1094",
+        "color": "#FF7043",
+        "nombre": "ALIANZA POLÍTICA ASAMBLEA RENOVACIÓN Y ESPERANZA",
+        "porcentaje": 0.12,
+        "siglas": "AREPA",
+        "votos": 7011
+      },
+      {
+        "cod_partido": "1096",
+        "color": "#26A69A",
+        "nombre": "UNIDAD VISIÓN VENEZUELA",
+        "porcentaje": 0.1,
+        "siglas": "UVV",
+        "votos": 5997
+      },
+      {
+        "cod_partido": "1091",
+        "color": "#5D4037",
+        "nombre": "DERECHA DEMOCRÁTICA POPULAR",
+        "porcentaje": 0.06,
+        "siglas": "DDP",
+        "votos": 3845
+      },
+      {
+        "cod_partido": "1065",
+        "color": "#3F51B5",
+        "nombre": "MOVIMIENTO REPUBLICANO",
+        "porcentaje": 0.06,
+        "siglas": "MR",
+        "votos": 3800
+      },
+      {
+        "cod_partido": "1095",
+        "color": "#42A5F5",
+        "nombre": "UNIÓN NACIONAL ELECTORAL",
+        "porcentaje": 0.06,
+        "siglas": "UNE",
+        "votos": 3334
+      },
+      {
+        "cod_partido": "1057",
+        "color": "#71717A",
+        "nombre": "CARABOBEÑOS POR CARABOBO",
+        "porcentaje": 0.02,
+        "siglas": "CPC",
+        "votos": 1380
+      },
+      {
+        "cod_partido": "290",
+        "color": "#A1A1AA",
+        "nombre": "PUEBLO UNIDO MULTIETNICO DE AMAZONAS",
+        "porcentaje": 0.02,
+        "siglas": "PUAMA",
+        "votos": 1134
+      },
+      {
+        "cod_partido": "518",
+        "color": "#737373",
+        "nombre": "MOVIMIENTO REGIONAL DE AVANZADA",
+        "porcentaje": 0.02,
+        "siglas": "MRA",
+        "votos": 1113
+      },
+      {
+        "cod_partido": "632",
+        "color": "#A3A3A3",
+        "nombre": "RENOVACION EN DEMOCRACIA NACIMIENTO ALTERNATIVO",
+        "porcentaje": 0.02,
+        "siglas": "RENA",
+        "votos": 1030
+      },
+      {
+        "cod_partido": "1031",
+        "color": "#6B7280",
+        "nombre": "TINAQUILLO ES PRIMERO",
+        "porcentaje": 0.01,
+        "siglas": "TINA ES I",
+        "votos": 640
+      },
+      {
+        "cod_partido": "4902",
+        "color": "#9CA3AF",
+        "nombre": "GRAN ALIANZA NACIONAL ALTERNATIVA",
+        "porcentaje": 0.01,
+        "siglas": "GANA",
+        "votos": 626
+      }
+    ],
+    "sainte_lague": [
+      {
+        "name": "PSUV/GPP",
+        "seats": 43,
+        "votes": 5024475
+      },
+      {
+        "name": "Alianza Democrática",
+        "seats": 3,
+        "votes": 361769
+      },
+      {
+        "name": "UNT-Única",
+        "seats": 3,
+        "votes": 304425
+      },
+      {
+        "name": "Fuerza Vecinal",
+        "seats": 1,
+        "votes": 141588
+      }
+    ],
+    "total_dhondt": 50,
+    "total_partidos": 45,
+    "total_sl": 50,
+    "total_votos": 6002243
+  }
+}

@@ -44,16 +44,16 @@
         </div>
         <div class="col-lg-8">
             <div class="row g-3">
-                <div class="col-md-3"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ "{:,}".format(stats.centros_activos) }}</div><div class="small text-muted">Centros nacionales</div></div></div>
-                <div class="col-md-3"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ "{:,}".format(stats.electores) }}</div><div class="small text-muted">Electores nacionales</div></div></div>
+                <div class="col-md-3"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ "{:,}".format(stats.centros_activos) }}</div><div class="small text-muted">Centros en TM</div></div></div>
+                <div class="col-md-3"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ "{:,}".format(stats.electores) }}</div><div class="small text-muted">Electores en TM</div></div></div>
                 <div class="col-md-2"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ "{:,}".format(stats.mesas) }}</div><div class="small text-muted">Mesas</div></div></div>
-                <div class="col-md-2"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ stats.entidades }}</div><div class="small text-muted">Entidades nacionales</div></div></div>
+                <div class="col-md-2"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ stats.entidades }}</div><div class="small text-muted">Entidades</div></div></div>
                 <div class="col-md-2"><div class="border bg-white p-3"><div class="fs-4 fw-semibold">{{ "{:,}".format(stats.municipios) }}</div><div class="small text-muted">Municipios</div></div></div>
                 <div class="col-md-3"><div class="border bg-white p-3"><div class="fs-5 fw-semibold">{{ "{:,}".format(stats.parroquias) }}</div><div class="small text-muted">Parroquias</div></div></div>
                 <div class="col-md-3"><div class="border bg-white p-3"><div class="fs-5 fw-semibold">{{ "{:,}".format(stats.con_gps) }}</div><div class="small text-muted">Centros con GPS</div></div></div>
                 <div class="col-md-6">
                     <div class="border bg-light p-3">
-                        <div class="small text-muted">Exterior conservado aparte</div>
+                        <div class="small text-muted">Exterior en TM</div>
                         <span class="fw-semibold">{{ "{:,}".format(stats.exterior.centros) }}</span> centros /
                         <span class="fw-semibold">{{ "{:,}".format(stats.exterior.electores) }}</span> electores
                     </div>
@@ -148,8 +148,8 @@
                     <th>Fecha/corte</th>
                     <th>Cargado</th>
                     <th>Archivo</th>
-                    <th class="text-end">Centros nacionales</th>
-                    <th class="text-end">Electores nacionales</th>
+                    <th class="text-end">Centros en TM</th>
+                    <th class="text-end">Electores en TM</th>
                     <th class="text-end">Delta centros</th>
                     <th class="text-end">Delta electores</th>
                     <th>Reporte</th>

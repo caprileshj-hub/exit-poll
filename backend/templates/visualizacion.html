@@ -1,158 +1,401 @@
 {% extends "base.html" %}
 {% set active_page = "visualizacion" %}
-{% block title %}Visualizaci&#243;n{% endblock %}
+{% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<h2 class="mb-4"><i class="bi bi-map me-2"></i>Visualizaci&#243;n</h2>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 
-{% if msg %}
-<div class="alert alert-{{ cat }} alert-dismissible fade show">
-    {{ msg }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
+        <div class="text-muted">{{ eleccion.nombre if eleccion else "Sin eleccion activa" }}</div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <span class="badge text-bg-{% if fuente_datos == 'live' %}success{% elif fuente_datos == 'dashboard_referencia' %}warning{% else %}secondary{% endif %} px-3 py-2">
+            {{ fuente_datos|replace("_", " ")|title }}
+        </span>
+        {% if metricas.hora %}
+        <span class="badge text-bg-light border px-3 py-2">Corte {{ metricas.hora }}</span>
+        {% endif %}
+        <span class="badge text-bg-light border px-3 py-2">Actualizado {{ metricas.actualizado }}</span>
+    </div>
 </div>
-{% endif %}
 
-{% if not tiene_resultados %}
+{% if not eleccion %}
 <div class="alert alert-warning">
-    <i class="bi bi-exclamation-triangle me-2"></i>
-    No hay resultados hist&#243;ricos cargados. Cargue datos de referencia para generar visualizaciones.
+    <i class="bi bi-exclamation-triangle me-2"></i>No hay eleccion activa.
 </div>
 {% else %}
 
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="border bg-white rounded-2 p-3 h-100">
+            <div class="text-muted small">Opiniones validas</div>
+            <div class="fs-3 fw-semibold">{{ "{:,}".format(metricas.total_opiniones) }}</div>
+            <div class="small text-muted">{{ muestra.turnos }} turnos reportados</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="border bg-white rounded-2 p-3 h-100">
+            <div class="text-muted small">Centros reportando</div>
+            <div class="fs-3 fw-semibold">{{ muestra.centros_reportando }} / {{ muestra.centros }}</div>
+            <div class="small text-muted">{{ "%.1f"|format(muestra.cobertura) }}% de cobertura</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="border bg-white rounded-2 p-3 h-100">
+            <div class="text-muted small">Ventaja ponderada</div>
+            <div class="fs-3 fw-semibold {% if metricas.ventaja < 0 %}text-primary{% elif metricas.ventaja > 0 %}text-danger{% endif %}">
+                {{ "%+.1f"|format(metricas.ventaja) }}
+            </div>
+            <div class="small text-muted">Gob {{ "%.1f"|format(metricas.gobierno) }}% | Opo {{ "%.1f"|format(metricas.oposicion) }}% | Otros {{ "%.1f"|format(metricas.otros) }}%</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="border bg-white rounded-2 p-3 h-100">
+            <div class="text-muted small">Muestra electoral</div>
+            <div class="fs-3 fw-semibold">{{ "{:,}".format(muestra.electores) }}</div>
+            <div class="small text-muted">{{ "%.2f"|format(muestra.pct_electores) }}% del marco domestico</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 align-items-stretch mb-4">
+    <div class="col-xl-7">
+        <div class="border bg-white rounded-2 p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-map me-2"></i>Heatmap y tendencia territorial</h5>
+                <a class="btn btn-sm btn-outline-secondary" href="/visualizacion/mapa" target="_blank" title="Abrir mapa">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+            </div>
+            <iframe src="/visualizacion/mapa" class="w-100 border-0 rounded-2" style="height: 560px;"></iframe>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <div class="d-flex flex-column gap-4 h-100">
+            <div class="border bg-white rounded-2 p-3">
+                <h5 class="mb-3"><i class="bi bi-speedometer me-2"></i>Margen nacional</h5>
+                <div id="chartGauge" style="height: 220px;"></div>
+            </div>
+            <div class="border bg-white rounded-2 p-3">
+                <h5 class="mb-3"><i class="bi bi-bar-chart me-2"></i>Crudo vs ponderado</h5>
+                <div id="chartBarras" style="height: 240px;"></div>
+            </div>
+            <div class="border bg-white rounded-2 p-3 flex-grow-1">
+                <h5 class="mb-3"><i class="bi bi-activity me-2"></i>Tendencia nacional</h5>
+                <div id="chartTendencia" style="height: 230px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="border bg-white rounded-2 p-3 mb-4">
+    <div class="row g-3 align-items-start">
+        <div class="col-lg-4">
+            <label for="estadoSelect" class="form-label small fw-semibold mb-1">Estado</label>
+            <select id="estadoSelect" class="form-select">
+                {% for row in estados %}
+                <option value="{{ row.estado }}">{{ row.estado }}</option>
+                {% endfor %}
+            </select>
+            <div class="row g-3 mt-1">
+                <div class="col-6">
+                    <div class="text-muted small">Opiniones</div>
+                    <div class="fs-5 fw-semibold" id="estadoOpiniones">0</div>
+                </div>
+                <div class="col-6">
+                    <div class="text-muted small">Cobertura</div>
+                    <div class="fs-5 fw-semibold" id="estadoCobertura">0.0%</div>
+                </div>
+                <div class="col-6">
+                    <div class="text-muted small">Ventaja</div>
+                    <div class="fs-5 fw-semibold" id="estadoVentaja">s/d</div>
+                </div>
+                <div class="col-6">
+                    <div class="text-muted small">Desvio nac.</div>
+                    <div class="fs-5 fw-semibold" id="estadoDesvio">s/d</div>
+                </div>
+                <div class="col-4">
+                    <div class="text-muted small">Gob</div>
+                    <div class="fw-semibold" id="estadoGob">0.0%</div>
+                </div>
+                <div class="col-4">
+                    <div class="text-muted small">Opo</div>
+                    <div class="fw-semibold" id="estadoOpo">0.0%</div>
+                </div>
+                <div class="col-4">
+                    <div class="text-muted small">Otros</div>
+                    <div class="fw-semibold" id="estadoOtros">0.0%</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <h5 class="mb-3"><i class="bi bi-graph-up-arrow me-2"></i>Tendencia del estado</h5>
+            <div id="chartEstado" style="height: 280px;"></div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4 mb-4">
-    <!-- Generar Heatmap -->
-    <div class="col-md-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <h5 class="card-title">
-                    <i class="bi bi-map-fill text-primary me-2"></i>Heatmap Electoral
-                </h5>
-                <p class="text-muted small">
-                    Mapa de calor con la ventaja por estado o municipio.
-                    Azul = oposici&#243;n, Rojo = gobierno, Blanco = empate t&#233;cnico.
-                </p>
-                <form method="post" action="/visualizacion/generar" class="mt-3">
-                    <input type="hidden" name="tipo" value="heatmap">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-auto">
-                            <label class="form-label small fw-semibold mb-1">Nivel</label>
-                            <select name="nivel" class="form-select form-select-sm" style="width: 140px;">
-                                <option value="estado">Estado</option>
-                                <option value="municipio">Municipio</option>
-                            </select>
-                        </div>
-                        <div class="col-auto">
-                            <label class="form-label small fw-semibold mb-1">Fuente</label>
-                            <select name="fuente" class="form-select form-select-sm" style="width: 180px;">
-                                <option value="todos">Todos los centros</option>
-                                {% if tiene_muestra %}
-                                <option value="muestra">Solo muestra</option>
-                                {% endif %}
-                            </select>
-                        </div>
-                        <div class="col-auto">
-                            <button class="btn btn-primary btn-sm">
-                                <i class="bi bi-lightning me-1"></i>Generar
-                            </button>
-                        </div>
-                    </div>
-                </form>
-
-                {% if heatmap_existe %}
-                <div class="mt-3 pt-3 border-top">
-                    <a href="/static/viz/heatmap.html" target="_blank" class="btn btn-outline-success btn-sm">
-                        <i class="bi bi-box-arrow-up-right me-1"></i>Ver heatmap
-                    </a>
-                    <button class="btn btn-outline-secondary btn-sm ms-1" onclick="document.getElementById('iframeHeatmap').src='/static/viz/heatmap.html'; document.getElementById('previewHeatmap').style.display='block';">
-                        <i class="bi bi-eye me-1"></i>Vista previa
-                    </button>
-                </div>
-                {% endif %}
+    <div class="col-xl-5">
+        <div class="border bg-white rounded-2 p-3 h-100">
+            <h5 class="mb-3"><i class="bi bi-person-lines-fill me-2"></i>Candidatos</h5>
+            <div id="chartCandidatos" style="height: 300px;"></div>
+            <div class="table-responsive mt-2">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Candidato</th>
+                            <th>Bando</th>
+                            <th class="text-end">Votos</th>
+                            <th class="text-end">Pond.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cand in candidatos %}
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">{{ cand.nombre }}</div>
+                                {% if cand.partido %}<div class="small text-muted">{{ cand.partido }}</div>{% endif %}
+                            </td>
+                            <td><span class="badge text-bg-light border">{{ cand.bando }}</span></td>
+                            <td class="text-end">{{ "{:,}".format(cand.votos) }}</td>
+                            <td class="text-end">{{ "%.1f"|format(cand.pct_ponderado) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-
-    <!-- Generar Dashboard -->
-    <div class="col-md-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <h5 class="card-title">
-                    <i class="bi bi-speedometer2 text-success me-2"></i>Dashboard Completo
-                </h5>
-                <p class="text-muted small">
-                    Mapa interactivo + gr&#225;ficos de tendencia.
-                    Click en un estado para ver su tendencia temporal.
-                </p>
-                <form method="post" action="/visualizacion/generar" class="mt-3">
-                    <input type="hidden" name="tipo" value="dashboard">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-auto">
-                            <label class="form-label small fw-semibold mb-1">Nivel</label>
-                            <select name="nivel" class="form-select form-select-sm" style="width: 140px;">
-                                <option value="estado">Estado</option>
-                                <option value="municipio">Municipio</option>
-                            </select>
-                        </div>
-                        <div class="col-auto">
-                            <label class="form-label small fw-semibold mb-1">Fuente</label>
-                            <select name="fuente" class="form-select form-select-sm" style="width: 180px;">
-                                <option value="todos">Todos los centros</option>
-                                {% if tiene_muestra %}
-                                <option value="muestra">Solo muestra</option>
-                                {% endif %}
-                            </select>
-                        </div>
-                        <div class="col-auto">
-                            <button class="btn btn-success btn-sm">
-                                <i class="bi bi-lightning me-1"></i>Generar
-                            </button>
-                        </div>
+    <div class="col-xl-7">
+        <div class="d-flex flex-column gap-4 h-100">
+            <div class="border bg-white rounded-2 p-3">
+                <h5 class="mb-3"><i class="bi bi-signpost-split me-2"></i>Desviaciones territoriales</h5>
+                <div id="chartDesvios" style="height: 300px;"></div>
+            </div>
+            <div class="border bg-white rounded-2 p-3">
+                <h5 class="mb-3"><i class="bi bi-sliders me-2"></i>Pesos y muestra</h5>
+                <div class="row g-3">
+                    <div class="col-6 col-lg-3">
+                        <div class="text-muted small">Centros con peso</div>
+                        <div class="fs-5 fw-semibold">{{ pesos.centros_con_peso }} / {{ pesos.centros_muestra }}</div>
                     </div>
-                </form>
-
-                {% if dashboard_existe %}
-                <div class="mt-3 pt-3 border-top">
-                    <a href="/static/viz/dashboard.html" target="_blank" class="btn btn-outline-success btn-sm">
-                        <i class="bi bi-box-arrow-up-right me-1"></i>Ver dashboard
-                    </a>
-                    <button class="btn btn-outline-secondary btn-sm ms-1" onclick="document.getElementById('iframeDashboard').src='/static/viz/dashboard.html'; document.getElementById('previewDashboard').style.display='block';">
-                        <i class="bi bi-eye me-1"></i>Vista previa
-                    </button>
+                    <div class="col-6 col-lg-3">
+                        <div class="text-muted small">Estados cubiertos</div>
+                        <div class="fs-5 fw-semibold">{{ muestra.estados }}</div>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <div class="text-muted small">Peso min.</div>
+                        <div class="fs-5 fw-semibold">{{ "%.6f"|format(pesos.min_nacion) }}</div>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <div class="text-muted small">Peso max.</div>
+                        <div class="fs-5 fw-semibold">{{ "%.6f"|format(pesos.max_nacion) }}</div>
+                    </div>
+                    <div class="col-12 col-lg-2">
+                        <div class="text-muted small">Suma</div>
+                        <div class="fs-5 fw-semibold">{{ "%.6f"|format(pesos.suma_nacion) }}</div>
+                    </div>
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<!-- Previews -->
-{% if heatmap_existe %}
-<div id="previewHeatmap" style="display: none;" class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h5 class="mb-0"><i class="bi bi-map me-2"></i>Heatmap</h5>
-        <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('previewHeatmap').style.display='none';">
-            <i class="bi bi-x-lg"></i> Cerrar
-        </button>
+<div class="border bg-white rounded-2 p-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+        <h5 class="mb-0"><i class="bi bi-table me-2"></i>Estado de la muestra por estado</h5>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <input id="estadoSearch" class="form-control form-control-sm" style="width: 220px;" placeholder="Buscar estado">
+            <select id="estadoSort" class="form-select form-select-sm" style="width: 190px;">
+                <option value="estado">Estado</option>
+                <option value="desvio">Desvio absoluto</option>
+                <option value="cobertura">Cobertura</option>
+                <option value="opiniones">Opiniones</option>
+                <option value="otros">Otros</option>
+            </select>
+            <span class="text-muted small">{{ estados|length }} entidades</span>
+        </div>
     </div>
-    <div class="border rounded shadow-sm" style="height: 600px;">
-        <iframe id="iframeHeatmap" style="width: 100%; height: 100%; border: none; border-radius: 6px;"></iframe>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Estado</th>
+                    <th class="text-end">Centros</th>
+                    <th class="text-end">Reportando</th>
+                    <th class="text-end">Cobertura</th>
+                    <th class="text-end">Opiniones</th>
+                    <th class="text-end">Electores muestra</th>
+                    <th class="text-end">% marco</th>
+                    <th class="text-end">Otros</th>
+                    <th class="text-end">Ventaja</th>
+                    <th class="text-end">Desvio nac.</th>
+                </tr>
+            </thead>
+            <tbody id="estadoTableBody">
+                {% for row in estados %}
+                <tr data-estado="{{ row.estado|lower }}" data-desvio="{{ row.desvio if row.desvio is not none else 0 }}" data-cobertura="{{ row.cobertura }}" data-opiniones="{{ row.opiniones }}" data-otros="{{ row.otros }}">
+                    <td class="fw-semibold">{{ row.estado }}</td>
+                    <td class="text-end">{{ row.centros_muestra }}</td>
+                    <td class="text-end">{{ row.centros_reportando }}</td>
+                    <td class="text-end">{{ "%.1f"|format(row.cobertura) }}%</td>
+                    <td class="text-end">{{ "{:,}".format(row.opiniones) }}</td>
+                    <td class="text-end">{{ "{:,}".format(row.electores_muestra) }}</td>
+                    <td class="text-end">{{ "%.2f"|format(row.pct_electores_muestra) }}%</td>
+                    <td class="text-end">{{ "%.1f"|format(row.otros) }}%</td>
+                    <td class="text-end {% if row.ventaja is not none and row.ventaja < 0 %}text-primary{% elif row.ventaja is not none and row.ventaja > 0 %}text-danger{% endif %}">
+                        {{ "%+.1f"|format(row.ventaja) if row.ventaja is not none else "s/d" }}
+                    </td>
+                    <td class="text-end">{{ "%+.1f"|format(row.desvio) if row.desvio is not none else "s/d" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
-{% endif %}
 
-{% if dashboard_existe %}
-<div id="previewDashboard" style="display: none;" class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h5>
-        <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('previewDashboard').style.display='none';">
-            <i class="bi bi-x-lg"></i> Cerrar
-        </button>
-    </div>
-    <div class="border rounded shadow-sm" style="height: 700px;">
-        <iframe id="iframeDashboard" style="width: 100%; height: 100%; border: none; border-radius: 6px;"></iframe>
-    </div>
-</div>
-{% endif %}
+<script>
+const data = {{ chart_data|safe }};
+const layoutBase = {
+    margin: {l: 46, r: 18, t: 10, b: 42},
+    paper_bgcolor: "white",
+    plot_bgcolor: "white",
+    font: {family: "system-ui, -apple-system, Segoe UI, sans-serif", size: 12}
+};
+const config = {displayModeBar: false, responsive: true};
+
+Plotly.newPlot("chartGauge", [{
+    type: "indicator",
+    mode: "gauge+number",
+    value: data.gauge.ventaja,
+    number: {prefix: data.gauge.ventaja >= 0 ? "+" : "", suffix: " pts"},
+    gauge: {
+        axis: {range: [-50, 50], tickwidth: 1},
+        bar: {color: data.gauge.ventaja < 0 ? "#2f64b3" : "#b73a3a"},
+        bgcolor: "white",
+        borderwidth: 1,
+        bordercolor: "#dee2e6",
+        steps: [
+            {range: [-50, -10], color: "#dbe8fb"},
+            {range: [-10, 10], color: "#f1f3f5"},
+            {range: [10, 50], color: "#f8dddd"}
+        ],
+        threshold: {line: {color: "#343a40", width: 2}, thickness: 0.75, value: 0}
+    }
+}], {
+    ...layoutBase,
+    margin: {l: 28, r: 28, t: 4, b: 20}
+}, config);
+
+Plotly.newPlot("chartBarras", [
+    {x: data.barras.labels, y: data.barras.crudo, name: "Crudo", type: "bar", marker: {color: "#6c757d"}},
+    {x: data.barras.labels, y: data.barras.ponderado, name: "Ponderado", type: "bar", marker: {color: ["#b73a3a", "#2f64b3", "#7a6f2b"]}}
+], {
+    ...layoutBase,
+    barmode: "group",
+    yaxis: {title: "% validos", range: [0, 100], ticksuffix: "%"},
+    legend: {orientation: "h", y: 1.12, x: 0}
+}, config);
+
+Plotly.newPlot("chartTendencia", [
+    {x: data.tendencia.map(p => p.hora), y: data.tendencia.map(p => p.gob), name: "Gobierno", mode: "lines+markers", line: {color: "#b73a3a", width: 3}},
+    {x: data.tendencia.map(p => p.hora), y: data.tendencia.map(p => p.opo), name: "Oposicion", mode: "lines+markers", line: {color: "#2f64b3", width: 3}}
+], {
+    ...layoutBase,
+    yaxis: {title: "% ponderado", range: [0, 100], ticksuffix: "%"},
+    xaxis: {title: ""},
+    legend: {orientation: "h", y: 1.12, x: 0}
+}, config);
+
+function fmtPct(v) {
+    return (v === null || v === undefined) ? "s/d" : `${Number(v).toFixed(1)}%`;
+}
+
+function fmtSigned(v) {
+    if (v === null || v === undefined) return "s/d";
+    const n = Number(v);
+    return `${n >= 0 ? "+" : ""}${n.toFixed(1)}`;
+}
+
+function updateEstado() {
+    const select = document.getElementById("estadoSelect");
+    if (!select || !data.estados.length) return;
+    const estado = data.estados.find(e => e.estado === select.value) || data.estados[0];
+    select.value = estado.estado;
+    document.getElementById("estadoOpiniones").textContent = Number(estado.opiniones || 0).toLocaleString();
+    document.getElementById("estadoCobertura").textContent = fmtPct(estado.cobertura);
+    document.getElementById("estadoVentaja").textContent = fmtSigned(estado.ventaja);
+    document.getElementById("estadoDesvio").textContent = fmtSigned(estado.desvio);
+    document.getElementById("estadoGob").textContent = fmtPct(estado.gobierno);
+    document.getElementById("estadoOpo").textContent = fmtPct(estado.oposicion);
+    document.getElementById("estadoOtros").textContent = fmtPct(estado.otros);
+
+    const puntos = data.series_estado[estado.estado.toUpperCase()] || [];
+    Plotly.react("chartEstado", [
+        {x: puntos.map(p => p.hora), y: puntos.map(p => p.gob), name: "Gobierno", mode: "lines+markers", line: {color: "#b73a3a", width: 3}},
+        {x: puntos.map(p => p.hora), y: puntos.map(p => p.opo), name: "Oposicion", mode: "lines+markers", line: {color: "#2f64b3", width: 3}}
+    ], {
+        ...layoutBase,
+        yaxis: {title: "% ponderado", range: [0, 100], ticksuffix: "%"},
+        xaxis: {title: ""},
+        legend: {orientation: "h", y: 1.12, x: 0}
+    }, config);
+}
+
+document.getElementById("estadoSelect")?.addEventListener("change", updateEstado);
+updateEstado();
+
+const candOrden = data.candidatos.labels
+    .map((label, idx) => ({label, valor: data.candidatos.ponderado[idx], color: data.candidatos.colores[idx]}))
+    .sort((a, b) => a.valor - b.valor);
+Plotly.newPlot("chartCandidatos", [{
+    x: candOrden.map(c => c.valor),
+    y: candOrden.map(c => c.label),
+    type: "bar",
+    orientation: "h",
+    marker: {color: candOrden.map(c => c.color)}
+}], {
+    ...layoutBase,
+    margin: {l: 120, r: 18, t: 10, b: 38},
+    xaxis: {title: "% ponderado", range: [0, 100], ticksuffix: "%"}
+}, config);
+
+const desvios = data.desviaciones.slice().reverse();
+Plotly.newPlot("chartDesvios", [{
+    x: desvios.map(d => d.desvio),
+    y: desvios.map(d => d.estado),
+    type: "bar",
+    orientation: "h",
+    marker: {color: desvios.map(d => d.desvio < 0 ? "#2f64b3" : "#b73a3a")}
+}], {
+    ...layoutBase,
+    margin: {l: 116, r: 18, t: 10, b: 38},
+    xaxis: {title: "puntos vs nacional", zeroline: true, zerolinewidth: 2, zerolinecolor: "#343a40"}
+}, config);
+
+function ordenarTabla() {
+    const tbody = document.getElementById("estadoTableBody");
+    const search = (document.getElementById("estadoSearch")?.value || "").toLowerCase();
+    const sort = document.getElementById("estadoSort")?.value || "estado";
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    rows.sort((a, b) => {
+        if (sort === "estado") return a.dataset.estado.localeCompare(b.dataset.estado);
+        if (sort === "desvio") return Math.abs(Number(b.dataset.desvio || 0)) - Math.abs(Number(a.dataset.desvio || 0));
+        return Number(b.dataset[sort] || 0) - Number(a.dataset[sort] || 0);
+    });
+    rows.forEach(row => {
+        row.style.display = row.dataset.estado.includes(search) ? "" : "none";
+        tbody.appendChild(row);
+    });
+}
+document.getElementById("estadoSearch")?.addEventListener("input", ordenarTabla);
+document.getElementById("estadoSort")?.addEventListener("change", ordenarTabla);
+ordenarTabla();
+</script>
 
 {% endif %}
 {% endblock %}
