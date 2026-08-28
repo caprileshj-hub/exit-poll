@@ -139,6 +139,13 @@ Medido contra producción tras desplegar los arreglos de rendimiento:
   - Distinguir NULL/no disponible de cero
   - Recalcular fichas contra `resultados_historicos` normalizado
   - Mantener estudios de exit poll separados de resultados electorales oficiales
+  - Separar auditoria legacy de auditoria nueva: el selector/semaforo legacy
+    pudo funcionar con numeracion interna y tablas de conversion, pero la BD
+    actual solo debe habilitar auditoria por centro cuando el mapping
+    `id_centro_interno -> codigo_centro` este recuperado y documentado
+  - Marcar como no evaluables por centro los estudios, estados o municipios con
+    campo insuficiente, conversion ausente o trazabilidad parcial; conservarlos
+    como auditoria agregada sin inferir comportamiento individual de centros
 
 - [ ] **`/muestra` tarda 23-27 s en Azure** (~4 s en SSD local)
   - Perfilado con cProfile: 2.65 s de los ~4 s locales son `statistics._ss` (29.646 llamadas)

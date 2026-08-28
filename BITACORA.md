@@ -1797,3 +1797,21 @@ no a la carga de TM.
 La politica normal sigue siendo no versionar `backend/exitpoll.db`. En este
 cierre se incluye excepcionalmente por instruccion explicita del usuario, para
 transportar la carga local actual junto con el codigo y los artefactos TM 2025.
+
+## 2026-08-28 - Pendiente: auditoria legacy y auditoria nueva
+
+Queda como pendiente separar dos planos de evaluacion historica que hoy pueden
+mezclarse en las tarjetas:
+
+- Auditoria legacy: el semaforo historico existia operacionalmente y dependia de
+  numeracion interna por estudio mas tablas de conversion hacia centros CNE. La
+  auditoria por centro solo debe activarse donde ese mapping este recuperado,
+  trazado y sea confiable.
+- Auditoria nueva: debe evaluar cobertura efectiva de campo, recepcion por
+  centro/turno, estados inhospitos con informacion insuficiente y suficiencia
+  minima antes de calcular metricas estadisticas o diagnosticos territoriales.
+
+Si falta la conversion interna-CNE o la recepcion es insuficiente, el estudio se
+mantiene como evidencia agregada o parcial. No se debe interpretar la ausencia
+de mapping como falla del selector legacy ni reconstruir semaforos individuales
+sin evidencia documental.

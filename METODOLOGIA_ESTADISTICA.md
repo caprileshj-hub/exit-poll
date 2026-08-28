@@ -675,6 +675,14 @@ y el analista IA lo aplica en tiempo real durante la jornada electoral.
 - [ ] Calcular RMSE estadal para el estudio 2008-gobernadores (24 estados con datos oficiales)
 - [ ] Registrar tasas de no-respuesta históricas para activar el flag `SESGO_NO_RESPUESTA_NO_CUANTIFICADO` en los estudios pasados
 - [ ] Agregar columna `centros_planificados` en `notas` JSON de cada estudio para calcular tasa real de no-reporte a nivel de centro
+- [ ] Recuperar la auditoria legacy por centro cuando exista evidencia:
+  numeracion interna del estudio, tabla de conversion a `codigo_centro` CNE y
+  trazabilidad de semaforo/cortes. Hasta entonces, no reconstruir semaforos por
+  centro de forma artificial.
+- [ ] Definir la auditoria nueva como capa separada: evaluar cobertura efectiva,
+  suficiencia de campo, estados inhospitos con recepcion parcial y calidad de
+  datos recibidos antes de calcular RMSE, DEFF, sesgo territorial o conclusiones
+  por centro.
 - [ ] Agregar flag `SESGO_ENCUESTADOR_POSIBLE` al analista IA cuando la autocorrelación de la serie de turnos supera umbral (serie demasiado suave para datos de campo)
 - [ ] Análisis de redondeo: histograma de `pct_gov` por turno para detectar acumulación en múltiplos de 5 — indicador de redondeo selectivo por coordinador de estado
 - [ ] Calibrar ICC_REF=0.04 con datos reales de la muestra (cuando estén disponibles encuestas con datos de varianza intraclúster)
